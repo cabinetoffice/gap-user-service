@@ -1,0 +1,45 @@
+name: Java CI with Maven
+
+on:
+  push:
+    branches:
+      - feature/**
+      - bug/**
+      - FGP-**
+  pull_request:
+    branches:
+      - feature/**
+      - bug/**
+      - FGP-**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: maven
+      - name: Build with Maven
+        run: mvn -B package --file pom.xml
+
+      - name: DependencyCheck
+        uses: dependency-check/Dependency-Check_Action@main
+        env:
+          JAVA_HOME: /opt/jdk
+        id: DependencyCheck
+        with:
+          project: "GAP-user-service"
+          path: "."
+          format: "HTML"
+          args: >
+            --enableRetired
+      - name: Upload Test results
+        uses: actions/upload-artifact@master
+        with:
+          name: DependencyCheck report
+          path: ${{github.workspace}}/reports
