@@ -1,0 +1,28 @@
+version: "3.9"
+services:
+  database:
+    container_name: pg-gap-users
+    image: postgres
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: gapuserlocaldb
+    ports:
+      - "5433:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+  pgadmin:
+    container_name: pgadmin4-gap-users
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@email.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - "5051:80"
+    volumes:
+      - pgAdmin-data:/var/lib/pgadmin
+    depends_on:
+      - database
+volumes:
+  db-data:
+  pgAdmin-data:
