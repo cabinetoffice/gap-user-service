@@ -15,4 +15,18 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "authentication-provider")
 public class ThirdPartyAuthProviderProperties {
     private String url;
+
+    private String secretKey;
+
+    private String accessKey;
+
+    private String region;
+
+    private String userPoolId;
+
+    private String userPassword;
+
+    private String domain;
+
+    private String appClientId;
 }
