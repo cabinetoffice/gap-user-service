@@ -1,4 +1,5 @@
 version: "3.9"
+name: user-service
 services:
   database:
     container_name: pg-gap-users
@@ -10,7 +11,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - db-data-user:/var/lib/postgresql/data
   pgadmin:
     container_name: pgadmin4-gap-users
     image: dpage/pgadmin4
@@ -20,9 +21,9 @@ services:
     ports:
       - "5051:80"
     volumes:
-      - pgAdmin-data:/var/lib/pgadmin
+      - pgAdmin-data-user:/var/lib/pgadmin
     depends_on:
       - database
 volumes:
-  db-data:
-  pgAdmin-data:
+  db-data-user:
+  pgAdmin-data-user:
