@@ -29,4 +29,6 @@ public class ThirdPartyAuthProviderProperties {
     private String domain;
 
     private String appClientId;
+
+    private String secretCookieKey;
 }

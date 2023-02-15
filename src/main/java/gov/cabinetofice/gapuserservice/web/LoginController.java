@@ -1,7 +1,6 @@
 package gov.cabinetofice.gapuserservice.web;
 
 import com.auth0.jwk.JwkException;
-import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.service.ThirdPartyJwtService;
 import jakarta.servlet.http.Cookie;
@@ -32,8 +31,7 @@ public class LoginController {
         if (jwt == null) return redirectToThirdParty();
 
         // TODO currently validating against the third party. When we switch to using custom JWTs, we'll want to validate against our own definition instead
-        final DecodedJWT decodedJwt = thirdPartyJwtService.decodedJwt(jwt);
-        final boolean isJwtValid = thirdPartyJwtService.verifyToken(decodedJwt);
+        final boolean isJwtValid = thirdPartyJwtService.verifyToken(jwt);
         if (!isJwtValid) return redirectToThirdParty();
 
         return new RedirectView("/redirect-after-login");
@@ -41,7 +39,7 @@ public class LoginController {
 
     @GetMapping("/redirect-after-login")
     public void getToken(@CookieValue(name = "redirectUrl", required = false) String redirectUrl, HttpServletResponse response) throws IOException {
-        // TODO probably want to validate the third party JWT here once we use custom JWTs
+        // TODO we'll want to validate the third party JWT here once we use custom JWTs
         response.sendRedirect(redirectUrl);
     }
 
