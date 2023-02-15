@@ -27,13 +27,17 @@ import static org.apache.commons.codec.digest.DigestUtils.sha1Hex;
 @RequiredArgsConstructor
 @Service
 @Slf4j
-public class ColaJwtService implements ThirdPartyJwtService {
+public class ColaJwtServiceImpl implements ThirdPartyJwtService {
     private final ThirdPartyAuthProviderProperties thirdPartyAuthProviderProperties;
 
     @Override
     public boolean verifyToken(final String colaJwt) {
         // Decodes the UTF-8 encoding and removes the prepended "s:"
         final String jwt = new String(colaJwt.getBytes(StandardCharsets.UTF_8)).substring(2);
+        if(!isValidColaSignature(jwt)) {
+            return false;
+        }
+
         final DecodedJWT decodedJWT = decodeJwt(jwt);
         if (isTokenExpired(decodedJWT)) {
             return false;
@@ -45,7 +49,7 @@ public class ColaJwtService implements ThirdPartyJwtService {
             throw new JwkNotValidTokenException("Third party token is not valid");
         }
 
-        return isValidColaSignature(jwt) && isValidJwtSignature(decodedJWT);
+        return isValidJwtSignature(decodedJWT);
     }
 
     private DecodedJWT decodeJwt(final String colaJwt) {
