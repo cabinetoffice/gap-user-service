@@ -1,6 +1,5 @@
 package gov.cabinetofice.gapuserservice.web;
 
-import com.auth0.jwk.JwkException;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.service.ThirdPartyJwtService;
 import jakarta.servlet.http.Cookie;
@@ -12,8 +11,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.view.RedirectView;
 
-import java.io.IOException;
-
 @RequiredArgsConstructor
 @Controller
 public class LoginController {
@@ -24,8 +21,7 @@ public class LoginController {
     @GetMapping("/login")
     public RedirectView login(final @CookieValue(name = "find-grants-test", required = false) String jwt,
                               final @RequestParam String redirectUrl,
-                              final HttpServletResponse response)
-            throws JwkException {
+                              final HttpServletResponse response) {
         response.addCookie(new Cookie("redirectUrl", redirectUrl));
 
         if (jwt == null) return redirectToThirdParty();
@@ -38,9 +34,9 @@ public class LoginController {
     }
 
     @GetMapping("/redirect-after-login")
-    public void getToken(@CookieValue(name = "redirectUrl", required = false) String redirectUrl, HttpServletResponse response) throws IOException {
+    public RedirectView redirectOnLogin(@CookieValue(name = "redirectUrl") String redirectUrl) {
         // TODO we'll want to validate the third party JWT here once we use custom JWTs
-        response.sendRedirect(redirectUrl);
+        return new RedirectView(redirectUrl);
     }
 
     private RedirectView redirectToThirdParty() {
