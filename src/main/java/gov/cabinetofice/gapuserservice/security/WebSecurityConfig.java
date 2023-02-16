@@ -45,7 +45,7 @@ public class WebSecurityConfig {
                 "/swagger-resources/**",
                 "/swagger-ui.html",
                 "/webjars/**",
-                "/health2",
+                "/health",
                 "/login");
     }
 
