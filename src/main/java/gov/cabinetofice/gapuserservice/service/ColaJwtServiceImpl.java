@@ -17,12 +17,11 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.Calendar;
-
-import static org.apache.commons.codec.digest.DigestUtils.sha1Hex;
 
 @RequiredArgsConstructor
 @Service
@@ -40,7 +39,7 @@ public class ColaJwtServiceImpl implements ThirdPartyJwtService {
         }
 
         final DecodedJWT decodedJWT = decodeJwt(jwt);
-        if(isValidJwtSignature(decodedJWT)) {
+        if(!isValidJwtSignature(decodedJWT)) {
             log.error("JWTs signature is invalid");
             return false;
         }
@@ -82,12 +81,12 @@ public class ColaJwtServiceImpl implements ThirdPartyJwtService {
 
     private boolean isValidColaSignature(final String jwt) {
         final String jwtWithoutSignature = jwt.substring(0, jwt.lastIndexOf('.'));
-        final String hash = sha256(jwtWithoutSignature);
-        final String hashedJwt = jwtWithoutSignature + "." + hash.replace("=", "");
-        return sha1Hex(hashedJwt).equals(sha1Hex(jwt));
+        final String signature = jwt.substring(jwt.lastIndexOf('.') + 1);
+        final String hash = getBase64Sha256Hmac(jwtWithoutSignature).replace("=", "");
+        return MessageDigest.isEqual(signature.getBytes(), hash.getBytes());
     }
 
-    private String sha256(final String value) {
+    private String getBase64Sha256Hmac(final String value) {
         final Mac sha256_HMAC = getSha256Mac();
         final byte[] hashBytes = sha256_HMAC.doFinal(value.getBytes(StandardCharsets.UTF_8));
         return Base64.getEncoder().encodeToString(hashBytes);
