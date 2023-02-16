@@ -35,10 +35,16 @@ public class ColaJwtServiceImpl implements ThirdPartyJwtService {
         // Decodes the UTF-8 encoding and removes the prepended "s:"
         final String jwt = new String(colaJwt.getBytes(StandardCharsets.UTF_8)).substring(2);
         if(!isValidColaSignature(jwt)) {
+            log.error("COLAs JWT signature is invalid");
             return false;
         }
 
         final DecodedJWT decodedJWT = decodeJwt(jwt);
+        if(isValidJwtSignature(decodedJWT)) {
+            log.error("JWTs signature is invalid");
+            return false;
+        }
+
         if (isTokenExpired(decodedJWT)) {
             return false;
         }
@@ -49,13 +55,17 @@ public class ColaJwtServiceImpl implements ThirdPartyJwtService {
             throw new JwkNotValidTokenException("Third party token is not valid");
         }
 
-        return isValidJwtSignature(decodedJWT);
+        return true;
     }
 
     private DecodedJWT decodeJwt(final String colaJwt) {
         // Strips away the 4th part of COLAs JWT: COLAs signature
         final String jwt = colaJwt.substring(0, colaJwt.lastIndexOf('.'));
         return JWT.decode(jwt);
+    }
+
+    private boolean isTokenExpired(DecodedJWT jwt) {
+        return jwt.getExpiresAt().before(Calendar.getInstance().getTime());
     }
 
     private boolean isValidJwtSignature(final DecodedJWT decodedJWT) {
@@ -99,13 +109,9 @@ public class ColaJwtServiceImpl implements ThirdPartyJwtService {
             final String secretKey = thirdPartyAuthProviderProperties.getSecretCookieKey();
             final SecretKeySpec secret_key = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
             mac.init(secret_key);
-        } catch (InvalidKeyException e) {
+        } catch (IllegalArgumentException | InvalidKeyException | NullPointerException e) {
             log.error("Invalid secret COLA cookie key provided");
             throw new RuntimeException(e);
         }
-    }
-
-    private boolean isTokenExpired(DecodedJWT jwt) {
-        return jwt.getExpiresAt().before(Calendar.getInstance().getTime());
     }
 }
