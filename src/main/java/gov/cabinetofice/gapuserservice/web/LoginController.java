@@ -27,7 +27,7 @@ public class LoginController {
         if (jwt == null) return redirectToThirdParty();
 
         // TODO currently validating against the third party. When we switch to using custom JWTs, we'll want to validate against our own definition instead
-        final boolean isJwtValid = thirdPartyJwtService.verifyToken(jwt);
+        final boolean isJwtValid = thirdPartyJwtService.isTokenValid(jwt);
         if (!isJwtValid) return redirectToThirdParty();
 
         return new RedirectView("/redirect-after-login");

@@ -55,12 +55,12 @@ class LoginControllerTest {
         final String redirectUrl = "https://www.find-government-grants.service.gov.uk/";
         final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
 
-        when(thirdPartyJwtService.verifyToken(invalidOrExpiredToken)).thenReturn(false);
+        when(thirdPartyJwtService.isTokenValid(invalidOrExpiredToken)).thenReturn(false);
 
         final RedirectView methodeResponse = controllerUnderTest.login(invalidOrExpiredToken, redirectUrl, response);
 
         verify(response).addCookie(new Cookie("redirectUrl", redirectUrl));
-        verify(thirdPartyJwtService).verifyToken(invalidOrExpiredToken);
+        verify(thirdPartyJwtService).isTokenValid(invalidOrExpiredToken);
         assertThat(methodeResponse.getUrl()).isEqualTo(authenticationProviderUrl);
     }
 
@@ -71,12 +71,12 @@ class LoginControllerTest {
         final String redirectUrl = "https://www.find-government-grants.service.gov.uk/";
         final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
 
-        when(thirdPartyJwtService.verifyToken(validToken)).thenReturn(true);
+        when(thirdPartyJwtService.isTokenValid(validToken)).thenReturn(true);
 
         final RedirectView methodeResponse = controllerUnderTest.login(validToken, redirectUrl, response);
 
         verify(response).addCookie(new Cookie("redirectUrl", redirectUrl));
-        verify(thirdPartyJwtService).verifyToken(validToken);
+        verify(thirdPartyJwtService).isTokenValid(validToken);
         assertThat(methodeResponse.getUrl()).isEqualTo(successfulRedirectUrl);
     }
 
