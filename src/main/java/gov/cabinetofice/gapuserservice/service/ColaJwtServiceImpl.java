@@ -3,7 +3,6 @@ package gov.cabinetofice.gapuserservice.service;
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkException;
 import com.auth0.jwk.JwkProvider;
-import com.auth0.jwk.UrlJwkProvider;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
@@ -11,19 +10,14 @@ import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.exceptions.JwkNotValidTokenException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.Calendar;
-import java.util.function.Supplier;
 
 @RequiredArgsConstructor
 @Service
@@ -36,8 +30,7 @@ public class ColaJwtServiceImpl implements ThirdPartyJwtService {
     @Override
     public boolean verifyToken(final String colaJwt) {
         // Decodes the UTF-8 encoding and removes the prepended "s:"
-        final String jwt = colaJwt.getBytes(StandardCharsets.UTF_8)
-                .toString()
+        final String jwt = new String(colaJwt.getBytes(StandardCharsets.UTF_8))
                 .substring(2);
 
         if (!isValidColaSignature(jwt)) {
