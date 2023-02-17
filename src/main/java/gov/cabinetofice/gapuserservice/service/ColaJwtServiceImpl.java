@@ -5,6 +5,7 @@ import com.auth0.jwk.JwkException;
 import com.auth0.jwk.JwkProvider;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.SignatureVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.exceptions.JwkNotValidTokenException;
@@ -72,7 +73,8 @@ public class ColaJwtServiceImpl implements ThirdPartyJwtService {
             final Jwk jwk = jwkProvider.get(decodedJWT.getKeyId());
             final Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
             algorithm.verify(decodedJWT);
-        } catch (JwkException ignored) {
+        } catch (JwkException | SignatureVerificationException e) {
+            log.error("An error occurred while verifying JWT signature", e);
             return false;
         }
         return true;

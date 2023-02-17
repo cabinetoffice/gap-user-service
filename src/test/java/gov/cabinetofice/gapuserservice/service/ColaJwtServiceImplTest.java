@@ -8,21 +8,31 @@ import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkException;
 import com.auth0.jwk.JwkProvider;
 import com.auth0.jwt.JWT;
+import static com.auth0.jwt.JWT.decode;
 import com.auth0.jwt.algorithms.Algorithm;
+import static com.auth0.jwt.algorithms.Algorithm.RSA256;
+import com.auth0.jwt.exceptions.JWTDecodeException;
+import com.auth0.jwt.exceptions.SignatureVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.exceptions.JwkNotValidTokenException;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
+import static java.time.Instant.now;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import static org.mockito.ArgumentMatchers.anyString;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import static org.mockito.Mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.LoggerFactory;
 
@@ -32,15 +42,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Stream;
-
-import static com.auth0.jwt.JWT.decode;
-import static com.auth0.jwt.algorithms.Algorithm.RSA256;
-import static java.time.Instant.now;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class ColaJwtServiceImplTest {
@@ -171,17 +172,82 @@ public class ColaJwtServiceImplTest {
     }
 
     @Test
-    void verifyToken_InvalidJwtDecoding() {
+    void verifyToken_ThrowsJwtDecodeException_ifTokenCannotBeDecoded() {
 
+        final Date expiresAt = Date.from(now().minus(1, ChronoUnit.DAYS));
+        final String jwt = generateJwt(Jwts.builder()
+                .setExpiration(expiresAt));
+
+        when(mac.doFinal(any())).thenReturn("colaSignature".getBytes());
+
+        try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
+            staticJwt.when(() -> decode(any())).thenThrow(JWTDecodeException.class);
+
+            assertThrows(JWTDecodeException.class,
+                    () -> serviceUnderTest.verifyToken(jwt));
+        }
     }
 
     @Test
-    void verifyToken_InvalidJwtSignature() {
+    void verifyToken_ReturnsFalse_IfJwtSignatureIsInvalid() throws JwkException {
+        final Date expiresAt = Date.from(now().minus(1, ChronoUnit.DAYS));
+        final String jwt = generateJwt(Jwts.builder()
+                .setExpiration(expiresAt));
 
+        when(mac.doFinal(any())).thenReturn("colaSignature".getBytes());
+        final Jwk jwk = mock(Jwk.class);
+
+        when(jwkProvider.get(anyString())).thenReturn(jwk);
+        when(jwk.getPublicKey()).thenReturn(null);
+
+        try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
+            try (MockedStatic<Algorithm> staticAlgorithm = Mockito.mockStatic(Algorithm.class)) {
+                final Algorithm algorithm = mock(Algorithm.class);
+                staticAlgorithm.when(() -> RSA256(any(), eq(null))).thenReturn(algorithm);
+
+                final DecodedJWT testDecodedJwt = Mockito.spy(TestDecodedJwt.builder().keyId("signingKey").expiresAt(expiresAt).build());
+                staticJwt.when(() -> decode(anyString())).thenReturn(testDecodedJwt);
+
+                doThrow(SignatureVerificationException.class).when(algorithm).verify(testDecodedJwt);
+
+                final boolean methodResponse = serviceUnderTest.verifyToken(jwt);
+
+                verify(algorithm).verify(testDecodedJwt);
+                assertThat(methodResponse).isFalse();
+            }
+        }
     }
 
     @Test
-    void verifyToken_HappyPath() {
+    void verifyToken_ReturnsTrue_IfTokenIsValid() throws JwkException {
+        final Date expiresAt = Date.from(now().plus(1, ChronoUnit.DAYS));
+        final String jwt = generateJwt(Jwts.builder()
+                .setIssuer("domain")
+                .setExpiration(expiresAt));
 
+        when(mac.doFinal(any())).thenReturn("colaSignature".getBytes());
+        final Jwk jwk = mock(Jwk.class);
+        when(jwkProvider.get(anyString())).thenReturn(jwk);
+        when(jwk.getPublicKey()).thenReturn(null);
+
+        try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
+            try (MockedStatic<Algorithm> staticAlgorithm = Mockito.mockStatic(Algorithm.class)) {
+                final Algorithm algorithm = mock(Algorithm.class);
+                staticAlgorithm.when(() -> RSA256(any(), eq(null))).thenReturn(algorithm);
+
+                final DecodedJWT testDecodedJwt = Mockito.spy(TestDecodedJwt.builder()
+                        .keyId("signingKey")
+                        .expiresAt(expiresAt)
+                        .issuer("domain")
+                        .audience(List.of("appClientId"))
+                        .build());
+
+                staticJwt.when(() -> decode(anyString())).thenReturn(testDecodedJwt);
+
+                final boolean methodResponse = serviceUnderTest.verifyToken(jwt);
+
+                assertThat(methodResponse).isTrue();
+            }
+        }
     }
 }
