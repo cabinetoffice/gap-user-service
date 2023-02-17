@@ -11,6 +11,7 @@ import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.exceptions.JwkNotValidTokenException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.Mac;
@@ -22,24 +23,30 @@ import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
 import java.util.Calendar;
+import java.util.function.Supplier;
 
 @RequiredArgsConstructor
 @Service
 @Slf4j
 public class ColaJwtServiceImpl implements ThirdPartyJwtService {
     private final ThirdPartyAuthProviderProperties thirdPartyAuthProviderProperties;
+    private final JwkProvider jwkProvider;
+    private final Mac sha256HMac;
 
     @Override
     public boolean verifyToken(final String colaJwt) {
         // Decodes the UTF-8 encoding and removes the prepended "s:"
-        final String jwt = new String(colaJwt.getBytes(StandardCharsets.UTF_8)).substring(2);
-        if(!isValidColaSignature(jwt)) {
+        final String jwt = colaJwt.getBytes(StandardCharsets.UTF_8)
+                .toString()
+                .substring(2);
+
+        if (!isValidColaSignature(jwt)) {
             log.error("COLAs JWT signature is invalid");
             return false;
         }
 
         final DecodedJWT decodedJWT = decodeJwt(jwt);
-        if(!isValidJwtSignature(decodedJWT)) {
+        if (!isValidJwtSignature(decodedJWT)) {
             log.error("JWTs signature is invalid");
             return false;
         }
@@ -69,8 +76,7 @@ public class ColaJwtServiceImpl implements ThirdPartyJwtService {
 
     private boolean isValidJwtSignature(final DecodedJWT decodedJWT) {
         try {
-            final JwkProvider provider = new UrlJwkProvider(thirdPartyAuthProviderProperties.getDomain());
-            final Jwk jwk = provider.get(decodedJWT.getKeyId());
+            final Jwk jwk = jwkProvider.get(decodedJWT.getKeyId());
             final Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
             algorithm.verify(decodedJWT);
         } catch (JwkException ignored) {
@@ -87,30 +93,7 @@ public class ColaJwtServiceImpl implements ThirdPartyJwtService {
     }
 
     private String getBase64Sha256Hmac(final String value) {
-        final Mac sha256_HMAC = getSha256Mac();
-        final byte[] hashBytes = sha256_HMAC.doFinal(value.getBytes(StandardCharsets.UTF_8));
+        final byte[] hashBytes = sha256HMac.doFinal(value.getBytes(StandardCharsets.UTF_8));
         return Base64.getEncoder().encodeToString(hashBytes);
-    }
-
-    private Mac getSha256Mac() {
-        try {
-            final Mac mac = Mac.getInstance("HmacSHA256");
-            addSecretKeyToMac(mac);
-            return mac;
-        } catch (NoSuchAlgorithmException e) {
-            log.error("Invalid COLA hashing algorithm used");
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void addSecretKeyToMac(final Mac mac) {
-        try {
-            final String secretKey = thirdPartyAuthProviderProperties.getSecretCookieKey();
-            final SecretKeySpec secret_key = new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-            mac.init(secret_key);
-        } catch (IllegalArgumentException | InvalidKeyException | NullPointerException e) {
-            log.error("Invalid secret COLA cookie key provided");
-            throw new RuntimeException(e);
-        }
     }
 }
