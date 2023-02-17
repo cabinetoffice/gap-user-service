@@ -26,10 +26,11 @@ public class BeanConfig {
 
     @Bean
     public Mac getSha256Hmac() throws NoSuchAlgorithmException, InvalidKeyException {
-        final Mac mac = Mac.getInstance(HmacAlgorithms.HMAC_SHA_256.getName());
+        final String algorithm = HmacAlgorithms.HMAC_SHA_256.getName();
+        final Mac mac = Mac.getInstance(algorithm);
         final SecretKeySpec secret_key = new SecretKeySpec(
                 thirdPartyAuthProviderProperties.getSecretCookieKey().getBytes(StandardCharsets.UTF_8),
-                HmacAlgorithms.HMAC_SHA_256.getName()
+                algorithm
         );
         mac.init(secret_key);
         return mac;
