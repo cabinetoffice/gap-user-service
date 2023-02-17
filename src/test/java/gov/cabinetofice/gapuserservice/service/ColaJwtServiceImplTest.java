@@ -97,7 +97,7 @@ public class ColaJwtServiceImplTest {
 
                 staticJwt.when(() -> decode(anyString())).thenReturn(testDecodedJwt);
 
-                final boolean methodResponse = serviceUnderTest.verifyToken(jwt);
+                final boolean methodResponse = serviceUnderTest.isTokenValid(jwt);
 
                 verify(testDecodedJwt, times(1)).getExpiresAt();
                 assertThat(methodResponse).isFalse();
@@ -143,7 +143,7 @@ public class ColaJwtServiceImplTest {
                 staticJwt.when(() -> decode(anyString())).thenReturn(testDecodedJwt);
 
                 final JwkNotValidTokenException response = assertThrows(JwkNotValidTokenException.class,
-                        () -> serviceUnderTest.verifyToken(jwt));
+                        () -> serviceUnderTest.isTokenValid(jwt));
                 assertThat(response.getMessage()).isEqualTo("Third party token is not valid");
             }
         }
@@ -161,7 +161,7 @@ public class ColaJwtServiceImplTest {
 
         when(mac.doFinal(any())).thenReturn(INVALID_COLA_SIGNATURE.getBytes());
 
-        final boolean methodResponse = serviceUnderTest.verifyToken(jwt);
+        final boolean methodResponse = serviceUnderTest.isTokenValid(jwt);
 
         verify(mac, times(1)).doFinal(jwtBuilder.compact().getBytes(StandardCharsets.UTF_8));
         assertThat(methodResponse).isFalse();
@@ -184,7 +184,7 @@ public class ColaJwtServiceImplTest {
             staticJwt.when(() -> decode(any())).thenThrow(JWTDecodeException.class);
 
             assertThrows(JWTDecodeException.class,
-                    () -> serviceUnderTest.verifyToken(jwt));
+                    () -> serviceUnderTest.isTokenValid(jwt));
         }
     }
 
@@ -210,7 +210,7 @@ public class ColaJwtServiceImplTest {
 
                 doThrow(SignatureVerificationException.class).when(algorithm).verify(testDecodedJwt);
 
-                final boolean methodResponse = serviceUnderTest.verifyToken(jwt);
+                final boolean methodResponse = serviceUnderTest.isTokenValid(jwt);
 
                 verify(algorithm).verify(testDecodedJwt);
                 assertThat(methodResponse).isFalse();
@@ -244,7 +244,7 @@ public class ColaJwtServiceImplTest {
 
                 staticJwt.when(() -> decode(anyString())).thenReturn(testDecodedJwt);
 
-                final boolean methodResponse = serviceUnderTest.verifyToken(jwt);
+                final boolean methodResponse = serviceUnderTest.isTokenValid(jwt);
 
                 assertThat(methodResponse).isTrue();
             }

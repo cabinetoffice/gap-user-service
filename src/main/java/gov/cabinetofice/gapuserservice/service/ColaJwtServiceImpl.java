@@ -29,7 +29,7 @@ public class ColaJwtServiceImpl implements ThirdPartyJwtService {
     private final Mac sha256HMac;
 
     @Override
-    public boolean verifyToken(final String colaJwt) {
+    public boolean isTokenValid(final String colaJwt) {
         // Decodes the UTF-8 encoding and removes the prepended "s:"
         final String jwt = new String(colaJwt.getBytes(StandardCharsets.UTF_8))
                 .substring(2);
