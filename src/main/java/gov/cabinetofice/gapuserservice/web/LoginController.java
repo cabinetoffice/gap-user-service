@@ -18,9 +18,10 @@ public class LoginController {
     private final ThirdPartyAuthProviderProperties authenticationProvider;
     private final ThirdPartyJwtService colaJwtService;
     private static final String REDIRECT_URL_COOKIE = "redirectUrl";
+    private static final String COLA_COOKIE_NAME = "find-grants-test";
 
     @GetMapping("/login")
-    public RedirectView login(final @CookieValue(name = "find-grants-test", required = false) String jwt,
+    public RedirectView login(final @CookieValue(name = COLA_COOKIE_NAME, required = false) String jwt,
                               final @RequestParam String redirectUrl,
                               final HttpServletResponse response) {
         response.addCookie(new Cookie(REDIRECT_URL_COOKIE, redirectUrl));
