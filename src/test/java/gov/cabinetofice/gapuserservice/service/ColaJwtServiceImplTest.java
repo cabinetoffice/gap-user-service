@@ -14,6 +14,7 @@ import com.auth0.jwt.exceptions.SignatureVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.exceptions.JwkNotValidTokenException;
+import gov.cabinetofice.gapuserservice.service.jwt.impl.ColaJwtServiceImpl;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.BeforeEach;
