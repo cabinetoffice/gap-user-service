@@ -22,8 +22,8 @@ public class LoginController {
     private final ThirdPartyAuthProviderProperties authenticationProvider;
     private final ColaJwtServiceImpl colaJwtService;
     private final CustomJwtServiceImpl customJwtService;
-    private static final String REDIRECT_URL_COOKIE = "redirectUrl";
-    private static final String COLA_COOKIE_NAME = "find-grants-test";
+    public static final String REDIRECT_URL_COOKIE = "redirectUrl";
+    public static final String COLA_COOKIE_NAME = "find-grants-test";
     public static final String USER_SERVICE_COOKIE_NAME = "user-service-token";
 
     @GetMapping("/login")
