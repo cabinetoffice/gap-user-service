@@ -1,4 +1,4 @@
-package gov.cabinetofice.gapuserservice.service;
+package gov.cabinetofice.gapuserservice.service.jwt;
 
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;

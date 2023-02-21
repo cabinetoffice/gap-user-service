@@ -12,6 +12,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Calendar;
 
 @RequiredArgsConstructor
 @Configuration
@@ -34,5 +35,10 @@ public class BeanConfig {
         );
         mac.init(secret_key);
         return mac;
+    }
+
+    @Bean
+    public Calendar getCalendar() {
+        return Calendar.getInstance();
     }
 }

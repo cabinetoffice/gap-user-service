@@ -42,7 +42,7 @@ public class LoginController {
             }
 
             final DecodedJWT decodedColaJwt = colaJwtService.decodeJwt(colaJwt);
-            final String generatedToken = customJwtService.generateTokenFromCOLAToken(decodedColaJwt);
+            final String generatedToken = customJwtService.generateToken(decodedColaJwt);
             response.addCookie(new Cookie(USER_SERVICE_COOKIE_NAME, generatedToken));
         }
 

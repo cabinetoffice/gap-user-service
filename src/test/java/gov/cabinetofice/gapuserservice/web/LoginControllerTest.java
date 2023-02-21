@@ -1,7 +1,7 @@
 package gov.cabinetofice.gapuserservice.web;
 
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
-import gov.cabinetofice.gapuserservice.service.TestDecodedJwt;
+import gov.cabinetofice.gapuserservice.service.jwt.TestDecodedJwt;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.ColaJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import jakarta.servlet.http.Cookie;
@@ -121,7 +121,7 @@ class LoginControllerTest {
                         .thenReturn(true);
                 when(thirdPartyJwtService.decodeJwt(colaToken))
                         .thenReturn(decodedColaToken);
-                when(customJwtService.generateTokenFromCOLAToken(decodedColaToken))
+                when(customJwtService.generateToken(decodedColaToken))
                         .thenReturn(customToken);
 
 
@@ -130,7 +130,7 @@ class LoginControllerTest {
 
                 verify(response, atLeastOnce()).addCookie(new Cookie("redirectUrl", redirectUrl));
                 verify(thirdPartyJwtService).decodeJwt(colaToken);
-                verify(customJwtService).generateTokenFromCOLAToken(decodedColaToken);
+                verify(customJwtService).generateToken(decodedColaToken);
                 verify(response, atLeastOnce()).addCookie(new Cookie(LoginController.USER_SERVICE_COOKIE_NAME, customToken));
                 assertThat(methodeResponse.getUrl()).isEqualTo(successfulRedirectUrl);
             }
@@ -148,7 +148,7 @@ class LoginControllerTest {
                         .thenReturn(true);
                 when(thirdPartyJwtService.decodeJwt(colaToken))
                         .thenReturn(decodedColaToken);
-                when(customJwtService.generateTokenFromCOLAToken(decodedColaToken))
+                when(customJwtService.generateToken(decodedColaToken))
                         .thenReturn(customToken);
                 when(customJwtService.isTokenValid(customToken))
                         .thenReturn(false);
@@ -159,7 +159,7 @@ class LoginControllerTest {
 
                 verify(response, atLeastOnce()).addCookie(new Cookie("redirectUrl", redirectUrl));
                 verify(thirdPartyJwtService).decodeJwt(colaToken);
-                verify(customJwtService).generateTokenFromCOLAToken(decodedColaToken);
+                verify(customJwtService).generateToken(decodedColaToken);
                 verify(response, atLeastOnce()).addCookie(new Cookie(LoginController.USER_SERVICE_COOKIE_NAME, customToken));
                 assertThat(methodeResponse.getUrl()).isEqualTo(successfulRedirectUrl);
             }
@@ -183,7 +183,7 @@ class LoginControllerTest {
 
                 verify(response).addCookie(new Cookie("redirectUrl", redirectUrl));
                 verify(thirdPartyJwtService, times(0)).decodeJwt(any());
-                verify(customJwtService, times(0)).generateTokenFromCOLAToken(any());
+                verify(customJwtService, times(0)).generateToken(any());
                 assertThat(methodeResponse.getUrl()).isEqualTo(successfulRedirectUrl);
             }
 
@@ -200,7 +200,7 @@ class LoginControllerTest {
 
                 verify(response).addCookie(new Cookie("redirectUrl", redirectUrl));
                 verify(thirdPartyJwtService, times(0)).decodeJwt(any());
-                verify(customJwtService, times(0)).generateTokenFromCOLAToken(any());
+                verify(customJwtService, times(0)).generateToken(any());
                 assertThat(methodeResponse.getUrl()).isEqualTo(successfulRedirectUrl);
             }
 
@@ -220,7 +220,7 @@ class LoginControllerTest {
 
                 verify(response).addCookie(new Cookie("redirectUrl", redirectUrl));
                 verify(thirdPartyJwtService, times(0)).decodeJwt(any());
-                verify(customJwtService, times(0)).generateTokenFromCOLAToken(any());
+                verify(customJwtService, times(0)).generateToken(any());
                 assertThat(methodeResponse.getUrl()).isEqualTo(successfulRedirectUrl);
             }
 

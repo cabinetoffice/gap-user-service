@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Calendar;
 import java.util.Date;
 
 @Service
@@ -19,20 +20,21 @@ import java.util.Date;
 public class CustomJwtServiceImpl implements JwtService {
 
     private final JwtProperties jwtProperties;
+    private final Calendar calendar;
 
     @Override
-    public boolean isTokenValid(String jwt) {
-        Algorithm signingKey = Algorithm.HMAC256(jwtProperties.getSigningKey());
+    public boolean isTokenValid(final String customJwt) {
+        final Algorithm signingKey = Algorithm.HMAC256(jwtProperties.getSigningKey());
 
         try {
             // by default this verifies JWT was signed by same key and is not expired
             // but we can add additional checks, such as must match specific issuer etc.
-            JWTVerifier verifier = JWT.require(signingKey)
+            final JWTVerifier verifier = JWT.require(signingKey)
                     .withIssuer(jwtProperties.getIssuer())
                     .withAudience(jwtProperties.getAudience())
                     .build();
 
-            verifier.verify(jwt);
+            verifier.verify(customJwt);
         } catch (JWTVerificationException exception){
             log.error("JWT verification failed", exception);
             return false;
@@ -41,8 +43,8 @@ public class CustomJwtServiceImpl implements JwtService {
         return true;
     }
 
-    public String generateTokenFromCOLAToken(DecodedJWT colaToken) {
-        // TODO look up user from database, or add additional details from COLA JWT if needed?
+    public String generateToken(final DecodedJWT thirdPartyToken) {
+        // TODO look up user from database, or add additional details from decoded JWT if needed?
 
         final Algorithm signingKey = Algorithm.HMAC256(jwtProperties.getSigningKey());
 
@@ -50,7 +52,7 @@ public class CustomJwtServiceImpl implements JwtService {
         return JWT.create()
                 .withIssuer(jwtProperties.getIssuer())
                 .withAudience(jwtProperties.getAudience())
-                .withExpiresAt(new Date(System.currentTimeMillis() + (jwtProperties.getExpiresAfter() * 1000 * 60)))
+                .withExpiresAt(new Date(calendar.getTimeInMillis() + (jwtProperties.getExpiresAfter() * 1000 * 60)))
                 .sign(signingKey);
     }
 }
