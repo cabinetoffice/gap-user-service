@@ -36,7 +36,7 @@ public class LoginController {
 
         if (!isTokenValid) {
             if (!isColaTokenValid) {
-                return redirectToThirdPartyAuthProvider();
+                return redirectToThirdParty();
             }
 
             final DecodedJWT decodedColaJwt = colaJwtService.decodeJwt(colaJwt);
@@ -61,7 +61,7 @@ public class LoginController {
         return new RedirectView(redirectUrl);
     }
 
-    private RedirectView redirectToThirdPartyAuthProvider() {
+    private RedirectView redirectToThirdParty() {
         return new RedirectView(authenticationProvider.getUrl()); //TODO make sure COLA's redirect URL points to the domain the user service sits on
     }
 }
