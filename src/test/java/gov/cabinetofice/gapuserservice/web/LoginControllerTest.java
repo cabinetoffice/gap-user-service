@@ -13,6 +13,8 @@ import org.mockito.Mockito;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.servlet.view.RedirectView;
 
@@ -87,5 +89,38 @@ class LoginControllerTest {
         final RedirectView methodeResponse = controllerUnderTest.redirectOnLogin(redirectUrl);
 
         assertThat(methodeResponse.getUrl()).isEqualTo(redirectUrl);
+    }
+
+    @Test
+    void validateUser_NullJwt() {
+        final ResponseEntity<String> response = controllerUnderTest.ValidateUser(null);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void validateUser_JwtNotValid() {
+        final String invalidOrExpiredToken = "an-invalid-or-expired-token";
+
+        //TODO change from thirdPartyJwtService to customJwtServiceImpl
+        when(thirdPartyJwtService.isTokenValid(invalidOrExpiredToken)).thenReturn(false);
+
+        final ResponseEntity<String> response = controllerUnderTest.ValidateUser(invalidOrExpiredToken);
+
+        verify(thirdPartyJwtService).isTokenValid(invalidOrExpiredToken);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void validateUser_JwtValid() {
+        final String validToken = "a-valid-token";
+
+        //TODO change from thirdPartyJwtService to customJwtServiceImpl
+        when(thirdPartyJwtService.isTokenValid(validToken)).thenReturn(true);
+
+        final ResponseEntity<String> response = controllerUnderTest.ValidateUser(validToken);
+
+        verify(thirdPartyJwtService).isTokenValid(validToken);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 }

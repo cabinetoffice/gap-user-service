@@ -5,6 +5,8 @@ import gov.cabinetofice.gapuserservice.service.ThirdPartyJwtService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,6 +21,7 @@ public class LoginController {
     private final ThirdPartyJwtService colaJwtService;
     private static final String REDIRECT_URL_COOKIE = "redirectUrl";
     private static final String COLA_COOKIE_NAME = "find-grants-test";
+    public static final String USER_SERVICE_COOKIE_NAME = "user-service-token";
 
     @GetMapping("/login")
     public RedirectView login(final @CookieValue(name = COLA_COOKIE_NAME, required = false) String jwt,
@@ -43,5 +46,18 @@ public class LoginController {
 
     private RedirectView redirectToThirdParty() {
         return new RedirectView(authenticationProvider.getUrl()); //TODO make sure COLA's redirect URL points to the domain the user service sits on
+    }
+
+    @GetMapping("/validate-user")
+    public ResponseEntity<String> ValidateUser(final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false ) String jwt) {
+        if(jwt == null)
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+
+        //TODO change from colaJwtService to CustomJwtServiceImpl
+        final boolean isJwtValid = colaJwtService.isTokenValid(jwt);
+        if(!isJwtValid)
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+
+        return ResponseEntity.ok("Ok");
     }
 }
