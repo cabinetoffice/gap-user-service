@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.view.RedirectView;
 
+import java.util.function.Supplier;
+
 @RequiredArgsConstructor
 @Controller
 public class LoginController {
@@ -20,8 +22,8 @@ public class LoginController {
     private final ThirdPartyAuthProviderProperties authenticationProvider;
     private final ColaJwtServiceImpl colaJwtService;
     private final CustomJwtServiceImpl customJwtService;
-    private static final String REDIRECT_URL_COOKIE = "redirectUrl";
-    private static final String COLA_COOKIE_NAME = "find-grants-test";
+    public static final String REDIRECT_URL_COOKIE = "redirectUrl";
+    public static final String COLA_COOKIE_NAME = "find-grants-test";
     public static final String USER_SERVICE_COOKIE_NAME = "user-service-token";
 
     @GetMapping("/login")
@@ -31,8 +33,8 @@ public class LoginController {
                               final HttpServletResponse response) {
         response.addCookie(new Cookie(REDIRECT_URL_COOKIE, redirectUrl));
 
-        final boolean isTokenValid = isTokenValid(jwt);
-        final boolean isColaTokenValid = isColaTokenValid(colaJwt);
+        final boolean isTokenValid = isTokenValid(jwt, () -> customJwtService.isTokenValid(jwt));
+        final boolean isColaTokenValid = isTokenValid(colaJwt, () -> colaJwtService.isTokenValid(colaJwt));
 
         if (!isTokenValid) {
             if (!isColaTokenValid) {
@@ -47,12 +49,8 @@ public class LoginController {
         return new RedirectView("/redirect-after-login");
     }
 
-    private boolean isColaTokenValid(final String token) {
-        return token != null && colaJwtService.isTokenValid(token);
-    }
-
-    private boolean isTokenValid(final String token) {
-        return token != null && customJwtService.isTokenValid(token);
+    private boolean isTokenValid(final String token, final Supplier<Boolean> isTokenValidFunc) {
+        return token != null && isTokenValidFunc.get();
     }
 
     @GetMapping("/redirect-after-login")
