@@ -1,4 +1,4 @@
-package gov.cabinetofice.gapuserservice.service;
+package gov.cabinetofice.gapuserservice.service.jwt;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -14,6 +14,7 @@ import com.auth0.jwt.exceptions.SignatureVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.exceptions.JwkNotValidTokenException;
+import gov.cabinetofice.gapuserservice.service.TestDecodedJwt;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.ColaJwtServiceImpl;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
