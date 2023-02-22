@@ -50,7 +50,7 @@ public class LoginController {
 
     @GetMapping("/validate-user")
     public ResponseEntity ValidateUser(final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false ) String jwt) {
-        final boolean isJwtValid = jwt!= null ? colaJwtService.isTokenValid(jwt) : false ;
+        final boolean isJwtValid = jwt != null && colaJwtService.isTokenValid(jwt);
 
         //TODO change from colaJwtService to CustomJwtServiceImpl
         if(!isJwtValid)
