@@ -31,16 +31,12 @@ public class ColaJwtServiceImpl implements JwtService {
 
     @Override
     public boolean isTokenValid(final String colaJwt) {
-        // Decodes the UTF-8 encoding and removes the prepended "s:"
-        final String jwt = new String(colaJwt.getBytes(StandardCharsets.UTF_8))
-                .substring(2);
-
-        if (!isValidColaSignature(jwt)) {
+        if (!isValidColaSignature(colaJwt)) {
             log.error("COLAs JWT signature is invalid");
             return false;
         }
 
-        final DecodedJWT decodedJWT = decodeJwt(jwt);
+        final DecodedJWT decodedJWT = decodeJwt(colaJwt);
         if (!isValidJwtSignature(decodedJWT)) {
             log.error("JWTs signature is invalid");
             return false;

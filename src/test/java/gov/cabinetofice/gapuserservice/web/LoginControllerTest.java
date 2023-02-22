@@ -66,7 +66,7 @@ class LoginControllerTest {
                 when(thirdPartyJwtService.isTokenValid(colaToken))
                         .thenReturn(false);
 
-                final RedirectView methodeResponse = controllerUnderTest.login(null, colaToken, redirectUrl, response);
+                final RedirectView methodeResponse = controllerUnderTest.login(null, "s:" + colaToken, redirectUrl, response);
 
                 verify(response).addCookie(new Cookie("redirectUrl", redirectUrl));
                 assertThat(methodeResponse.getUrl()).isEqualTo(authenticationProviderUrl);
@@ -84,7 +84,7 @@ class LoginControllerTest {
                 when(customJwtService.isTokenValid(customToken))
                         .thenReturn(false);
 
-                final RedirectView methodeResponse = controllerUnderTest.login(customToken, colaToken, redirectUrl, response);
+                final RedirectView methodeResponse = controllerUnderTest.login(customToken, "s:" + colaToken, redirectUrl, response);
 
                 verify(response).addCookie(new Cookie("redirectUrl", redirectUrl));
                 assertThat(methodeResponse.getUrl()).isEqualTo(authenticationProviderUrl);
@@ -125,7 +125,7 @@ class LoginControllerTest {
                         .thenReturn(customToken);
 
 
-                final RedirectView methodeResponse = controllerUnderTest.login(null, colaToken, redirectUrl, response);
+                final RedirectView methodeResponse = controllerUnderTest.login(null, "s:" + colaToken, redirectUrl, response);
 
 
                 verify(response, atLeastOnce()).addCookie(new Cookie("redirectUrl", redirectUrl));
@@ -154,7 +154,7 @@ class LoginControllerTest {
                         .thenReturn(false);
 
 
-                final RedirectView methodeResponse = controllerUnderTest.login(customToken, colaToken, redirectUrl, response);
+                final RedirectView methodeResponse = controllerUnderTest.login(customToken, "s:" + colaToken, redirectUrl, response);
 
 
                 verify(response, atLeastOnce()).addCookie(new Cookie("redirectUrl", redirectUrl));
@@ -179,7 +179,7 @@ class LoginControllerTest {
                 when(customJwtService.isTokenValid(customToken))
                         .thenReturn(true);
 
-                final RedirectView methodeResponse = controllerUnderTest.login(customToken, colaToken, redirectUrl, response);
+                final RedirectView methodeResponse = controllerUnderTest.login(customToken, "s:" + colaToken, redirectUrl, response);
 
                 verify(response).addCookie(new Cookie("redirectUrl", redirectUrl));
                 verify(thirdPartyJwtService, times(0)).decodeJwt(any());
@@ -216,7 +216,7 @@ class LoginControllerTest {
                 when(customJwtService.isTokenValid(customToken))
                         .thenReturn(true);
 
-                final RedirectView methodeResponse = controllerUnderTest.login(customToken, colaToken, redirectUrl, response);
+                final RedirectView methodeResponse = controllerUnderTest.login(customToken, "s:" + colaToken, redirectUrl, response);
 
                 verify(response).addCookie(new Cookie("redirectUrl", redirectUrl));
                 verify(thirdPartyJwtService, times(0)).decodeJwt(any());
@@ -228,11 +228,20 @@ class LoginControllerTest {
     }
 
     @Test
-    void redirectOnLogin_RedirectsToProvidedLocation() {
+    void redirectAfterLoggedIn_RedirectsToProvidedLocation() {
         final String redirectUrl = "https://www.find-government-grants.service.gov.uk/";
 
-        final RedirectView methodeResponse = controllerUnderTest.redirectOnLogin(redirectUrl);
+        final RedirectView methodeResponse = controllerUnderTest.redirectAfterLoggedIn(redirectUrl);
 
         assertThat(methodeResponse.getUrl()).isEqualTo(redirectUrl);
+    }
+
+    @Test
+    void redirectAfterThirdPartyLogin_RedirectsToLoginEndpoint() {
+        final String redirectUrl = "https://www.find-government-grants.service.gov.uk/";
+
+        final RedirectView methodeResponse = controllerUnderTest.redirectAfterThirdPartyLogin(redirectUrl);
+
+        assertThat(methodeResponse.getUrl()).isEqualTo("/login?redirectUrl=" + redirectUrl);
     }
 }
