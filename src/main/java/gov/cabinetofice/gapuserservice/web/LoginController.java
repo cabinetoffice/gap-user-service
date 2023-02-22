@@ -49,15 +49,13 @@ public class LoginController {
     }
 
     @GetMapping("/validate-user")
-    public ResponseEntity<String> ValidateUser(final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false ) String jwt) {
-        if(jwt == null)
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+    public ResponseEntity ValidateUser(final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false ) String jwt) {
+        final boolean isJwtValid = jwt!= null ? colaJwtService.isTokenValid(jwt) : false ;
 
         //TODO change from colaJwtService to CustomJwtServiceImpl
-        final boolean isJwtValid = colaJwtService.isTokenValid(jwt);
         if(!isJwtValid)
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
 
-        return ResponseEntity.ok("Ok");
+        return new ResponseEntity(HttpStatus.OK);
     }
 }
