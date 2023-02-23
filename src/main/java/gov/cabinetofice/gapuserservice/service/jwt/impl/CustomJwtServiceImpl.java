@@ -43,7 +43,7 @@ public class CustomJwtServiceImpl implements JwtService {
         return true;
     }
 
-    public String generateToken(final DecodedJWT thirdPartyToken) {
+    public String generateToken() {
         // TODO look up user from database, or add additional details from decoded JWT if needed?
 
         final Algorithm signingKey = Algorithm.HMAC256(jwtProperties.getSigningKey());

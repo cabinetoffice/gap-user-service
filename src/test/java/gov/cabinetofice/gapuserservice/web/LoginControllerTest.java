@@ -1,23 +1,26 @@
 package gov.cabinetofice.gapuserservice.web;
 
+import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
-import gov.cabinetofice.gapuserservice.service.jwt.TestDecodedJwt;
+import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.ColaJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import static org.mockito.Mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.servlet.view.RedirectView;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.mockito.Mockito.*;
+import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
 class LoginControllerTest {
@@ -29,219 +32,107 @@ class LoginControllerTest {
     private CustomJwtServiceImpl customJwtService;
 
     private LoginController controllerUnderTest;
-
-    private final String successfulRedirectUrl = "/redirect-after-login";
-    private final String authenticationProviderUrl = "https://some-authentication-providder.com";
+    private ThirdPartyAuthProviderProperties authenticationProvider;
+    private ApplicationConfigProperties configProperties;
 
     @BeforeEach
     void setup() {
-        final ThirdPartyAuthProviderProperties authenticationProvider = ThirdPartyAuthProviderProperties.builder()
-                .url(authenticationProviderUrl)
+        authenticationProvider = ThirdPartyAuthProviderProperties.builder()
+                .url("https://some-authentication-providder.com")
+                .tokenCookie("find-grants.-test")
                 .build();
 
-        controllerUnderTest = new LoginController(authenticationProvider, thirdPartyJwtService, customJwtService);
-    }
+        configProperties = ApplicationConfigProperties.builder()
+                .defaultRedirectUrl("https://www.find-government-grants.service.gov.uk/")
+                .build();
 
-    @Nested
-    class Login {
-        @Nested
-        class RedirectsToCola {
-            @Test
-            void IfBothTokensAreNull() {
-                final String redirectUrl = "https://www.find-government-grants.service.gov.uk/";
-                final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
-
-                final RedirectView methodeResponse = controllerUnderTest.login(null, null, redirectUrl, response);
-
-                verify(response).addCookie(new Cookie("redirectUrl", redirectUrl));
-                assertThat(methodeResponse.getUrl()).isEqualTo(authenticationProviderUrl);
-            }
-
-            @Test
-            void IfCustomTokenIsNull_AndColaTokenIsInvalid() {
-                final String colaToken = "an-invalid-token";
-                final String redirectUrl = "https://www.find-government-grants.service.gov.uk/";
-                final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
-
-                when(thirdPartyJwtService.isTokenValid(colaToken))
-                        .thenReturn(false);
-
-                final RedirectView methodeResponse = controllerUnderTest.login(null, "s:" + colaToken, redirectUrl, response);
-
-                verify(response).addCookie(new Cookie("redirectUrl", redirectUrl));
-                assertThat(methodeResponse.getUrl()).isEqualTo(authenticationProviderUrl);
-            }
-
-            @Test
-            void IfCustomTokenIsInvalid_AndColaTokenIsInvalid() {
-                final String colaToken = "an-invalid-token";
-                final String customToken = "a-custom-invalid-token";
-                final String redirectUrl = "https://www.find-government-grants.service.gov.uk/";
-                final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
-
-                when(thirdPartyJwtService.isTokenValid(colaToken))
-                        .thenReturn(false);
-                when(customJwtService.isTokenValid(customToken))
-                        .thenReturn(false);
-
-                final RedirectView methodeResponse = controllerUnderTest.login(customToken, "s:" + colaToken, redirectUrl, response);
-
-                verify(response).addCookie(new Cookie("redirectUrl", redirectUrl));
-                assertThat(methodeResponse.getUrl()).isEqualTo(authenticationProviderUrl);
-            }
-
-            @Test
-            void IfCustomTokenIsInvalid_AndColaTokenIsNull() {
-                final String customToken = "a-custom-invalid-token";
-                final String redirectUrl = "https://www.find-government-grants.service.gov.uk/";
-                final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
-
-                when(customJwtService.isTokenValid(customToken))
-                        .thenReturn(false);
-
-                final RedirectView methodeResponse = controllerUnderTest.login(customToken, null, redirectUrl, response);
-
-                verify(response).addCookie(new Cookie("redirectUrl", redirectUrl));
-                assertThat(methodeResponse.getUrl()).isEqualTo(authenticationProviderUrl);
-            }
-        }
-
-        @Nested
-        class CreateCustomJwt {
-            @Test
-            void IfCustomTokenIsNull_AndColaTokenIsValid() {
-                final String colaToken = "a-valid-token";
-                final TestDecodedJwt decodedColaToken = TestDecodedJwt.builder().build();
-                final String customToken = "a-custom-jwt";
-
-                final String redirectUrl = "https://www.find-government-grants.service.gov.uk/";
-                final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
-
-                when(thirdPartyJwtService.isTokenValid(colaToken))
-                        .thenReturn(true);
-                when(thirdPartyJwtService.decodeJwt(colaToken))
-                        .thenReturn(decodedColaToken);
-                when(customJwtService.generateToken(decodedColaToken))
-                        .thenReturn(customToken);
-
-
-                final RedirectView methodeResponse = controllerUnderTest.login(null, "s:" + colaToken, redirectUrl, response);
-
-
-                verify(response, atLeastOnce()).addCookie(new Cookie("redirectUrl", redirectUrl));
-                verify(thirdPartyJwtService).decodeJwt(colaToken);
-                verify(customJwtService).generateToken(decodedColaToken);
-                verify(response, atLeastOnce()).addCookie(new Cookie(LoginController.USER_SERVICE_COOKIE_NAME, customToken));
-                assertThat(methodeResponse.getUrl()).isEqualTo(successfulRedirectUrl);
-            }
-
-            @Test
-            void IfCustomTokenIsInvalid_AndColaTokenIsValid() {
-                final String colaToken = "a-valid-token";
-                final TestDecodedJwt decodedColaToken = TestDecodedJwt.builder().build();
-                final String customToken = "an-invalid-custom-jwt";
-
-                final String redirectUrl = "https://www.find-government-grants.service.gov.uk/";
-                final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
-
-                when(thirdPartyJwtService.isTokenValid(colaToken))
-                        .thenReturn(true);
-                when(thirdPartyJwtService.decodeJwt(colaToken))
-                        .thenReturn(decodedColaToken);
-                when(customJwtService.generateToken(decodedColaToken))
-                        .thenReturn(customToken);
-                when(customJwtService.isTokenValid(customToken))
-                        .thenReturn(false);
-
-
-                final RedirectView methodeResponse = controllerUnderTest.login(customToken, "s:" + colaToken, redirectUrl, response);
-
-
-                verify(response, atLeastOnce()).addCookie(new Cookie("redirectUrl", redirectUrl));
-                verify(thirdPartyJwtService).decodeJwt(colaToken);
-                verify(customJwtService).generateToken(decodedColaToken);
-                verify(response, atLeastOnce()).addCookie(new Cookie(LoginController.USER_SERVICE_COOKIE_NAME, customToken));
-                assertThat(methodeResponse.getUrl()).isEqualTo(successfulRedirectUrl);
-            }
-        }
-
-        @Nested
-        class ReturnsValidToken {
-            @Test
-            void IfCustomTokenIsValid_AndColaTokenIsInvalid() {
-                final String colaToken = "an-invalid-token";
-                final String customToken = "a-custom-valid-token";
-                final String redirectUrl = "https://www.find-government-grants.service.gov.uk/";
-                final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
-
-                when(thirdPartyJwtService.isTokenValid(colaToken))
-                        .thenReturn(false);
-                when(customJwtService.isTokenValid(customToken))
-                        .thenReturn(true);
-
-                final RedirectView methodeResponse = controllerUnderTest.login(customToken, "s:" + colaToken, redirectUrl, response);
-
-                verify(response).addCookie(new Cookie("redirectUrl", redirectUrl));
-                verify(thirdPartyJwtService, times(0)).decodeJwt(any());
-                verify(customJwtService, times(0)).generateToken(any());
-                assertThat(methodeResponse.getUrl()).isEqualTo(successfulRedirectUrl);
-            }
-
-            @Test
-            void IfCustomTokenIsValid_AndColaTokenIsNull() {
-                final String customToken = "a-custom-valid-token";
-                final String redirectUrl = "https://www.find-government-grants.service.gov.uk/";
-                final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
-
-                when(customJwtService.isTokenValid(customToken))
-                        .thenReturn(true);
-
-                final RedirectView methodeResponse = controllerUnderTest.login(customToken, null, redirectUrl, response);
-
-                verify(response).addCookie(new Cookie("redirectUrl", redirectUrl));
-                verify(thirdPartyJwtService, times(0)).decodeJwt(any());
-                verify(customJwtService, times(0)).generateToken(any());
-                assertThat(methodeResponse.getUrl()).isEqualTo(successfulRedirectUrl);
-            }
-
-            @Test
-            void IfBothTokensAreValid() {
-                final String colaToken = "a-valid-token";
-                final String customToken = "a-custom-valid-token";
-                final String redirectUrl = "https://www.find-government-grants.service.gov.uk/";
-                final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
-
-                when(thirdPartyJwtService.isTokenValid(colaToken))
-                        .thenReturn(true);
-                when(customJwtService.isTokenValid(customToken))
-                        .thenReturn(true);
-
-                final RedirectView methodeResponse = controllerUnderTest.login(customToken, "s:" + colaToken, redirectUrl, response);
-
-                verify(response).addCookie(new Cookie("redirectUrl", redirectUrl));
-                verify(thirdPartyJwtService, times(0)).decodeJwt(any());
-                verify(customJwtService, times(0)).generateToken(any());
-                assertThat(methodeResponse.getUrl()).isEqualTo(successfulRedirectUrl);
-            }
-
-        }
+        controllerUnderTest = new LoginController(authenticationProvider, configProperties, thirdPartyJwtService, customJwtService);
     }
 
     @Test
-    void redirectAfterLoggedIn_RedirectsToProvidedLocation() {
-        final String redirectUrl = "https://www.find-government-grants.service.gov.uk/";
+    void loginShouldRedirectToCola_IfTokenIsNull() {
+        final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/");
+        final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
 
-        final RedirectView methodeResponse = controllerUnderTest.redirectAfterLoggedIn(redirectUrl);
+        final RedirectView methodeResponse = controllerUnderTest.login(null, redirectUrl, response);
 
-        assertThat(methodeResponse.getUrl()).isEqualTo(redirectUrl);
+        verify(response).addCookie(new Cookie("redirectUrl", redirectUrl.get()));
+        assertThat(methodeResponse.getUrl()).isEqualTo(authenticationProvider.getUrl());
     }
 
     @Test
-    void redirectAfterThirdPartyLogin_RedirectsToLoginEndpoint() {
-        final String redirectUrl = "https://www.find-government-grants.service.gov.uk/";
+    void loginShouldReturnRedirectUrl_IfOneIsProvided_AndTokenIsValid() {
+        final String customToken = "a-custom-valid-token";
+        final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/");
+        final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
 
-        final RedirectView methodeResponse = controllerUnderTest.redirectAfterThirdPartyLogin(redirectUrl);
+        when(customJwtService.isTokenValid(customToken))
+                .thenReturn(true);
 
-        assertThat(methodeResponse.getUrl()).isEqualTo("/login?redirectUrl=" + redirectUrl);
+        final RedirectView methodeResponse = controllerUnderTest.login(customToken, redirectUrl, response);
+
+        verify(customJwtService, times(0)).generateToken();
+        assertThat(methodeResponse.getUrl()).isEqualTo(redirectUrl.get());
+    }
+
+    @Test
+    void loginShouldReturnDefaultRedirectUrl_IfRedirectUrlNotProvided_AndTokenIsValid() {
+        final String customToken = "a-custom-valid-token";
+        final Optional<String> redirectUrl = Optional.empty();
+        final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+
+        when(customJwtService.isTokenValid(customToken))
+                .thenReturn(true);
+
+        final RedirectView methodeResponse = controllerUnderTest.login(customToken, redirectUrl, response);
+
+        verify(customJwtService, times(0)).generateToken();
+        assertThat(methodeResponse.getUrl()).isEqualTo(configProperties.getDefaultRedirectUrl());
+    }
+
+    @Test
+    void redirectAfterColaLogin_ThrowsTokenNotValidException_IfTokenIsNull() {
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+        final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+        final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/");
+
+        assertThrows(TokenNotValidException.class, () -> controllerUnderTest.redirectAfterColaLogin(redirectUrl, request, response));
+    }
+
+    @Test
+    void redirectAfterColaLogin_ThrowsTokenNotValidException_IfTokenIsInvalid() {
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setCookies(new Cookie[] {
+                new Cookie(authenticationProvider.getTokenCookie(), "a-token")
+        });
+
+        final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+        final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/");
+
+        when(thirdPartyJwtService.isTokenValid(any()))
+                .thenReturn(false);
+
+        assertThrows(TokenNotValidException.class, () -> controllerUnderTest.redirectAfterColaLogin(redirectUrl, request, response));
+    }
+
+    @Test
+    void redirectAfterColaLogin_RedirectsToLoginEndpoint() {
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setCookies(new Cookie[] {
+                new Cookie(authenticationProvider.getTokenCookie(), "a-token")
+        });
+
+        final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+        final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/");
+        final String token = "a-generated-token";
+
+        when(thirdPartyJwtService.isTokenValid(any()))
+                .thenReturn(true);
+        when(customJwtService.generateToken())
+                .thenReturn(token);
+
+        final RedirectView methodeResponse = controllerUnderTest.redirectAfterColaLogin(redirectUrl, request, response);
+
+        assertThat(methodeResponse.getUrl()).isEqualTo(redirectUrl.get());
     }
 }

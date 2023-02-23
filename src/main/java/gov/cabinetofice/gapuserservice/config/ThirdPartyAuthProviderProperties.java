@@ -31,4 +31,6 @@ public class ThirdPartyAuthProviderProperties {
     private String appClientId;
 
     private String secretCookieKey;
+
+    private String tokenCookie;
 }

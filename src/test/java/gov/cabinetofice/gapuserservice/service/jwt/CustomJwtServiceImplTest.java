@@ -119,7 +119,7 @@ public class CustomJwtServiceImplTest {
             try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
                 staticJwt.when(() -> JWT.create()).thenReturn(mockedJwtBuilder);
 
-                serviceUnderTest.generateToken(thirdPartyToken);
+                serviceUnderTest.generateToken();
 
                 verify(mockedJwtBuilder, times(1)).withIssuer("test-issuer");
             }
@@ -132,7 +132,7 @@ public class CustomJwtServiceImplTest {
             try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
                 staticJwt.when(() -> JWT.create()).thenReturn(mockedJwtBuilder);
 
-                serviceUnderTest.generateToken(thirdPartyToken);
+                serviceUnderTest.generateToken();
 
                 verify(mockedJwtBuilder, times(1)).withAudience("test-audience");
             }
@@ -147,7 +147,7 @@ public class CustomJwtServiceImplTest {
                 staticJwt.when(() -> JWT.create()).thenReturn(mockedJwtBuilder);
                 when(calendar.getTimeInMillis()).thenReturn(now);
 
-                serviceUnderTest.generateToken(thirdPartyToken);
+                serviceUnderTest.generateToken();
 
                 verify(mockedJwtBuilder, times(1)).withExpiresAt(new Date(now + 60 * 1000 * 60));
             }
@@ -164,7 +164,7 @@ public class CustomJwtServiceImplTest {
                     staticAlgorithm.when(() -> HMAC256("test-signing-key")).thenReturn(mockAlgorithm);
                     doReturn("a-custom-jwt").when(mockedJwtBuilder).sign(mockAlgorithm);
 
-                    serviceUnderTest.generateToken(thirdPartyToken);
+                    serviceUnderTest.generateToken();
 
                     staticAlgorithm.verify(() -> HMAC256("test-signing-key"), times(1));
                     verify(mockedJwtBuilder, times(1)).sign(mockAlgorithm);
@@ -180,7 +180,7 @@ public class CustomJwtServiceImplTest {
                 staticJwt.when(() -> JWT.create()).thenReturn(mockedJwtBuilder);
                 doReturn("a-custom-jwt").when(mockedJwtBuilder).sign(any());
 
-                final String response = serviceUnderTest.generateToken(thirdPartyToken);
+                final String response = serviceUnderTest.generateToken();
 
                 assertThat(response).isEqualTo("a-custom-jwt");
             }
