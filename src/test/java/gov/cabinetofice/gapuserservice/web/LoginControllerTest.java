@@ -93,9 +93,8 @@ class LoginControllerTest {
 
     @Test
     void validateUser_NullJwt() {
-        final ResponseEntity response = controllerUnderTest.ValidateUser(null);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        final ResponseEntity<Boolean> response = controllerUnderTest.ValidateUser(null);
+        assertThat(response.getBody()).isEqualTo(false);
     }
 
     @Test
@@ -105,10 +104,10 @@ class LoginControllerTest {
         //TODO change from thirdPartyJwtService to customJwtServiceImpl
         when(thirdPartyJwtService.isTokenValid(invalidOrExpiredToken)).thenReturn(false);
 
-        final ResponseEntity response = controllerUnderTest.ValidateUser(invalidOrExpiredToken);
+        final ResponseEntity<Boolean>  response = controllerUnderTest.ValidateUser(invalidOrExpiredToken);
 
         verify(thirdPartyJwtService).isTokenValid(invalidOrExpiredToken);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody()).isEqualTo(false);
     }
 
     @Test
@@ -118,9 +117,9 @@ class LoginControllerTest {
         //TODO change from thirdPartyJwtService to customJwtServiceImpl
         when(thirdPartyJwtService.isTokenValid(validToken)).thenReturn(true);
 
-        final ResponseEntity response = controllerUnderTest.ValidateUser(validToken);
+        final ResponseEntity<Boolean>  response = controllerUnderTest.ValidateUser(validToken);
 
         verify(thirdPartyJwtService).isTokenValid(validToken);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(true);
     }
 }
