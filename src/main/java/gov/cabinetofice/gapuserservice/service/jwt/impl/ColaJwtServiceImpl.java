@@ -31,12 +31,14 @@ public class ColaJwtServiceImpl implements JwtService {
 
     @Override
     public boolean isTokenValid(final String colaJwt) {
-        if (!isValidColaSignature(colaJwt)) {
+        final String trimmedToken = colaJwt.substring(2);
+
+        if (!isValidColaSignature(trimmedToken)) {
             log.error("COLAs JWT signature is invalid");
             return false;
         }
 
-        final DecodedJWT decodedJWT = decodeJwt(colaJwt);
+        final DecodedJWT decodedJWT = decodeJwt(trimmedToken);
         if (!isValidJwtSignature(decodedJWT)) {
             log.error("JWTs signature is invalid");
             return false;
