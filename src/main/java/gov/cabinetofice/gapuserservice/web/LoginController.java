@@ -35,7 +35,12 @@ public class LoginController {
                               final HttpServletResponse response) {
         final boolean isTokenValid = jwt != null && customJwtService.isTokenValid(jwt);
         if (!isTokenValid) {
-            response.addCookie(new Cookie(REDIRECT_URL_COOKIE, redirectUrl.orElse(configProperties.getDefaultRedirectUrl())));
+            final Cookie redirectUrlCookie = new Cookie(REDIRECT_URL_COOKIE, redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
+            redirectUrlCookie.setSecure(true);
+            redirectUrlCookie.setHttpOnly(true);
+
+            response.addCookie(redirectUrlCookie);
+
             return new RedirectView(authenticationProvider.getUrl());
         }
 
@@ -51,7 +56,12 @@ public class LoginController {
             throw new TokenNotValidException("invalid token");
         }
 
-        response.addCookie(new Cookie(USER_SERVICE_COOKIE_NAME, customJwtService.generateToken()));
+        final Cookie userTokenCookie = new Cookie(USER_SERVICE_COOKIE_NAME, customJwtService.generateToken());
+        userTokenCookie.setSecure(true);
+        userTokenCookie.setHttpOnly(true);
+
+        response.addCookie(userTokenCookie);
+
         return new RedirectView(redirectUrl
                 .orElse(configProperties.getDefaultRedirectUrl())
         );
