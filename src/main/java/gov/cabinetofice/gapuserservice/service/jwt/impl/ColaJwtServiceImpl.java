@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.Mac;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.interfaces.RSAPublicKey;
@@ -28,11 +29,10 @@ public class ColaJwtServiceImpl implements JwtService {
     private final ThirdPartyAuthProviderProperties thirdPartyAuthProviderProperties;
     private final JwkProvider jwkProvider;
     private final Mac sha256HMac;
-    public static final String SIGNED_TOKEN_LEADING_CHARS = "s:";
 
     @Override
     public boolean isTokenValid(final String colaJwt) {
-        final String trimmedToken = colaJwt.startsWith(SIGNED_TOKEN_LEADING_CHARS) ? colaJwt.substring(2) : colaJwt;
+        final String trimmedToken = URLDecoder.decode(colaJwt, StandardCharsets.UTF_8).substring(2);
 
         if (!isValidColaSignature(trimmedToken)) {
             log.error("COLAs JWT signature is invalid");

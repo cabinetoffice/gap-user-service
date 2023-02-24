@@ -30,7 +30,7 @@ public class LoginController {
     public static final String USER_SERVICE_COOKIE_NAME = "user-service-token";
 
     @GetMapping("/login")
-    public RedirectView login(final @CookieValue(name = USER_SERVICE_COOKIE_NAME)String jwt,
+    public RedirectView login(final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false) String jwt,
                               final @RequestParam Optional<String> redirectUrl,
                               final HttpServletResponse response) {
         final boolean isTokenValid = jwt != null && customJwtService.isTokenValid(jwt);
@@ -48,10 +48,10 @@ public class LoginController {
     }
 
     @GetMapping("/redirect-after-cola-login")
-    public RedirectView redirectAfterColaLogin(final @CookieValue(value = REDIRECT_URL_COOKIE, required = false) Optional<String> redirectUrl,
-                                               final HttpServletRequest request,
+    public RedirectView redirectAfterColaLogin(final HttpServletRequest request,
                                                final HttpServletResponse response) {
         final Cookie tokenCookie = WebUtils.getCookie(request, authenticationProvider.getTokenCookie());
+        final Cookie redirectUrlCookie = WebUtils.getCookie(request, REDIRECT_URL_COOKIE);
         if (tokenCookie == null || !thirdPartyJwtService.isTokenValid(tokenCookie.getValue())) {
             throw new TokenNotValidException("invalid token");
         }
@@ -62,8 +62,6 @@ public class LoginController {
 
         response.addCookie(userTokenCookie);
 
-        return new RedirectView(redirectUrl
-                .orElse(configProperties.getDefaultRedirectUrl())
-        );
+        return new RedirectView(redirectUrlCookie == null ? configProperties.getDefaultRedirectUrl() : redirectUrlCookie.getValue());
     }
 }
