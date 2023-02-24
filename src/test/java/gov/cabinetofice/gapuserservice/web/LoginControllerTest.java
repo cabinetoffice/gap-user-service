@@ -56,7 +56,11 @@ class LoginControllerTest {
 
         final RedirectView methodeResponse = controllerUnderTest.login(null, redirectUrl, response);
 
-        verify(response).addCookie(new Cookie("redirectUrl", redirectUrl.get()));
+        final Cookie redirectUrlCookie = new Cookie(LoginController.REDIRECT_URL_COOKIE, redirectUrl.get());
+        redirectUrlCookie.setSecure(true);
+        redirectUrlCookie.setHttpOnly(true);
+
+        verify(response).addCookie(redirectUrlCookie);
         assertThat(methodeResponse.getUrl()).isEqualTo(authenticationProvider.getUrl());
     }
 
