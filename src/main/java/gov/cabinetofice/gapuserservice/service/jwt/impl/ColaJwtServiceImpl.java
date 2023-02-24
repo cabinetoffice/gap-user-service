@@ -28,10 +28,11 @@ public class ColaJwtServiceImpl implements JwtService {
     private final ThirdPartyAuthProviderProperties thirdPartyAuthProviderProperties;
     private final JwkProvider jwkProvider;
     private final Mac sha256HMac;
+    public static final String SIGNED_TOKEN_LEADING_CHARS = "s:";
 
     @Override
     public boolean isTokenValid(final String colaJwt) {
-        final String trimmedToken = colaJwt.substring(2);
+        final String trimmedToken = colaJwt.startsWith(SIGNED_TOKEN_LEADING_CHARS) ? colaJwt.substring(2) : colaJwt;
 
         if (!isValidColaSignature(trimmedToken)) {
             log.error("COLAs JWT signature is invalid");
