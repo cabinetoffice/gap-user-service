@@ -76,7 +76,7 @@ public class ColaJwtServiceImplTest {
     }
 
     private String generateJwt(final JwtBuilder jwtBuilder) {
-        return jwtBuilder.compact() + ".Y29sYVNpZ25hdHVyZQ";
+        return "s%3A" + jwtBuilder.compact() + ".Y29sYVNpZ25hdHVyZQ";
     }
 
     @Test
