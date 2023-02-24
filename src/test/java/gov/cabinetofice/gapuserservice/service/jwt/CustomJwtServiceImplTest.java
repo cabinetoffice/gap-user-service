@@ -1,30 +1,33 @@
 package gov.cabinetofice.gapuserservice.service.jwt;
 
 import com.auth0.jwt.JWT;
+import static com.auth0.jwt.JWT.decode;
+import static com.auth0.jwt.JWT.require;
 import com.auth0.jwt.JWTCreator;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
+import static com.auth0.jwt.algorithms.Algorithm.HMAC256;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.Verification;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
+import gov.cabinetofice.gapuserservice.model.BlacklistedToken;
+import gov.cabinetofice.gapuserservice.repositories.TokenBlacklistRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import static org.mockito.Mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Calendar;
+import java.time.*;
 import java.util.Date;
-
-import static com.auth0.jwt.JWT.require;
-import static com.auth0.jwt.algorithms.Algorithm.HMAC256;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class CustomJwtServiceImplTest {
@@ -32,7 +35,10 @@ public class CustomJwtServiceImplTest {
     private CustomJwtServiceImpl serviceUnderTest;
 
     @Mock
-    private Calendar calendar;
+    private TokenBlacklistRepository repository;
+
+    private final String CHRISTMAS_2022_MIDDAY = "2022-12-25T12:00:00.00z";
+    private final Clock clock = Clock.fixed(Instant.parse(CHRISTMAS_2022_MIDDAY), ZoneId.of("UTC"));
 
     @BeforeEach
     void setup() {
@@ -43,7 +49,7 @@ public class CustomJwtServiceImplTest {
                 .expiresAfter(60)
                 .build();
 
-        serviceUnderTest = new CustomJwtServiceImpl(jwtProperties, calendar);
+        serviceUnderTest = spy(new CustomJwtServiceImpl(jwtProperties, repository, clock));
     }
 
     @Nested
@@ -82,6 +88,26 @@ public class CustomJwtServiceImplTest {
 
                 assertThat(response).isFalse();
                 verify(mockedJwtVerifier, times(1)).verify(jwt);
+            }
+        }
+
+        @Test
+        void returnsFalse_IfBlacklisted() {
+            final String jwt = "a-valid-jwt";
+            final Verification spiedVerification = spy(verification);
+
+            try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
+                staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
+                when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
+
+                doReturn(true)
+                        .when(serviceUnderTest).isTokenBlacklisted(jwt);
+
+                final boolean response = serviceUnderTest.isTokenValid(jwt);
+
+                assertThat(response).isFalse();
+                verify(mockedJwtVerifier, times(1)).verify(jwt);
+                verify(serviceUnderTest, atLeastOnce()).isTokenBlacklisted(jwt);
             }
         }
 
@@ -141,11 +167,10 @@ public class CustomJwtServiceImplTest {
         @Test
         void WithCorrectExpiration() {
             final JWTCreator.Builder mockedJwtBuilder = spy(JWTCreator.Builder.class);
-            final long now = System.currentTimeMillis();
+            final long now = ZonedDateTime.now(clock).toInstant().toEpochMilli();
 
             try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
                 staticJwt.when(() -> JWT.create()).thenReturn(mockedJwtBuilder);
-                when(calendar.getTimeInMillis()).thenReturn(now);
 
                 serviceUnderTest.generateToken();
 
@@ -183,6 +208,32 @@ public class CustomJwtServiceImplTest {
                 final String response = serviceUnderTest.generateToken();
 
                 assertThat(response).isEqualTo("a-custom-jwt");
+            }
+        }
+    }
+
+    @Nested
+    class addTokenToBlacklist {
+
+        @Test
+        void addsExpectedTokenToBlacklist() {
+            final String existingToken = "a-token";
+            final long now = ZonedDateTime.now(clock).toInstant().toEpochMilli();
+            final TestDecodedJwt decodedToken = TestDecodedJwt.builder()
+                    .expiresAt(new Date(now))
+                    .build();
+
+            try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
+                staticJwt.when(() -> decode(existingToken))
+                        .thenReturn(decodedToken);
+
+                final ArgumentCaptor<BlacklistedToken> tokenCaptor = ArgumentCaptor.forClass(BlacklistedToken.class);
+
+                serviceUnderTest.addTokenToBlacklist(existingToken);
+
+                verify(repository).save(tokenCaptor.capture());
+                assertThat(tokenCaptor.getValue().getToken()).isEqualTo(existingToken);
+                assertThat(tokenCaptor.getValue().getExpiry()).isEqualTo(LocalDateTime.now(clock));
             }
         }
     }

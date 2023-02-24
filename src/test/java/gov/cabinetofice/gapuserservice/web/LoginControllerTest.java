@@ -16,6 +16,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import static org.mockito.Mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.servlet.view.RedirectView;
@@ -138,5 +140,27 @@ class LoginControllerTest {
         final RedirectView methodeResponse = controllerUnderTest.redirectAfterColaLogin(redirectUrl, request, response);
 
         assertThat(methodeResponse.getUrl()).isEqualTo(redirectUrl.get());
+    }
+
+    @Test
+    void refreshToken_ShouldAddExistingTokenToBlackList_AndReturnAFreshOne() {
+
+        final String existingToken = "a-token";
+        final String refreshedToken = "a-refreshed-token";
+        final Cookie userTokenCookie = new Cookie(LoginController.USER_SERVICE_COOKIE_NAME, refreshedToken);
+        userTokenCookie.setSecure(true);
+        userTokenCookie.setHttpOnly(true);
+
+        final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+
+        when(customJwtService.generateToken()).thenReturn(refreshedToken);
+
+        final ResponseEntity<String> methodResponse = controllerUnderTest.refreshToken(existingToken, response);
+
+        verify(customJwtService, atLeastOnce()).addTokenToBlacklist(existingToken);
+        verify(response).addCookie(userTokenCookie);
+
+        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(methodResponse.getBody()).isEqualTo(refreshedToken);
     }
 }

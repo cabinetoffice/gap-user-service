@@ -9,6 +9,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -63,5 +64,22 @@ public class LoginController {
         response.addCookie(userTokenCookie);
 
         return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
+    }
+
+    @GetMapping("/refresh-token")
+    public ResponseEntity<String> refreshToken(@CookieValue(USER_SERVICE_COOKIE_NAME) final String currentToken, final HttpServletResponse response) {
+
+        // presumably the security filter will handle invalid/non-existent tokens and deny access but if not then add code below.
+
+        customJwtService.addTokenToBlacklist(currentToken);
+
+        final String newToken = customJwtService.generateToken();
+        final Cookie userTokenCookie = new Cookie(USER_SERVICE_COOKIE_NAME, newToken);
+        userTokenCookie.setSecure(true);
+        userTokenCookie.setHttpOnly(true);
+
+        response.addCookie(userTokenCookie);
+
+        return ResponseEntity.ok(newToken);
     }
 }
