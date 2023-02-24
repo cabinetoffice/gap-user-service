@@ -73,7 +73,7 @@ public class LoginController {
     public ResponseEntity<Boolean> ValidateUser(
             final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false) String jwt) {
 
-        final boolean isJwtValid = jwt != null ? customJwtService.isTokenValid(jwt) : false;
+        final boolean isJwtValid = jwt != null && customJwtService.isTokenValid(jwt);
         return ResponseEntity.ok(isJwtValid);
     }
 }

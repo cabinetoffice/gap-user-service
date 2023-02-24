@@ -159,7 +159,6 @@ class LoginControllerTest {
     void validateUser_JwtNotValid() {
         final String invalidOrExpiredToken = "an-invalid-or-expired-token";
 
-        // TODO change from thirdPartyJwtService to customJwtServiceImpl
         when(customJwtService.isTokenValid(invalidOrExpiredToken)).thenReturn(false);
 
         final ResponseEntity<Boolean> response = controllerUnderTest.ValidateUser(invalidOrExpiredToken);
