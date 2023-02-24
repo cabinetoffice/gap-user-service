@@ -1,4 +1,4 @@
-package gov.cabinetofice.gapuserservice.service;
+package gov.cabinetofice.gapuserservice.service.jwt.impl;
 
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkException;
@@ -9,11 +9,13 @@ import com.auth0.jwt.exceptions.SignatureVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.exceptions.JwkNotValidTokenException;
+import gov.cabinetofice.gapuserservice.service.jwt.JwtService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.Mac;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.interfaces.RSAPublicKey;
@@ -23,23 +25,21 @@ import java.util.Calendar;
 @RequiredArgsConstructor
 @Service
 @Slf4j
-public class ColaJwtServiceImpl implements ThirdPartyJwtService {
+public class ColaJwtServiceImpl implements JwtService {
     private final ThirdPartyAuthProviderProperties thirdPartyAuthProviderProperties;
     private final JwkProvider jwkProvider;
     private final Mac sha256HMac;
 
     @Override
     public boolean isTokenValid(final String colaJwt) {
-        // Decodes the UTF-8 encoding and removes the prepended "s:"
-        final String jwt = new String(colaJwt.getBytes(StandardCharsets.UTF_8))
-                .substring(2);
+        final String trimmedToken = URLDecoder.decode(colaJwt, StandardCharsets.UTF_8).substring(2);
 
-        if (!isValidColaSignature(jwt)) {
+        if (!isValidColaSignature(trimmedToken)) {
             log.error("COLAs JWT signature is invalid");
             return false;
         }
 
-        final DecodedJWT decodedJWT = decodeJwt(jwt);
+        final DecodedJWT decodedJWT = decodeJwt(trimmedToken);
         if (!isValidJwtSignature(decodedJWT)) {
             log.error("JWTs signature is invalid");
             return false;
@@ -58,7 +58,7 @@ public class ColaJwtServiceImpl implements ThirdPartyJwtService {
         return true;
     }
 
-    private DecodedJWT decodeJwt(final String colaJwt) {
+    public DecodedJWT decodeJwt(final String colaJwt) {
         // Strips away the 4th part of COLAs JWT: COLAs signature
         final String jwt = colaJwt.substring(0, colaJwt.lastIndexOf('.'));
         return JWT.decode(jwt);

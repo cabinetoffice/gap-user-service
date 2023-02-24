@@ -1,15 +1,22 @@
 package gov.cabinetofice.gapuserservice.web;
 
+import java.util.Optional;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.view.RedirectView;
+import org.springframework.web.util.WebUtils;
 
+import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
-import gov.cabinetofice.gapuserservice.service.ThirdPartyJwtService;
+import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
+import gov.cabinetofice.gapuserservice.service.jwt.impl.ColaJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
@@ -18,46 +25,55 @@ import lombok.RequiredArgsConstructor;
 public class LoginController {
 
     private final ThirdPartyAuthProviderProperties authenticationProvider;
-    private final ThirdPartyJwtService colaJwtService;
-    private static final String REDIRECT_URL_COOKIE = "redirectUrl";
-    private static final String COLA_COOKIE_NAME = "find-grants-test";
+    private final ApplicationConfigProperties configProperties;
+    private final ColaJwtServiceImpl thirdPartyJwtService;
+    private final CustomJwtServiceImpl customJwtService;
+    public static final String REDIRECT_URL_COOKIE = "redirectUrl";
     public static final String USER_SERVICE_COOKIE_NAME = "user-service-token";
 
     @GetMapping("/login")
-    public RedirectView login(final @CookieValue(name = COLA_COOKIE_NAME, required = false) String jwt,
-            final @RequestParam String redirectUrl,
+    public RedirectView login(final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false) String jwt,
+            final @RequestParam Optional<String> redirectUrl,
             final HttpServletResponse response) {
-        response.addCookie(new Cookie(REDIRECT_URL_COOKIE, redirectUrl));
+        final boolean isTokenValid = jwt != null && customJwtService.isTokenValid(jwt);
+        if (!isTokenValid) {
+            final Cookie redirectUrlCookie = new Cookie(REDIRECT_URL_COOKIE,
+                    redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
+            redirectUrlCookie.setSecure(true);
+            redirectUrlCookie.setHttpOnly(true);
 
-        if (jwt == null)
-            return redirectToThirdParty();
+            response.addCookie(redirectUrlCookie);
 
-        // TODO currently validating against the third party. When we switch to using
-        // custom JWTs, we'll want to validate against our own definition instead
-        final boolean isJwtValid = colaJwtService.isTokenValid(jwt);
-        if (!isJwtValid)
-            return redirectToThirdParty();
+            return new RedirectView(authenticationProvider.getUrl());
+        }
 
-        return new RedirectView("/redirect-after-login");
+        return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
     }
 
-    @GetMapping("/redirect-after-login")
-    public RedirectView redirectOnLogin(@CookieValue(REDIRECT_URL_COOKIE) String redirectUrl) {
-        // TODO we'll want to validate the third party JWT here once we use custom JWTs
-        return new RedirectView(redirectUrl);
-    }
+    @GetMapping("/redirect-after-cola-login")
+    public RedirectView redirectAfterColaLogin(
+            final @CookieValue(name = REDIRECT_URL_COOKIE) Optional<String> redirectUrl,
+            final HttpServletRequest request,
+            final HttpServletResponse response) {
+        final Cookie tokenCookie = WebUtils.getCookie(request, authenticationProvider.getTokenCookie());
+        if (tokenCookie == null || !thirdPartyJwtService.isTokenValid(tokenCookie.getValue())) {
+            throw new TokenNotValidException("invalid token");
+        }
 
-    private RedirectView redirectToThirdParty() {
-        return new RedirectView(authenticationProvider.getUrl()); // TODO make sure COLA's redirect URL points to the
-                                                                  // domain the user service sits on
+        final Cookie userTokenCookie = new Cookie(USER_SERVICE_COOKIE_NAME, customJwtService.generateToken());
+        userTokenCookie.setSecure(true);
+        userTokenCookie.setHttpOnly(true);
+
+        response.addCookie(userTokenCookie);
+
+        return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
     }
 
     @GetMapping("/is-user-logged-in")
     public ResponseEntity<Boolean> ValidateUser(
             final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false) String jwt) {
-        // TODO change from colaJwtService to CustomJwtServiceImpl
-        final boolean isJwtValid = jwt != null ? colaJwtService.isTokenValid(jwt) : false;
 
+        final boolean isJwtValid = jwt != null ? customJwtService.isTokenValid(jwt) : false;
         return ResponseEntity.ok(isJwtValid);
     }
 }
