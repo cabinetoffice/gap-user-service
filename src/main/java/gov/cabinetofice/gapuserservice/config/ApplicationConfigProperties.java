@@ -11,20 +11,8 @@ import org.springframework.context.annotation.Configuration;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Configuration("jwtProperties")
-@ConfigurationProperties(prefix = "jwt")
-public class JwtProperties {
-
-    /**
-     * How long the JWT is valid before it expires, in minutes
-     */
-    private Integer expiresAfter;
-
-    private String signingKey;
-
-    private String issuer;
-
-    private String audience;
-
-    private String cookieName;
+@Configuration("applicationConfigProperties")
+@ConfigurationProperties
+public class ApplicationConfigProperties {
+    private String defaultRedirectUrl;
 }
