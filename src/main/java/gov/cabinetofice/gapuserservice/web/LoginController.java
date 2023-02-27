@@ -5,6 +5,7 @@ import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.ColaJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -36,9 +37,11 @@ public class LoginController {
                               final HttpServletResponse response) {
         final boolean isTokenValid = jwt != null && customJwtService.isTokenValid(jwt);
         if (!isTokenValid) {
-            final Cookie redirectUrlCookie = new Cookie(REDIRECT_URL_COOKIE, redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
-            redirectUrlCookie.setSecure(true);
-            redirectUrlCookie.setHttpOnly(true);
+            final Cookie redirectUrlCookie = WebUtil.buildCookie(
+                    new Cookie(REDIRECT_URL_COOKIE, redirectUrl.orElse(configProperties.getDefaultRedirectUrl())),
+                    Boolean.TRUE,
+                    Boolean.TRUE
+            );
 
             response.addCookie(redirectUrlCookie);
 
@@ -57,9 +60,11 @@ public class LoginController {
             throw new TokenNotValidException("invalid token");
         }
 
-        final Cookie userTokenCookie = new Cookie(USER_SERVICE_COOKIE_NAME, customJwtService.generateToken());
-        userTokenCookie.setSecure(true);
-        userTokenCookie.setHttpOnly(true);
+        final Cookie userTokenCookie = WebUtil.buildCookie(
+                new Cookie(USER_SERVICE_COOKIE_NAME, customJwtService.generateToken()),
+                Boolean.TRUE,
+                Boolean.TRUE
+        );
 
         response.addCookie(userTokenCookie);
 
@@ -74,9 +79,11 @@ public class LoginController {
         customJwtService.addTokenToBlacklist(currentToken);
 
         final String newToken = customJwtService.generateToken();
-        final Cookie userTokenCookie = new Cookie(USER_SERVICE_COOKIE_NAME, newToken);
-        userTokenCookie.setSecure(true);
-        userTokenCookie.setHttpOnly(true);
+        final Cookie userTokenCookie = WebUtil.buildCookie(
+                new Cookie(USER_SERVICE_COOKIE_NAME, newToken),
+                Boolean.TRUE,
+                Boolean.TRUE
+        );
 
         response.addCookie(userTokenCookie);
 
