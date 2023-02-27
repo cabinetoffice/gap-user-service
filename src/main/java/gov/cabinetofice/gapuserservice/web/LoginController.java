@@ -3,6 +3,7 @@ package gov.cabinetofice.gapuserservice.web;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
+import gov.cabinetofice.gapuserservice.service.BlacklistService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.ColaJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import jakarta.servlet.http.Cookie;
@@ -12,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
@@ -26,6 +28,7 @@ public class LoginController {
     private final ApplicationConfigProperties configProperties;
     private final ColaJwtServiceImpl thirdPartyJwtService;
     private final CustomJwtServiceImpl customJwtService;
+    private final BlacklistService blacklistService;
     public static final String REDIRECT_URL_COOKIE = "redirectUrl";
     public static final String USER_SERVICE_COOKIE_NAME = "user-service-token";
 
@@ -63,5 +66,27 @@ public class LoginController {
         response.addCookie(userTokenCookie);
 
         return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
+    }
+
+    @PostMapping("/logout")
+    public RedirectView Logout(
+            final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false) String jwt,
+            final HttpServletResponse response) {
+        //add to blacklist
+        blacklistService.addJwtToBlacklist(jwt);
+
+        //remove auth token from cookie
+        final Cookie userTokenCookie = new Cookie(USER_SERVICE_COOKIE_NAME, null);
+        userTokenCookie.setSecure(true);
+        userTokenCookie.setHttpOnly(true);
+        userTokenCookie.setMaxAge(0);
+
+        response.addCookie(userTokenCookie);
+
+        //logout through cola
+        final String colaLogout = authenticationProvider.getLogoutUrl();
+
+        //Where do we redirect to?
+        return new RedirectView(colaLogout);
     }
 }
