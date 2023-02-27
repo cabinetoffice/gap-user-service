@@ -237,4 +237,20 @@ public class CustomJwtServiceImplTest {
             }
         }
     }
+
+    @Nested
+    class deleteExpiredTokensFromBlacklist {
+
+        @Test
+        void shouldDeleteExpiredTokens_AndReturnNumberDeleted() {
+            final int numTokensToDelete = 5;
+            when(repository.deleteByExpiryLessThanEqual(LocalDateTime.now(clock)))
+                    .thenReturn(numTokensToDelete);
+
+            final int deletedTokens = serviceUnderTest.deleteExpiredTokensFromBlacklist();
+
+            verify(repository).deleteByExpiryLessThanEqual(LocalDateTime.now(clock));
+            assertThat(deletedTokens).isEqualTo(5);
+        }
+    }
 }

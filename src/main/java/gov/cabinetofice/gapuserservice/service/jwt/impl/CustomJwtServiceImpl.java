@@ -9,6 +9,7 @@ import gov.cabinetofice.gapuserservice.config.JwtProperties;
 import gov.cabinetofice.gapuserservice.model.BlacklistedToken;
 import gov.cabinetofice.gapuserservice.repositories.TokenBlacklistRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.JwtService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -76,5 +77,13 @@ public class CustomJwtServiceImpl implements JwtService {
 
     public boolean isTokenBlacklisted(final String token) {
         return tokenBlacklistRepository.existsByToken(token);
+    }
+
+    @Transactional
+    public int deleteExpiredTokensFromBlacklist() {
+        final int numDeleted = tokenBlacklistRepository.deleteByExpiryLessThanEqual(LocalDateTime.now(clock));
+        log.info(String.format("Deleted %s tokens", numDeleted));
+        
+        return numDeleted;
     }
 }
