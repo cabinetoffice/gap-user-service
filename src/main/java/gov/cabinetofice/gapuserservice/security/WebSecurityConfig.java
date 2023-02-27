@@ -1,8 +1,8 @@
 package gov.cabinetofice.gapuserservice.security;
 
-
 import gov.cabinetofice.gapuserservice.config.DebugProperties;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
+import gov.cabinetofice.gapuserservice.service.jwt.JwtService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,30 +21,26 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity
 public class WebSecurityConfig {
 
-    private final DebugProperties debugProperties;
+    private final JwtTokenFilter jwtTokenFilter;
 
-    private final JwtProperties jwtProperties;
-
-    private final String profile;
-
-    public WebSecurityConfig(DebugProperties debugProperties,
-                             JwtProperties jwtProperties,
-                             @Value("${spring.profiles.active:PROD}") String profile) {
-        this.debugProperties = debugProperties;
-        this.jwtProperties = jwtProperties;
-        this.profile = profile;
+    public WebSecurityConfig(final DebugProperties debugProperties,
+                             final JwtProperties jwtProperties,
+                             final JwtService customJwtServiceImpl,
+                             final @Value("${spring.profiles.active:PROD}") String profile) {
+        this.jwtTokenFilter = new JwtTokenFilter(debugProperties, jwtProperties, customJwtServiceImpl, profile);
     }
 
+    /**
+     * Using WebSecurityCustomizer#ignoring triggers a warning at app start-up for each path ignored.
+     * Unfortunately, its recommendation is not suitable for us, since we not only need authentication to be ignored
+     * but also the JWT filter - permitAll via HttpSecurity#authorizeHttpRequests will still trigger the JwtTokenFilter
+     * One alternative is to create two SecurityFilterChain beans, one for public paths and another for secured.
+     * But the secured path then cannot use anyRequest(): you must specify every path you want authenticated.
+     */
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
         // specify any paths you don't want subject to JWT validation/authentication
-        // TODO if not using swagger, remove relevant paths here or remove this comment
         return web -> web.ignoring().requestMatchers(
-                "/v3/api-docs/**",
-                "/swagger-ui/**",
-                "/swagger-resources/**",
-                "/swagger-ui.html",
-                "/webjars/**",
                 "/health",
                 "/login");
     }
@@ -64,7 +60,7 @@ public class WebSecurityConfig {
 
         // add JwtTokenFilter to the auth chain
         http
-                .addFilterBefore(new JwtTokenFilter(debugProperties, jwtProperties, profile), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class);
 
         // disable a bunch of Spring Security default stuff we don't need
         http
