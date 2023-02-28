@@ -46,7 +46,7 @@ public class WebSecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChainPublic(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChainPublic(final HttpSecurity http) throws Exception {
         // disable session creation by Spring Security, since auth will happen on every request
         http
                 .sessionManagement()
