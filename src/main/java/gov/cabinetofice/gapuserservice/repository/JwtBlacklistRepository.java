@@ -3,11 +3,11 @@ package gov.cabinetofice.gapuserservice.repository;
 import gov.cabinetofice.gapuserservice.model.JwtBlacklist;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 public interface JwtBlacklistRepository extends JpaRepository <JwtBlacklist, String> {
 
-    long deleteByExpiryDateLessThan(Date expiryDate);
+    long deleteByExpiryDateLessThan(LocalDateTime expiryDate);
 
     boolean existsByJwtIs(String jwt);
 }

@@ -11,7 +11,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.*;
-import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
@@ -50,7 +49,7 @@ public class JwtBlacklistServiceTest {
 
     @Test
     void deleteExpiredJwts_DeletesJwt() {
-        final Date date = Date.from(clock.instant());
+        final LocalDateTime date = ZonedDateTime.now(clock).toLocalDateTime();
         when(jwtBlacklistRepository.deleteByExpiryDateLessThan(date))
                 .thenReturn(Long.valueOf(1));
 

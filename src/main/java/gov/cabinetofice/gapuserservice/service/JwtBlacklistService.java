@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.ZonedDateTime;
-import java.util.Date;
 
 @RequiredArgsConstructor
 @Service
@@ -28,6 +27,6 @@ public class JwtBlacklistService {
     }
 
     public Long deleteExpiredJwts() {
-        return this.jwtBlacklistRepository.deleteByExpiryDateLessThan(new Date(ZonedDateTime.now(clock).toInstant().toEpochMilli()));
+        return this.jwtBlacklistRepository.deleteByExpiryDateLessThan(ZonedDateTime.now(clock).toLocalDateTime());
     }
 }
