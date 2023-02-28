@@ -3,12 +3,14 @@ package gov.cabinetofice.gapuserservice.web;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
+import gov.cabinetofice.gapuserservice.service.BlacklistService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.ColaJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,6 +33,9 @@ class LoginControllerTest {
     @Mock
     private CustomJwtServiceImpl customJwtService;
 
+    @Mock
+    private BlacklistService blacklistService;
+
     private LoginController controllerUnderTest;
     private ThirdPartyAuthProviderProperties authenticationProvider;
     private ApplicationConfigProperties configProperties;
@@ -40,13 +45,14 @@ class LoginControllerTest {
         authenticationProvider = ThirdPartyAuthProviderProperties.builder()
                 .url("https://some-authentication-providder.com")
                 .tokenCookie("find-grants.-test")
+                .logoutUrl("logout-url")
                 .build();
 
         configProperties = ApplicationConfigProperties.builder()
                 .defaultRedirectUrl("https://www.find-government-grants.service.gov.uk/")
                 .build();
 
-        controllerUnderTest = new LoginController(authenticationProvider, configProperties, thirdPartyJwtService, customJwtService);
+        controllerUnderTest = new LoginController(authenticationProvider, configProperties, thirdPartyJwtService, customJwtService, blacklistService);
     }
 
     @Test
@@ -138,5 +144,31 @@ class LoginControllerTest {
         final RedirectView methodeResponse = controllerUnderTest.redirectAfterColaLogin(redirectUrl, request, response);
 
         assertThat(methodeResponse.getUrl()).isEqualTo(redirectUrl.get());
+    }
+
+
+    @Test
+    void logout_RemovesTokenFromCookies() {
+        final String customToken = "a-custom-valid-token";
+        final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+
+        controllerUnderTest.logout(customToken,response);
+
+        final Cookie userServiceCookie = new Cookie("user-service-token",null);
+        userServiceCookie.setSecure(true);
+        userServiceCookie.setHttpOnly(true);
+        userServiceCookie.setMaxAge(0);
+
+        verify(response).addCookie(userServiceCookie);
+    }
+
+    @Test
+    void logout_RedirectsToColaLogout() {
+        final String customToken = "a-custom-valid-token";
+        final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+
+        final RedirectView methodeResponse = controllerUnderTest.logout(customToken,response);
+
+        assertThat(methodeResponse.getUrl()).isEqualTo(authenticationProvider.getLogoutUrl());
     }
 }

@@ -20,7 +20,6 @@ public class BlacklistScheduler {
             lockAtLeastFor = "${blacklist-scheduler.lock.atLeastFor:5m}")
     public void deleteExpiredJwts() {
         final Long deletedJwts = blacklistService.deleteExpiredJwts();
-
         log.info("Number of expired JWTs deleted: " + deletedJwts);
     }
 }

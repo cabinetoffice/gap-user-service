@@ -69,13 +69,12 @@ public class LoginController {
     }
 
     @PostMapping("/logout")
-    public RedirectView Logout(
+    public RedirectView logout(
             final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false) String jwt,
             final HttpServletResponse response) {
-        //add to blacklist
+
         blacklistService.addJwtToBlacklist(jwt);
 
-        //remove auth token from cookie
         final Cookie userTokenCookie = new Cookie(USER_SERVICE_COOKIE_NAME, null);
         userTokenCookie.setSecure(true);
         userTokenCookie.setHttpOnly(true);
@@ -83,10 +82,8 @@ public class LoginController {
 
         response.addCookie(userTokenCookie);
 
-        //logout through cola
         final String colaLogout = authenticationProvider.getLogoutUrl();
 
-        //Where do we redirect to?
         return new RedirectView(colaLogout);
     }
 }

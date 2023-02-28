@@ -8,6 +8,7 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.Verification;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
+import gov.cabinetofice.gapuserservice.repository.BlacklistRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -34,6 +35,9 @@ public class CustomJwtServiceImplTest {
     @Mock
     private Calendar calendar;
 
+    @Mock
+    BlacklistRepository blacklistRepository;
+
     @BeforeEach
     void setup() {
         final JwtProperties jwtProperties = JwtProperties.builder()
@@ -43,7 +47,7 @@ public class CustomJwtServiceImplTest {
                 .expiresAfter(60)
                 .build();
 
-        serviceUnderTest = new CustomJwtServiceImpl(jwtProperties, calendar);
+        serviceUnderTest = new CustomJwtServiceImpl(jwtProperties, calendar, blacklistRepository);
     }
 
     @Nested
@@ -77,6 +81,23 @@ public class CustomJwtServiceImplTest {
                 staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
                 when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
                 when(mockedJwtVerifier.verify(jwt)).thenThrow(new JWTVerificationException("An error"));
+
+                final boolean response = serviceUnderTest.isTokenValid(jwt);
+
+                assertThat(response).isFalse();
+                verify(mockedJwtVerifier, times(1)).verify(jwt);
+            }
+        }
+
+        @Test
+        void ReturnsFalse_IfBlacklisted() {
+            final String jwt = "an-blacklisted-jwt";
+            final Verification spiedVerification = spy(verification);
+
+            try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
+                staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
+                when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
+                when(blacklistRepository.existsByJwtIs(jwt)).thenReturn(true);
 
                 final boolean response = serviceUnderTest.isTokenValid(jwt);
 
