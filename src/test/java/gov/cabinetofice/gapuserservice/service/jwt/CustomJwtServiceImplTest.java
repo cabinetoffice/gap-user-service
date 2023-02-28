@@ -8,7 +8,7 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.Verification;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
-import gov.cabinetofice.gapuserservice.repository.BlacklistRepository;
+import gov.cabinetofice.gapuserservice.repository.JwtBlacklistRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -36,7 +36,7 @@ public class CustomJwtServiceImplTest {
     private Calendar calendar;
 
     @Mock
-    BlacklistRepository blacklistRepository;
+    JwtBlacklistRepository jwtBlacklistRepository;
 
     @BeforeEach
     void setup() {
@@ -47,7 +47,7 @@ public class CustomJwtServiceImplTest {
                 .expiresAfter(60)
                 .build();
 
-        serviceUnderTest = new CustomJwtServiceImpl(jwtProperties, calendar, blacklistRepository);
+        serviceUnderTest = new CustomJwtServiceImpl(jwtProperties, calendar, jwtBlacklistRepository);
     }
 
     @Nested
@@ -97,7 +97,7 @@ public class CustomJwtServiceImplTest {
             try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
                 staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
                 when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
-                when(blacklistRepository.existsByJwtIs(jwt)).thenReturn(true);
+                when(jwtBlacklistRepository.existsByJwtIs(jwt)).thenReturn(true);
 
                 final boolean response = serviceUnderTest.isTokenValid(jwt);
 

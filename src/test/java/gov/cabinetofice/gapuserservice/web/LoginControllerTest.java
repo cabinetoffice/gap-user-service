@@ -3,7 +3,7 @@ package gov.cabinetofice.gapuserservice.web;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
-import gov.cabinetofice.gapuserservice.service.BlacklistService;
+import gov.cabinetofice.gapuserservice.service.JwtBlacklistService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.ColaJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import jakarta.servlet.http.Cookie;
@@ -34,7 +34,7 @@ class LoginControllerTest {
     private CustomJwtServiceImpl customJwtService;
 
     @Mock
-    private BlacklistService blacklistService;
+    private JwtBlacklistService jwtBlacklistService;
 
     private LoginController controllerUnderTest;
     private ThirdPartyAuthProviderProperties authenticationProvider;
@@ -52,7 +52,7 @@ class LoginControllerTest {
                 .defaultRedirectUrl("https://www.find-government-grants.service.gov.uk/")
                 .build();
 
-        controllerUnderTest = new LoginController(authenticationProvider, configProperties, thirdPartyJwtService, customJwtService, blacklistService);
+        controllerUnderTest = new LoginController(authenticationProvider, configProperties, thirdPartyJwtService, customJwtService, jwtBlacklistService);
     }
 
     @Test

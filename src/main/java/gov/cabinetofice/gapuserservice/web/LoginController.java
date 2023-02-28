@@ -3,7 +3,7 @@ package gov.cabinetofice.gapuserservice.web;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
-import gov.cabinetofice.gapuserservice.service.BlacklistService;
+import gov.cabinetofice.gapuserservice.service.JwtBlacklistService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.ColaJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import jakarta.servlet.http.Cookie;
@@ -28,7 +28,7 @@ public class LoginController {
     private final ApplicationConfigProperties configProperties;
     private final ColaJwtServiceImpl thirdPartyJwtService;
     private final CustomJwtServiceImpl customJwtService;
-    private final BlacklistService blacklistService;
+    private final JwtBlacklistService jwtBlacklistService;
     public static final String REDIRECT_URL_COOKIE = "redirectUrl";
     public static final String USER_SERVICE_COOKIE_NAME = "user-service-token";
 
@@ -73,7 +73,7 @@ public class LoginController {
             final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false) String jwt,
             final HttpServletResponse response) {
 
-        blacklistService.addJwtToBlacklist(jwt);
+        jwtBlacklistService.addJwtToBlacklist(jwt);
 
         final Cookie userTokenCookie = new Cookie(USER_SERVICE_COOKIE_NAME, null);
         userTokenCookie.setSecure(true);

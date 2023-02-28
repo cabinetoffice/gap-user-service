@@ -5,8 +5,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.JWTVerifier;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
-import gov.cabinetofice.gapuserservice.repository.BlacklistRepository;
-import gov.cabinetofice.gapuserservice.service.BlacklistService;
+import gov.cabinetofice.gapuserservice.repository.JwtBlacklistRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.JwtService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +21,7 @@ public class CustomJwtServiceImpl implements JwtService {
 
     private final JwtProperties jwtProperties;
     private final Calendar calendar;
-    private final BlacklistRepository blacklistRepository;
+    private final JwtBlacklistRepository jwtBlacklistRepository;
 
     @Override
     public boolean isTokenValid(final String customJwt) {
@@ -47,7 +46,7 @@ public class CustomJwtServiceImpl implements JwtService {
     }
 
     private boolean isInBlacklist(final String customJwt) {
-        return blacklistRepository.existsByJwtIs(customJwt);
+        return jwtBlacklistRepository.existsByJwtIs(customJwt);
     }
 
     public String generateToken() {

@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @EntityListeners(AuditingEntityListener.class)
 @Getter
@@ -15,10 +15,14 @@ import java.util.Date;
 @Builder
 @Entity
 @Table
-public class Blacklist {
+public class JwtBlacklist {
     @Id
+    @GeneratedValue
+    private int id;
+
+    @Column
     private String jwt;
 
     @Column
-    private Date expiryDate;
+    private LocalDateTime expiryDate;
 }

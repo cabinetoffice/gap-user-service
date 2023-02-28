@@ -1,12 +1,11 @@
 package gov.cabinetofice.gapuserservice.repository;
 
-import gov.cabinetofice.gapuserservice.model.Blacklist;
+import gov.cabinetofice.gapuserservice.model.JwtBlacklist;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Date;
-import java.util.List;
 
-public interface BlacklistRepository extends JpaRepository <Blacklist, String> {
+public interface JwtBlacklistRepository extends JpaRepository <JwtBlacklist, String> {
 
     long deleteByExpiryDateLessThan(Date expiryDate);
 
