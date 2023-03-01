@@ -4,6 +4,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.model.BlacklistedToken;
 import gov.cabinetofice.gapuserservice.repository.JwtBlacklistRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -34,6 +35,7 @@ public class JwtBlacklistService {
         return jwtBlacklistRepository.existsByJwtIs(jwt);
     }
 
+    @Transactional
     public Long deleteExpiredJwts() {
         return this.jwtBlacklistRepository.deleteByExpiryDateLessThan(ZonedDateTime.now(clock).toLocalDateTime());
     }
