@@ -13,12 +13,15 @@ import org.springframework.web.util.WebUtils;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
+import gov.cabinetofice.gapuserservice.service.JwtBlacklistService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.ColaJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.PostMapping;
+
 
 @RequiredArgsConstructor
 @Controller
@@ -28,6 +31,7 @@ public class LoginController {
     private final ApplicationConfigProperties configProperties;
     private final ColaJwtServiceImpl thirdPartyJwtService;
     private final CustomJwtServiceImpl customJwtService;
+    private final JwtBlacklistService jwtBlacklistService;
     public static final String REDIRECT_URL_COOKIE = "redirectUrl";
     public static final String USER_SERVICE_COOKIE_NAME = "user-service-token";
 
@@ -69,6 +73,25 @@ public class LoginController {
         return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
     }
 
+    @PostMapping("/logout")
+    public RedirectView logout(
+            final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false) String jwt,
+            final HttpServletResponse response) {
+
+        jwtBlacklistService.addJwtToBlacklist(jwt);
+
+        final Cookie userTokenCookie = new Cookie(USER_SERVICE_COOKIE_NAME, null);
+        userTokenCookie.setSecure(true);
+        userTokenCookie.setHttpOnly(true);
+        userTokenCookie.setMaxAge(0);
+
+        response.addCookie(userTokenCookie);
+
+        final String colaLogout = authenticationProvider.getLogoutUrl();
+
+        return new RedirectView(colaLogout);
+    }
+
     @GetMapping("/is-user-logged-in")
     public ResponseEntity<Boolean> ValidateUser(
             final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false) String jwt) {
@@ -76,4 +99,6 @@ public class LoginController {
         final boolean isJwtValid = jwt != null && customJwtService.isTokenValid(jwt);
         return ResponseEntity.ok(isJwtValid);
     }
+
+
 }
