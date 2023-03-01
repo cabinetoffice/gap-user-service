@@ -1,7 +1,16 @@
 package gov.cabinetofice.gapuserservice.web;
 
+import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
+import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
+import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
+import gov.cabinetofice.gapuserservice.service.JwtBlacklistService;
+import gov.cabinetofice.gapuserservice.service.jwt.impl.ColaJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -20,14 +29,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.servlet.view.RedirectView;
 
-import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
-import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
-import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
-import gov.cabinetofice.gapuserservice.service.jwt.impl.ColaJwtServiceImpl;
-import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
-
 @ExtendWith(MockitoExtension.class)
 class LoginControllerTest {
 
@@ -36,6 +37,9 @@ class LoginControllerTest {
 
     @Mock
     private CustomJwtServiceImpl customJwtService;
+
+    @Mock
+    private JwtBlacklistService jwtBlacklistService;
 
     private LoginController controllerUnderTest;
     private ThirdPartyAuthProviderProperties authenticationProvider;
@@ -46,14 +50,14 @@ class LoginControllerTest {
         authenticationProvider = ThirdPartyAuthProviderProperties.builder()
                 .url("https://some-authentication-providder.com")
                 .tokenCookie("find-grants.-test")
+                .logoutUrl("logout-url")
                 .build();
 
         configProperties = ApplicationConfigProperties.builder()
                 .defaultRedirectUrl("https://www.find-government-grants.service.gov.uk/")
                 .build();
 
-        controllerUnderTest = new LoginController(authenticationProvider, configProperties, thirdPartyJwtService,
-                customJwtService);
+        controllerUnderTest = new LoginController(authenticationProvider, configProperties, thirdPartyJwtService, customJwtService, jwtBlacklistService);
     }
 
     @Test
@@ -177,5 +181,30 @@ class LoginControllerTest {
 
         verify(customJwtService).isTokenValid(validToken);
         assertThat(response.getBody()).isEqualTo(true);
+    }
+
+    @Test
+    void logout_RemovesTokenFromCookies() {
+        final String customToken = "a-custom-valid-token";
+        final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+
+        controllerUnderTest.logout(customToken,response);
+
+        final Cookie userServiceCookie = new Cookie("user-service-token",null);
+        userServiceCookie.setSecure(true);
+        userServiceCookie.setHttpOnly(true);
+        userServiceCookie.setMaxAge(0);
+
+        verify(response).addCookie(userServiceCookie);
+    }
+
+    @Test
+    void logout_RedirectsToColaLogout() {
+        final String customToken = "a-custom-valid-token";
+        final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+
+        final RedirectView methodeResponse = controllerUnderTest.logout(customToken,response);
+
+        assertThat(methodeResponse.getUrl()).isEqualTo(authenticationProvider.getLogoutUrl());
     }
 }
