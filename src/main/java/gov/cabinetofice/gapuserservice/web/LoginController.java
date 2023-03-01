@@ -98,8 +98,6 @@ public class LoginController {
     @GetMapping("/refresh-token")
     public ResponseEntity<String> refreshToken(@CookieValue(USER_SERVICE_COOKIE_NAME) final String currentToken, final HttpServletResponse response) {
 
-        // presumably the security filter will handle invalid/non-existent tokens and deny access but if not then add code below.
-
         jwtBlacklistService.addJwtToBlacklist(currentToken);
 
         final String newToken = customJwtService.generateToken();
