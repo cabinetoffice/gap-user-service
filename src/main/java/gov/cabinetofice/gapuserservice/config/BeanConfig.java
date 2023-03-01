@@ -12,6 +12,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.time.Clock;
 import java.util.Calendar;
 
 @RequiredArgsConstructor
@@ -40,5 +41,10 @@ public class BeanConfig {
     @Bean
     public Calendar getCalendar() {
         return Calendar.getInstance();
+    }
+
+    @Bean
+    public Clock getClock() {
+        return Clock.systemDefaultZone();
     }
 }
