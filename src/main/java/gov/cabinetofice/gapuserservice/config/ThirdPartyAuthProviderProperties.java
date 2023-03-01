@@ -33,4 +33,6 @@ public class ThirdPartyAuthProviderProperties {
     private String secretCookieKey;
 
     private String tokenCookie;
+
+    private String logoutUrl;
 }

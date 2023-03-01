@@ -1,23 +1,25 @@
 package gov.cabinetofice.gapuserservice.scheduler;
 
-import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.service.JwtBlacklistService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-@Slf4j
-@Component("jwtBlacklistScheduler")
+@Log4j2
+@Service
 @RequiredArgsConstructor
 public class JwtBlacklistScheduler {
 
-    private final CustomJwtServiceImpl jwtService;
-    public static final String QUARTER_PAST_MIDNIGHT_CRON = "0 15 00 ? * *";
+    private final JwtBlacklistService jwtBlacklistService;
 
-    @Scheduled(cron = QUARTER_PAST_MIDNIGHT_CRON)
-    public void clearExpiredTokensFromBlacklist() {
-        log.info("Started job to delete expired tokens from the blacklist.");
-        jwtService.deleteExpiredTokensFromBlacklist();
-        log.info("Finished job to delete expired tokens from the blacklist.");
+    @Scheduled(cron = "${blacklist-scheduler.cronExpression:0 0 0 * * ?}", zone = "Europe/London")
+    @SchedulerLock(name = "blacklist_deleteExpiredJwtScheduler",
+            lockAtMostFor = "${blacklist-scheduler.lock.atMostFor:30m}",
+            lockAtLeastFor = "${blacklist-scheduler.lock.atLeastFor:5m}")
+    public void deleteExpiredJwts() {
+        final Long deletedJwts = jwtBlacklistService.deleteExpiredJwts();
+        log.info("Number of expired JWTs deleted: " + deletedJwts);
     }
 }

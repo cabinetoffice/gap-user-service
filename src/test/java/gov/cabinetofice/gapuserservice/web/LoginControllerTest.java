@@ -3,26 +3,33 @@ package gov.cabinetofice.gapuserservice.web;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
+import gov.cabinetofice.gapuserservice.service.JwtBlacklistService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.ColaJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Optional;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import static org.mockito.Mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.servlet.view.RedirectView;
-
-import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
 class LoginControllerTest {
@@ -33,6 +40,9 @@ class LoginControllerTest {
     @Mock
     private CustomJwtServiceImpl customJwtService;
 
+    @Mock
+    private JwtBlacklistService jwtBlacklistService;
+
     private LoginController controllerUnderTest;
     private ThirdPartyAuthProviderProperties authenticationProvider;
     private ApplicationConfigProperties configProperties;
@@ -42,13 +52,14 @@ class LoginControllerTest {
         authenticationProvider = ThirdPartyAuthProviderProperties.builder()
                 .url("https://some-authentication-providder.com")
                 .tokenCookie("find-grants.-test")
+                .logoutUrl("logout-url")
                 .build();
 
         configProperties = ApplicationConfigProperties.builder()
                 .defaultRedirectUrl("https://www.find-government-grants.service.gov.uk/")
                 .build();
 
-        controllerUnderTest = new LoginController(authenticationProvider, configProperties, thirdPartyJwtService, customJwtService);
+        controllerUnderTest = new LoginController(authenticationProvider, configProperties, thirdPartyJwtService, customJwtService, jwtBlacklistService);
     }
 
     @Test
@@ -102,7 +113,8 @@ class LoginControllerTest {
         final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
         final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/");
 
-        assertThrows(TokenNotValidException.class, () -> controllerUnderTest.redirectAfterColaLogin(redirectUrl, request, response));
+        assertThrows(TokenNotValidException.class,
+                () -> controllerUnderTest.redirectAfterColaLogin(redirectUrl, request, response));
     }
 
     @Test
@@ -118,7 +130,8 @@ class LoginControllerTest {
         when(thirdPartyJwtService.isTokenValid(any()))
                 .thenReturn(false);
 
-        assertThrows(TokenNotValidException.class, () -> controllerUnderTest.redirectAfterColaLogin(redirectUrl, request, response));
+        assertThrows(TokenNotValidException.class,
+                () -> controllerUnderTest.redirectAfterColaLogin(redirectUrl, request, response));
     }
 
     @Test
@@ -140,6 +153,61 @@ class LoginControllerTest {
         final RedirectView methodeResponse = controllerUnderTest.redirectAfterColaLogin(redirectUrl, request, response);
 
         assertThat(methodeResponse.getUrl()).isEqualTo(redirectUrl.get());
+    }
+
+    @Test
+    void validateUser_NullJwt() {
+        final ResponseEntity<Boolean> response = controllerUnderTest.ValidateUser(null);
+        assertThat(response.getBody()).isEqualTo(false);
+    }
+
+    @Test
+    void validateUser_JwtNotValid() {
+        final String invalidOrExpiredToken = "an-invalid-or-expired-token";
+
+        when(customJwtService.isTokenValid(invalidOrExpiredToken)).thenReturn(false);
+
+        final ResponseEntity<Boolean> response = controllerUnderTest.ValidateUser(invalidOrExpiredToken);
+
+        verify(customJwtService).isTokenValid(invalidOrExpiredToken);
+        assertThat(response.getBody()).isEqualTo(false);
+    }
+
+    @Test
+    void validateUser_JwtValid() {
+        final String validToken = "a-valid-token";
+
+        when(customJwtService.isTokenValid(validToken)).thenReturn(true);
+
+        final ResponseEntity<Boolean> response = controllerUnderTest.ValidateUser(validToken);
+
+        verify(customJwtService).isTokenValid(validToken);
+        assertThat(response.getBody()).isEqualTo(true);
+    }
+
+    @Test
+    void logout_RemovesTokenFromCookies() {
+        final String customToken = "a-custom-valid-token";
+        final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+
+        controllerUnderTest.logout(customToken,response);
+
+        final Cookie userServiceCookie = new Cookie("user-service-token",null);
+        userServiceCookie.setSecure(true);
+        userServiceCookie.setHttpOnly(true);
+        userServiceCookie.setMaxAge(0);
+
+        verify(response).addCookie(userServiceCookie);
+    }
+
+    @Test
+    void logout_RedirectsToColaLogout() {
+        final String customToken = "a-custom-valid-token";
+        final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+
+        final RedirectView methodeResponse = controllerUnderTest.logout(customToken,response);
+
+        assertThat(methodeResponse.getUrl()).isEqualTo(authenticationProvider.getLogoutUrl());
     }
 
     @Test

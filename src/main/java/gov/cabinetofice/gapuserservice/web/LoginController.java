@@ -1,15 +1,7 @@
 package gov.cabinetofice.gapuserservice.web;
 
-import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
-import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
-import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
-import gov.cabinetofice.gapuserservice.service.jwt.impl.ColaJwtServiceImpl;
-import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
-import gov.cabinetofice.gapuserservice.util.WebUtil;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
+import java.util.Optional;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -17,6 +9,19 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
+
+import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
+import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
+import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
+import gov.cabinetofice.gapuserservice.service.JwtBlacklistService;
+import gov.cabinetofice.gapuserservice.service.jwt.impl.ColaJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.util.WebUtil;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.PostMapping;
 
 import java.util.Optional;
 
@@ -28,6 +33,7 @@ public class LoginController {
     private final ApplicationConfigProperties configProperties;
     private final ColaJwtServiceImpl thirdPartyJwtService;
     private final CustomJwtServiceImpl customJwtService;
+    private final JwtBlacklistService jwtBlacklistService;
     public static final String REDIRECT_URL_COOKIE = "redirectUrl";
     public static final String USER_SERVICE_COOKIE_NAME = "user-service-token";
 
@@ -71,6 +77,25 @@ public class LoginController {
         return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
     }
 
+    @PostMapping("/logout")
+    public RedirectView logout(
+            final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false) String jwt,
+            final HttpServletResponse response) {
+
+        jwtBlacklistService.addJwtToBlacklist(jwt);
+
+        final Cookie userTokenCookie = new Cookie(USER_SERVICE_COOKIE_NAME, null);
+        userTokenCookie.setSecure(true);
+        userTokenCookie.setHttpOnly(true);
+        userTokenCookie.setMaxAge(0);
+
+        response.addCookie(userTokenCookie);
+
+        final String colaLogout = authenticationProvider.getLogoutUrl();
+
+        return new RedirectView(colaLogout);
+    }
+
     @GetMapping("/refresh-token")
     public ResponseEntity<String> refreshToken(@CookieValue(USER_SERVICE_COOKIE_NAME) final String currentToken, final HttpServletResponse response) {
 
@@ -89,4 +114,15 @@ public class LoginController {
 
         return ResponseEntity.ok(newToken);
     }
+}
+
+    @GetMapping("/is-user-logged-in")
+    public ResponseEntity<Boolean> ValidateUser(
+            final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false) String jwt) {
+
+        final boolean isJwtValid = jwt != null && customJwtService.isTokenValid(jwt);
+        return ResponseEntity.ok(isJwtValid);
+    }
+
+
 }

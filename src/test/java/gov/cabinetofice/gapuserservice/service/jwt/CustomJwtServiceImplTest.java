@@ -13,6 +13,7 @@ import com.auth0.jwt.interfaces.Verification;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
 import gov.cabinetofice.gapuserservice.model.BlacklistedToken;
 import gov.cabinetofice.gapuserservice.repositories.TokenBlacklistRepository;
+import gov.cabinetofice.gapuserservice.repository.JwtBlacklistRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +40,9 @@ public class CustomJwtServiceImplTest {
 
     private final String CHRISTMAS_2022_MIDDAY = "2022-12-25T12:00:00.00z";
     private final Clock clock = Clock.fixed(Instant.parse(CHRISTMAS_2022_MIDDAY), ZoneId.of("UTC"));
+
+    @Mock
+    JwtBlacklistRepository jwtBlacklistRepository;
 
     @BeforeEach
     void setup() {
@@ -83,6 +87,23 @@ public class CustomJwtServiceImplTest {
                 staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
                 when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
                 when(mockedJwtVerifier.verify(jwt)).thenThrow(new JWTVerificationException("An error"));
+
+                final boolean response = serviceUnderTest.isTokenValid(jwt);
+
+                assertThat(response).isFalse();
+                verify(mockedJwtVerifier, times(1)).verify(jwt);
+            }
+        }
+
+        @Test
+        void ReturnsFalse_IfBlacklisted() {
+            final String jwt = "an-blacklisted-jwt";
+            final Verification spiedVerification = spy(verification);
+
+            try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
+                staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
+                when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
+                when(jwtBlacklistRepository.existsByJwtIs(jwt)).thenReturn(true);
 
                 final boolean response = serviceUnderTest.isTokenValid(jwt);
 
