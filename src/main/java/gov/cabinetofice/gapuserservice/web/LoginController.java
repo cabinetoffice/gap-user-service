@@ -1,15 +1,5 @@
 package gov.cabinetofice.gapuserservice.web;
 
-import java.util.Optional;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.servlet.view.RedirectView;
-import org.springframework.web.util.WebUtils;
-
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
@@ -21,7 +11,14 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.view.RedirectView;
+import org.springframework.web.util.WebUtils;
 
 import java.util.Optional;
 
@@ -37,6 +34,7 @@ public class LoginController {
     public static final String REDIRECT_URL_COOKIE = "redirectUrl";
     public static final String USER_SERVICE_COOKIE_NAME = "user-service-token";
 
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     @GetMapping("/login")
     public RedirectView login(final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false) String jwt,
                               final @RequestParam Optional<String> redirectUrl,
@@ -57,6 +55,7 @@ public class LoginController {
         return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
     }
 
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     @GetMapping("/redirect-after-cola-login")
     public RedirectView redirectAfterColaLogin(final @CookieValue(name = REDIRECT_URL_COOKIE) Optional<String> redirectUrl,
                                                final HttpServletRequest request,
@@ -101,7 +100,7 @@ public class LoginController {
 
         // presumably the security filter will handle invalid/non-existent tokens and deny access but if not then add code below.
 
-        customJwtService.addTokenToBlacklist(currentToken);
+        jwtBlacklistService.addJwtToBlacklist(currentToken);
 
         final String newToken = customJwtService.generateToken();
         final Cookie userTokenCookie = WebUtil.buildCookie(
@@ -114,10 +113,9 @@ public class LoginController {
 
         return ResponseEntity.ok(newToken);
     }
-}
 
     @GetMapping("/is-user-logged-in")
-    public ResponseEntity<Boolean> ValidateUser(
+    public ResponseEntity<Boolean> validateUser(
             final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false) String jwt) {
 
         final boolean isJwtValid = jwt != null && customJwtService.isTokenValid(jwt);

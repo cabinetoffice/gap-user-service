@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "token_blacklist", indexes = @Index(columnList = "token"))
+@Table(name = "token_blacklist", indexes = @Index(columnList = "jwt"))
 public class BlacklistedToken {
 
     @Id
@@ -21,8 +21,8 @@ public class BlacklistedToken {
     private int id;
 
     @Column(length = 4000)
-    private String token;
+    private String jwt;
 
     @Column
-    private LocalDateTime expiry;
+    private LocalDateTime expiryDate;
 }

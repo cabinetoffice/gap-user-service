@@ -12,8 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Date;
 
@@ -23,8 +21,8 @@ import java.util.Date;
 public class CustomJwtServiceImpl implements JwtService {
 
     private final JwtProperties jwtProperties;
-    private final Calendar calendar;
     private final JwtBlacklistRepository jwtBlacklistRepository;
+    private final Clock clock;
 
     @Override
     public boolean isTokenValid(final String customJwt) {
@@ -45,10 +43,10 @@ public class CustomJwtServiceImpl implements JwtService {
         }
 
 
-        return !isInBlacklist(customJwt);
+        return !isTokenInBlacklist(customJwt);
     }
 
-    private boolean isInBlacklist(final String customJwt) {
+    private boolean isTokenInBlacklist(final String customJwt) {
         return jwtBlacklistRepository.existsByJwtIs(customJwt);
     }
 

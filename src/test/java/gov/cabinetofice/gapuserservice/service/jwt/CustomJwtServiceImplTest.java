@@ -1,7 +1,6 @@
 package gov.cabinetofice.gapuserservice.service.jwt;
 
 import com.auth0.jwt.JWT;
-import static com.auth0.jwt.JWT.decode;
 import static com.auth0.jwt.JWT.require;
 import com.auth0.jwt.JWTCreator;
 import com.auth0.jwt.JWTVerifier;
@@ -11,8 +10,6 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.Verification;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
-import gov.cabinetofice.gapuserservice.model.BlacklistedToken;
-import gov.cabinetofice.gapuserservice.repositories.TokenBlacklistRepository;
 import gov.cabinetofice.gapuserservice.repository.JwtBlacklistRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -20,29 +17,29 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import static org.mockito.Mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.*;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Date;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 @ExtendWith(MockitoExtension.class)
 public class CustomJwtServiceImplTest {
 
     private CustomJwtServiceImpl serviceUnderTest;
 
     @Mock
-    private TokenBlacklistRepository repository;
+    private JwtBlacklistRepository jwtBlacklistRepository;
 
     private final String CHRISTMAS_2022_MIDDAY = "2022-12-25T12:00:00.00z";
     private final Clock clock = Clock.fixed(Instant.parse(CHRISTMAS_2022_MIDDAY), ZoneId.of("UTC"));
-
-    @Mock
-    JwtBlacklistRepository jwtBlacklistRepository;
 
     @BeforeEach
     void setup() {
@@ -53,7 +50,7 @@ public class CustomJwtServiceImplTest {
                 .expiresAfter(60)
                 .build();
 
-        serviceUnderTest = spy(new CustomJwtServiceImpl(jwtProperties, repository, clock));
+        serviceUnderTest = spy(new CustomJwtServiceImpl(jwtProperties, jwtBlacklistRepository, clock));
     }
 
     @Nested
@@ -122,13 +119,13 @@ public class CustomJwtServiceImplTest {
                 when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
 
                 doReturn(true)
-                        .when(serviceUnderTest).isTokenBlacklisted(jwt);
+                        .when(jwtBlacklistRepository).existsByJwtIs(jwt);
 
                 final boolean response = serviceUnderTest.isTokenValid(jwt);
 
                 assertThat(response).isFalse();
                 verify(mockedJwtVerifier, times(1)).verify(jwt);
-                verify(serviceUnderTest, atLeastOnce()).isTokenBlacklisted(jwt);
+                verify(jwtBlacklistRepository, atLeastOnce()).existsByJwtIs(jwt);
             }
         }
 
@@ -164,7 +161,7 @@ public class CustomJwtServiceImplTest {
             final JWTCreator.Builder mockedJwtBuilder = spy(JWTCreator.Builder.class);
 
             try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
-                staticJwt.when(() -> JWT.create()).thenReturn(mockedJwtBuilder);
+                staticJwt.when(JWT::create).thenReturn(mockedJwtBuilder);
 
                 serviceUnderTest.generateToken();
 
@@ -177,7 +174,7 @@ public class CustomJwtServiceImplTest {
             final JWTCreator.Builder mockedJwtBuilder = spy(JWTCreator.Builder.class);
 
             try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
-                staticJwt.when(() -> JWT.create()).thenReturn(mockedJwtBuilder);
+                staticJwt.when(JWT::create).thenReturn(mockedJwtBuilder);
 
                 serviceUnderTest.generateToken();
 
@@ -191,7 +188,7 @@ public class CustomJwtServiceImplTest {
             final long now = ZonedDateTime.now(clock).toInstant().toEpochMilli();
 
             try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
-                staticJwt.when(() -> JWT.create()).thenReturn(mockedJwtBuilder);
+                staticJwt.when(JWT::create).thenReturn(mockedJwtBuilder);
 
                 serviceUnderTest.generateToken();
 
@@ -206,7 +203,7 @@ public class CustomJwtServiceImplTest {
 
             try (MockedStatic<Algorithm> staticAlgorithm = Mockito.mockStatic(Algorithm.class)) {
                 try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
-                    staticJwt.when(() -> JWT.create()).thenReturn(mockedJwtBuilder);
+                    staticJwt.when(JWT::create).thenReturn(mockedJwtBuilder);
                     staticAlgorithm.when(() -> HMAC256("test-signing-key")).thenReturn(mockAlgorithm);
                     doReturn("a-custom-jwt").when(mockedJwtBuilder).sign(mockAlgorithm);
 
@@ -223,55 +220,13 @@ public class CustomJwtServiceImplTest {
             final JWTCreator.Builder mockedJwtBuilder = spy(JWTCreator.Builder.class);
 
             try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
-                staticJwt.when(() -> JWT.create()).thenReturn(mockedJwtBuilder);
+                staticJwt.when(JWT::create).thenReturn(mockedJwtBuilder);
                 doReturn("a-custom-jwt").when(mockedJwtBuilder).sign(any());
 
                 final String response = serviceUnderTest.generateToken();
 
                 assertThat(response).isEqualTo("a-custom-jwt");
             }
-        }
-    }
-
-    @Nested
-    class addTokenToBlacklist {
-
-        @Test
-        void addsExpectedTokenToBlacklist() {
-            final String existingToken = "a-token";
-            final long now = ZonedDateTime.now(clock).toInstant().toEpochMilli();
-            final TestDecodedJwt decodedToken = TestDecodedJwt.builder()
-                    .expiresAt(new Date(now))
-                    .build();
-
-            try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
-                staticJwt.when(() -> decode(existingToken))
-                        .thenReturn(decodedToken);
-
-                final ArgumentCaptor<BlacklistedToken> tokenCaptor = ArgumentCaptor.forClass(BlacklistedToken.class);
-
-                serviceUnderTest.addTokenToBlacklist(existingToken);
-
-                verify(repository).save(tokenCaptor.capture());
-                assertThat(tokenCaptor.getValue().getToken()).isEqualTo(existingToken);
-                assertThat(tokenCaptor.getValue().getExpiry()).isEqualTo(LocalDateTime.now(clock));
-            }
-        }
-    }
-
-    @Nested
-    class deleteExpiredTokensFromBlacklist {
-
-        @Test
-        void shouldDeleteExpiredTokens_AndReturnNumberDeleted() {
-            final int numTokensToDelete = 5;
-            when(repository.deleteByExpiryLessThanEqual(LocalDateTime.now(clock)))
-                    .thenReturn(numTokensToDelete);
-
-            final int deletedTokens = serviceUnderTest.deleteExpiredTokensFromBlacklist();
-
-            verify(repository).deleteByExpiryLessThanEqual(LocalDateTime.now(clock));
-            assertThat(deletedTokens).isEqualTo(5);
         }
     }
 }
