@@ -11,7 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Calendar;
+import java.time.Clock;
+import java.time.ZonedDateTime;
 import java.util.Date;
 
 @Service
@@ -20,8 +21,8 @@ import java.util.Date;
 public class CustomJwtServiceImpl implements JwtService {
 
     private final JwtProperties jwtProperties;
-    private final Calendar calendar;
     private final JwtBlacklistRepository jwtBlacklistRepository;
+    private final Clock clock;
 
     @Override
     public boolean isTokenValid(final String customJwt) {
@@ -42,10 +43,10 @@ public class CustomJwtServiceImpl implements JwtService {
         }
 
 
-        return !isInBlacklist(customJwt);
+        return !isTokenInBlacklist(customJwt);
     }
 
-    private boolean isInBlacklist(final String customJwt) {
+    private boolean isTokenInBlacklist(final String customJwt) {
         return jwtBlacklistRepository.existsByJwtIs(customJwt);
     }
 
@@ -58,7 +59,7 @@ public class CustomJwtServiceImpl implements JwtService {
         return JWT.create()
                 .withIssuer(jwtProperties.getIssuer())
                 .withAudience(jwtProperties.getAudience())
-                .withExpiresAt(new Date(calendar.getTimeInMillis() + (jwtProperties.getExpiresAfter() * 1000 * 60)))
+                .withExpiresAt(new Date(ZonedDateTime.now(clock).toInstant().toEpochMilli() + (jwtProperties.getExpiresAfter() * 1000 * 60)))
                 .sign(signingKey);
     }
 }
