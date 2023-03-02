@@ -75,7 +75,7 @@ public class LoginController {
 
     @PostMapping("/logout")
     public RedirectView logout(
-            final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false) String jwt,
+            final @CookieValue(name = USER_SERVICE_COOKIE_NAME) String jwt,
             final HttpServletResponse response) {
 
         jwtBlacklistService.addJwtToBlacklist(jwt);
