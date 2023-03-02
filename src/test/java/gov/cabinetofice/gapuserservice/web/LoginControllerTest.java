@@ -10,24 +10,21 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.Optional;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import static org.mockito.Mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.servlet.view.RedirectView;
+
+import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
 class LoginControllerTest {
@@ -118,9 +115,7 @@ class LoginControllerTest {
     @Test
     void redirectAfterColaLogin_ThrowsTokenNotValidException_IfTokenIsInvalid() {
         final MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setCookies(new Cookie[] {
-                new Cookie(authenticationProvider.getTokenCookie(), "a-token")
-        });
+        request.setCookies(new Cookie(authenticationProvider.getTokenCookie(), "a-token"));
 
         final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
         final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/");
@@ -135,9 +130,7 @@ class LoginControllerTest {
     @Test
     void redirectAfterColaLogin_RedirectsToLoginEndpoint() {
         final MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setCookies(new Cookie[] {
-                new Cookie(authenticationProvider.getTokenCookie(), "a-token")
-        });
+        request.setCookies(new Cookie(authenticationProvider.getTokenCookie(), "a-token"));
 
         final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
         final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/");
@@ -155,8 +148,8 @@ class LoginControllerTest {
 
     @Test
     void validateUser_NullJwt() {
-        final ResponseEntity<Boolean> response = controllerUnderTest.ValidateUser(null);
-        assertThat(response.getBody()).isEqualTo(false);
+        final ResponseEntity<Boolean> response = controllerUnderTest.validateUser(null);
+        assertThat(response.getBody()).isFalse();
     }
 
     @Test
@@ -165,10 +158,10 @@ class LoginControllerTest {
 
         when(customJwtService.isTokenValid(invalidOrExpiredToken)).thenReturn(false);
 
-        final ResponseEntity<Boolean> response = controllerUnderTest.ValidateUser(invalidOrExpiredToken);
+        final ResponseEntity<Boolean> response = controllerUnderTest.validateUser(invalidOrExpiredToken);
 
         verify(customJwtService).isTokenValid(invalidOrExpiredToken);
-        assertThat(response.getBody()).isEqualTo(false);
+        assertThat(response.getBody()).isFalse();
     }
 
     @Test
@@ -177,10 +170,10 @@ class LoginControllerTest {
 
         when(customJwtService.isTokenValid(validToken)).thenReturn(true);
 
-        final ResponseEntity<Boolean> response = controllerUnderTest.ValidateUser(validToken);
+        final ResponseEntity<Boolean> response = controllerUnderTest.validateUser(validToken);
 
         verify(customJwtService).isTokenValid(validToken);
-        assertThat(response.getBody()).isEqualTo(true);
+        assertThat(response.getBody()).isTrue();
     }
 
     @Test
@@ -206,5 +199,27 @@ class LoginControllerTest {
         final RedirectView methodeResponse = controllerUnderTest.logout(customToken,response);
 
         assertThat(methodeResponse.getUrl()).isEqualTo(authenticationProvider.getLogoutUrl());
+    }
+
+    @Test
+    void refreshToken_ShouldAddExistingTokenToBlackList_AndReturnAFreshOne() {
+
+        final String existingToken = "a-token";
+        final String refreshedToken = "a-refreshed-token";
+        final Cookie userTokenCookie = new Cookie(LoginController.USER_SERVICE_COOKIE_NAME, refreshedToken);
+        userTokenCookie.setSecure(true);
+        userTokenCookie.setHttpOnly(true);
+
+        final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+
+        when(customJwtService.generateToken()).thenReturn(refreshedToken);
+
+        final ResponseEntity<String> methodResponse = controllerUnderTest.refreshToken(existingToken, response);
+
+        verify(jwtBlacklistService, atLeastOnce()).addJwtToBlacklist(existingToken);
+        verify(response).addCookie(userTokenCookie);
+
+        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(methodResponse.getBody()).isEqualTo(refreshedToken);
     }
 }
