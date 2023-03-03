@@ -28,7 +28,7 @@ public class EmailAddressMatchMatchValidator implements ConstraintValidator<Emai
 
         final boolean fieldValueIsEmpty = Strings.isEmpty((String) fieldValue);
         final boolean fieldMatchValueIsEmpty = Strings.isEmpty((String) fieldMatchValue);
-        final boolean fieldsMatch = fieldValue.equals(fieldMatchValue);
+        final boolean fieldsMatch = fieldValue.equals(fieldMatchValue); //TODO fix potential null pointer here
 
         if ((!fieldValueIsEmpty && !fieldMatchValueIsEmpty) && !fieldsMatch) {
             context.disableDefaultConstraintViolation();
