@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.servlet.ModelAndView;
 
 @RequiredArgsConstructor
@@ -16,11 +15,11 @@ public class UserController {
 
     private final UserService userService;
 
-    private static final String REGISTRATION_SUCCESS_VIEW = "something";
-    private static final String REGISTRATION_PAGE_VIEW = "register-user";
+    public static final String REGISTRATION_SUCCESS_VIEW = "something";
+    public static final String REGISTRATION_PAGE_VIEW = "register-user";
 
     @PostMapping("/register")
-    public ModelAndView registerNewUser(@Valid @RequestBody CreateUserDto user, BindingResult result) {
+    public ModelAndView registerNewUser(@Valid CreateUserDto user, BindingResult result) {
 
         if (result.hasErrors()) {
             return new ModelAndView(REGISTRATION_PAGE_VIEW);
