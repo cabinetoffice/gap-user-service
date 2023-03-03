@@ -183,6 +183,10 @@
 								<move todir="${destDir}/assets">
 									<fileset dir="${project.build.directory}/assets" />
 								</move>
+								<delete>
+									<fileset dir="${project.build.directory}" includes="gap-user-service-*" />
+									<fileset dir="${project.build.directory}" includes="govuk-frontend*.*" />
+								</delete>
 							</target>
 						</configuration>
 					</execution>
