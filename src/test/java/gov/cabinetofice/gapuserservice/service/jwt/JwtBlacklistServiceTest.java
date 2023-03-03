@@ -1,23 +1,28 @@
 package gov.cabinetofice.gapuserservice.service.jwt;
 
-import gov.cabinetofice.gapuserservice.model.JwtBlacklist;
+import com.auth0.jwt.JWT;
+import static com.auth0.jwt.JWT.decode;
+import gov.cabinetofice.gapuserservice.model.BlacklistedToken;
 import gov.cabinetofice.gapuserservice.repository.JwtBlacklistRepository;
 import gov.cabinetofice.gapuserservice.service.JwtBlacklistService;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.*;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.*;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import java.util.Date;
 
 @ExtendWith(MockitoExtension.class)
-public class JwtBlacklistServiceTest {
+class JwtBlacklistServiceTest {
 
     @Mock
     private JwtBlacklistRepository jwtBlacklistRepository;
@@ -38,13 +43,23 @@ public class JwtBlacklistServiceTest {
 
     @Test
     void addJwtToBlacklist_Save() {
-        final ArgumentCaptor<JwtBlacklist> blacklistCaptor = ArgumentCaptor.forClass(JwtBlacklist.class);
+        final long now = ZonedDateTime.now(clock).toInstant().toEpochMilli();
+        final TestDecodedJwt decodedToken = TestDecodedJwt.builder()
+                .expiresAt(new Date(now))
+                .build();
 
-        serviceUnderTest.addJwtToBlacklist(jwt);
-        verify(jwtBlacklistRepository).save(blacklistCaptor.capture());
+        try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
+            staticJwt.when(() -> decode(jwt))
+                    .thenReturn(decodedToken);
 
-        final JwtBlacklist capturedBlacklist = blacklistCaptor.getValue();
-        assertThat(capturedBlacklist.getJwt()).isEqualTo(jwt);
+            final ArgumentCaptor<BlacklistedToken> blacklistCaptor = ArgumentCaptor.forClass(BlacklistedToken.class);
+
+            serviceUnderTest.addJwtToBlacklist(jwt);
+            verify(jwtBlacklistRepository).save(blacklistCaptor.capture());
+
+            final BlacklistedToken capturedBlacklist = blacklistCaptor.getValue();
+            assertThat(capturedBlacklist.getJwt()).isEqualTo(jwt);
+        }
     }
 
     @Test
