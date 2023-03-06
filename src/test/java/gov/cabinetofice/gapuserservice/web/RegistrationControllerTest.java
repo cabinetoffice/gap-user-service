@@ -1,24 +1,25 @@
 package gov.cabinetofice.gapuserservice.web;
 
 import gov.cabinetofice.gapuserservice.dto.CreateUserDto;
-import gov.cabinetofice.gapuserservice.service.UserService;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import gov.cabinetofice.gapuserservice.service.user.impl.ColaUserServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.servlet.ModelAndView;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 
 @ExtendWith(MockitoExtension.class)
 class RegistrationControllerTest {
 
     @Mock
-    private UserService userService;
+    private ColaUserServiceImpl colaUserServiceImpl;
 
     @Mock
     private BindingResult bindingResult;
@@ -54,7 +55,7 @@ class RegistrationControllerTest {
 
         final ModelAndView methodResponse = controllerUnderTest.showRegistrationPage(user, bindingResult);
 
-        verify(userService).createNewUser(user);
+        verify(colaUserServiceImpl).createNewUser(user);
         assertThat(methodResponse.getViewName()).isEqualTo(RegistrationController.REGISTRATION_SUCCESS_VIEW);
     }
 }

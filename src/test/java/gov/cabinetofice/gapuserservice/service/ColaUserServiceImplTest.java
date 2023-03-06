@@ -4,7 +4,7 @@ import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProvider;
 import com.amazonaws.services.cognitoidp.model.*;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.dto.CreateUserDto;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import gov.cabinetofice.gapuserservice.service.user.impl.ColaUserServiceImpl;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,20 +13,22 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Date;
 import java.util.List;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 @ExtendWith(MockitoExtension.class)
-class UserServiceTest {
+class ColaUserServiceImplTest {
 
     private ThirdPartyAuthProviderProperties cognitoProps;
     @Mock
     private AWSCognitoIdentityProvider cognitoClient;
-    private UserService serviceUnderTest;
+    private ColaUserServiceImpl serviceUnderTest;
 
     @Captor
     private ArgumentCaptor<AdminCreateUserRequest> adminUserRequestCaptor;
@@ -47,7 +49,7 @@ class UserServiceTest {
                 .userPassword("a-user-password")
                 .build();
 
-        serviceUnderTest = new UserService(cognitoProps, cognitoClient);
+        serviceUnderTest = new ColaUserServiceImpl(cognitoProps, cognitoClient);
     }
 
     @Test
