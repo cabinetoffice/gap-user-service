@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.ModelAndView;
 
@@ -27,5 +28,10 @@ public class UserController {
 
         userService.createNewUser(user);
         return new ModelAndView(REGISTRATION_SUCCESS_VIEW);
+    }
+
+    @GetMapping("/register")
+    public ModelAndView getRegisterPage() {
+        return new ModelAndView(REGISTRATION_PAGE_VIEW);
     }
 }
