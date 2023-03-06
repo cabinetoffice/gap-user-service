@@ -13,9 +13,15 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<name>gap-user-service</name>
 	<description>User service for the find a grant application suite</description>
+
 	<properties>
 		<java.version>17</java.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<govuk-frontend-version>4.5.0</govuk-frontend-version>
+		<upstream.url>https://github.com/alphagov/govuk-frontend/releases/download/v${govuk-frontend-version}/release-v${govuk-frontend-version}.zip</upstream.url>
+		<destDir>${project.build.outputDirectory}/META-INF/resources/webjars/govuk-frontend/${govuk-frontend-version}</destDir>
 	</properties>
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -122,11 +128,6 @@
 			<version>8.12.54</version>
 		</dependency>
 		<dependency>
-			<groupId>org.webjars.npm</groupId>
-			<artifactId>govuk-frontend</artifactId>
-			<version>4.5.0</version>
-		</dependency>
-		<dependency>
 			<groupId>nz.net.ultraq.thymeleaf</groupId>
 			<artifactId>thymeleaf-layout-dialect</artifactId>
 		</dependency>
@@ -151,6 +152,7 @@
 					</excludes>
 				</configuration>
 			</plugin>
+
 			<plugin>
 				<groupId>org.flywaydb</groupId>
 				<artifactId>flyway-maven-plugin</artifactId>
@@ -161,14 +163,52 @@
 					<cleanDisabled>false</cleanDisabled>
 				</configuration>
 			</plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>17</source>
-                    <target>17</target>
-                </configuration>
-            </plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>17</source>
+					<target>17</target>
+				</configuration>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>1.8</version>
+				<executions>
+					<execution>
+						<phase>process-resources</phase>
+						<goals>
+							<goal>run</goal>
+						</goals>
+						<configuration>
+							<target>
+								<get src="${upstream.url}" dest="${project.build.directory}/govuk-frontend.zip" />
+								<unzip src="${project.build.directory}/govuk-frontend.zip" dest="${project.build.directory}" />
+								<exec executable="sed">
+									<arg value="-ie" />
+									<arg value="s|/assets/|assets/|g" />
+									<arg value="${project.build.directory}/govuk-frontend-${govuk-frontend-version}.min.css" />
+									<arg value="${project.build.directory}/govuk-frontend-ie8-${govuk-frontend-version}.min.css" />
+								</exec>
+								<move file="${project.build.directory}/govuk-frontend-${govuk-frontend-version}.min.css" tofile="${destDir}/govuk-frontend.min.css" />
+								<move file="${project.build.directory}/govuk-frontend-ie8-${govuk-frontend-version}.min.css" tofile="${destDir}/govuk-frontend-ie8.min.css" />
+								<move file="${project.build.directory}/govuk-frontend-${govuk-frontend-version}.min.js" tofile="${destDir}/govuk-frontend.min.js" />
+								<move todir="${destDir}/assets">
+									<fileset dir="${project.build.directory}/assets" />
+								</move>
+								<delete>
+									<fileset dir="${project.build.directory}" includes="gap-user-service-*" />
+									<fileset dir="${project.build.directory}" includes="govuk-frontend*.*" />
+								</delete>
+							</target>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
 			<plugin>
 				<groupId>org.owasp</groupId>
 				<artifactId>dependency-check-maven</artifactId>
