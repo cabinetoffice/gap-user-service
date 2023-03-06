@@ -28,7 +28,8 @@ class RegistrationControllerTest {
 
     @Test
     void showRegistrationPage_ShouldShowTheCorrectView() {
-        final ModelAndView methodResponse = controllerUnderTest.showRegistrationPage();
+        final CreateUserDto user = CreateUserDto.builder().build();
+        final ModelAndView methodResponse = controllerUnderTest.showRegistrationPage(user);
         assertThat(methodResponse.getViewName()).isEqualTo(RegistrationController.REGISTRATION_PAGE_VIEW);
     }
 
