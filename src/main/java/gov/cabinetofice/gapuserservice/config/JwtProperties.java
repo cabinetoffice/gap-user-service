@@ -26,5 +26,5 @@ public class JwtProperties {
 
     private String audience;
 
-
+    private String cookieName;
 }
