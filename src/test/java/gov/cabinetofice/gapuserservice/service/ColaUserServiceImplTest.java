@@ -6,21 +6,22 @@ import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.dto.CreateUserDto;
 import gov.cabinetofice.gapuserservice.service.user.impl.ColaUserServiceImpl;
 import org.junit.jupiter.api.Assertions;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import static org.mockito.ArgumentMatchers.any;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import static org.mockito.Mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Date;
 import java.util.List;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ColaUserServiceImplTest {
@@ -47,6 +48,7 @@ class ColaUserServiceImplTest {
                 .userPoolId("a-user-pool-id")
                 .region("eu-west-2")
                 .userPassword("a-user-password")
+                .userPoolId("a-user-pool-id")
                 .build();
 
         serviceUnderTest = new ColaUserServiceImpl(cognitoProps, cognitoClient);
@@ -132,5 +134,52 @@ class ColaUserServiceImplTest {
                         a -> assertThat(a.getValue()).isEqualTo(value),
                         () -> Assertions.fail(String.format("No attribute with name '%s' found", attributeName))
                 );
+    }
+
+    @Test
+    void doesUserExist_ShouldThrowException_IfNotExplicitlyCaught() {
+        final String emailAddress = "email@some-domain.com";
+        final AdminGetUserRequest getUserRequest = new AdminGetUserRequest()
+                .withUserPoolId(cognitoProps.getUserPoolId())
+                .withUsername(emailAddress);
+
+        doThrow(RuntimeException.class).when(cognitoClient).adminGetUser(any());
+
+        assertThrows(RuntimeException.class, () -> serviceUnderTest.doesUserExist(emailAddress));
+        verify(cognitoClient).adminGetUser(getUserRequest);
+    }
+
+    @Test
+    void doesUserExist_ShouldReturnFalse_ifUserNotFoundExceptionThrown() {
+
+        final String emailAddress = "email@some-domain.com";
+        final AdminGetUserRequest getUserRequest = new AdminGetUserRequest()
+                .withUserPoolId(cognitoProps.getUserPoolId())
+                .withUsername(emailAddress);
+
+        doThrow(UserNotFoundException.class).when(cognitoClient).adminGetUser(any());
+
+        final boolean methodResponse = serviceUnderTest.doesUserExist(emailAddress);
+
+        assertThat(methodResponse).isFalse();
+        verify(cognitoClient).adminGetUser(getUserRequest);
+    }
+
+    @Test
+    void doesUserExist_ShouldReturnTrue_IfUserReturnedFromCognito() {
+
+        final String emailAddress = "email@some-domain.com";
+        final AdminGetUserRequest getUserRequest = new AdminGetUserRequest()
+                .withUserPoolId(cognitoProps.getUserPoolId())
+                .withUsername(emailAddress);
+
+        final AdminGetUserResult cognitoUser = new AdminGetUserResult();
+        when(cognitoClient.adminGetUser(getUserRequest))
+                .thenReturn(cognitoUser);
+
+        final boolean methodResponse = serviceUnderTest.doesUserExist(emailAddress);
+
+        assertThat(methodResponse).isTrue();
+        verify(cognitoClient).adminGetUser(getUserRequest);
     }
 }

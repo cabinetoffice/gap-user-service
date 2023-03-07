@@ -1,5 +1,6 @@
 package gov.cabinetofice.gapuserservice.web;
 
+import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.dto.CreateUserDto;
 import gov.cabinetofice.gapuserservice.service.user.UserService;
 import jakarta.validation.Valid;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
+import org.thymeleaf.util.StringUtils;
 
 @RequiredArgsConstructor
 @Controller
@@ -19,8 +21,9 @@ import org.springframework.web.servlet.ModelAndView;
 public class RegistrationController {
 
     private final UserService userService;
+    private final ThirdPartyAuthProviderProperties authProviderProperties;
 
-    public static final String REGISTRATION_SUCCESS_VIEW = "something";
+    public static final String REGISTRATION_SUCCESS_VIEW = "registration-success";
     public static final String REGISTRATION_PAGE_VIEW = "register-user";
 
     @GetMapping
@@ -28,10 +31,16 @@ public class RegistrationController {
         return new ModelAndView(REGISTRATION_PAGE_VIEW);
     }
 
+    @GetMapping("/success")
+    public ModelAndView showSuccessPage() {
+        return new ModelAndView(REGISTRATION_SUCCESS_VIEW)
+                .addObject("loginUrl", authProviderProperties.getLoginUrl());
+    }
+
     @PostMapping
     public ModelAndView showRegistrationPage(final @Valid @ModelAttribute("user") CreateUserDto user, final BindingResult result) {
 
-        if(userService.doesUserExist(user)) {
+        if (!StringUtils.isEmptyOrWhitespace(user.getEmail()) && userService.doesUserExist(user.getEmail())) {
             final FieldError duplicateEmailError = new FieldError("user",
                     "email",
                     user.getEmail(),
@@ -48,6 +57,7 @@ public class RegistrationController {
         }
 
         userService.createNewUser(user);
-        return new ModelAndView(REGISTRATION_SUCCESS_VIEW);
+
+        return new ModelAndView( "redirect:/register/success");
     }
 }

@@ -6,8 +6,10 @@ import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.dto.CreateUserDto;
 import gov.cabinetofice.gapuserservice.service.user.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class ColaUserServiceImpl implements UserService {
@@ -28,14 +30,15 @@ public class ColaUserServiceImpl implements UserService {
     }
 
     @Override
-    public boolean doesUserExist(final CreateUserDto applicantInformation) {
+    public boolean doesUserExist(final String email) {
         final AdminGetUserRequest getUserRequest = new AdminGetUserRequest()
                 .withUserPoolId(authProviderProperties.getUserPoolId())
-                .withUsername(applicantInformation.getEmail());
+                .withUsername(email);
         try {
             cognitoClient.adminGetUser(getUserRequest);
             return true;
-        } catch (Exception e) {
+        } catch (UserNotFoundException e) {
+            log.debug("user not found", e);
             return false;
         }
     }

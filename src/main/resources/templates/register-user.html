@@ -4,7 +4,7 @@
         <meta charset="UTF-8">
         <title>Register</title>
 
-        <link rel="stylesheet" th:href="@{webjars/govuk-frontend/4.5.0/govuk-frontend.min.css}" />
+        <link rel="stylesheet" th:href="@{/webjars/govuk-frontend/4.5.0/govuk-frontend.min.css}" />
     </head>
 
     <body class="govuk-template__body">
@@ -118,7 +118,7 @@
 
                         <input th:field="*{firstName}"
                                th:value="${firstName}"
-                               class="govuk-input"
+                               class="govuk-input govuk-!-width-two-thirds"
                                th:classappend="${#fields.hasErrors('firstName') ? 'govuk-input--error' : ''}"
                                id="firstName"
                                name="firstName"
@@ -142,7 +142,7 @@
 
                         <input th:field="*{lastName}"
                                th:value="${lastName}"
-                               class="govuk-input"
+                               class="govuk-input govuk-!-width-two-thirds"
                                th:classappend="${#fields.hasErrors('lastName') ? 'govuk-input--error' : ''}"
                                id="lastName"
                                name="lastName"
@@ -169,7 +169,7 @@
 
                         <input th:field="*{email}"
                                th:value="${email}"
-                               class="govuk-input"
+                               class="govuk-input govuk-!-width-two-thirds"
                                th:classappend="${#fields.hasErrors('email') ? 'govuk-input--error' : ''}"
                                id="email"
                                name="email"
@@ -181,7 +181,7 @@
                     </div>
 
                     <div class="govuk-form-group" th:classappend="${#fields.hasErrors('emailConfirmed') ? 'govuk-form-group--error' : ''}">
-                        <label class="govuk-label govuk-label--s" for="confirm-email">
+                        <label class="govuk-label govuk-label--s" for="emailConfirmed">
                             Confirm your email address
                         </label>
 
@@ -196,7 +196,7 @@
 
                         <input th:field="*{emailConfirmed}"
                                th:value="${emailConfirmed}"
-                               class="govuk-input"
+                               class="govuk-input govuk-!-width-two-thirds"
                                th:classappend="${#fields.hasErrors('emailConfirmed') ? 'govuk-input--error' : ''}"
                                id="emailConfirmed"
                                name="emailConfirmed"
@@ -207,7 +207,7 @@
                     </div>
 
                     <div class="govuk-form-group" th:classappend="${#fields.hasErrors('telephone') ? 'govuk-form-group--error' : ''}">
-                        <label class="govuk-label govuk-label--s" for="telephone-number">
+                        <label class="govuk-label govuk-label--s" for="telephone">
                             UK telephone number (mobile)
                         </label>
                         <div id="telephone-hint" class="govuk-hint">
@@ -226,7 +226,7 @@
 
                         <input th:field="*{telephone}"
                                th:value="${telephone}"
-                               class="govuk-input govuk-input--width-20"
+                               class="govuk-input govuk-!-width-two-thirds"
                                th:classappend="${#fields.hasErrors('telephone') ? 'govuk-input--error' : ''}"
                                id="telephone"
                                name="telephone"
