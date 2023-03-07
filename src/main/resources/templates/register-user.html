@@ -2,7 +2,7 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
     <head>
         <meta charset="UTF-8">
-        <title>Register</title>
+        <title th:text="${#fields.hasErrors('${user.*}') ? 'Error: ' : ''}  +  'Register to apply for a grant'"></title>
 
         <link rel="stylesheet" th:href="@{/webjars/govuk-frontend/4.5.0/govuk-frontend.min.css}" />
     </head>
@@ -15,208 +15,198 @@
 
             <main class="govuk-main-wrapper" id="main-content" role="main">
                 <form method="post" th:action="@{/register}" th:object="${user}" novalidate>
+                    <div class="govuk-grid-row">
+                        <div class="govuk-grid-column-two-thirds">
+                            <div th:if="${#fields.hasErrors('*')}"
+                                 class="govuk-error-summary"
+                                 aria-labelledby="error-summary-title"
+                                 role="alert"
+                                 data-module="govuk-error-summary"
+                                 data-cy="cyErrorBanner"
+                                 id="error-summary"
+                                 tabIndex="-1"
+                            >
+                                <h2 class="govuk-error-summary__title" id="error-summary-title" data-cy="cyErrorBannerHeading">
+                                    There is a problem
+                                </h2>
 
-                    <div th:if="${#fields.hasErrors('*')}"
-                         class="govuk-error-summary"
-                         aria-labelledby="error-summary-title"
-                         role="alert"
-                         data-module="govuk-error-summary"
-                         data-cy="cyErrorBanner"
-                         id="error-summary"
-                         tabIndex="-1"
-                    >
-                        <h2 class="govuk-error-summary__title" id="error-summary-title" data-cy="cyErrorBannerHeading">
-                            There is a problem
-                        </h2>
-
-                        <div class="govuk-error-summary__body">
-                            <ul class="govuk-list govuk-error-summary__list" data-cy="cyError-summary-list">
-                                <li th:each="err : ${#fields.detailedErrors()}">
-                                    <a th:href="${err.global ? '' : '#' + err.fieldName}" aria-label="something" data-cy="something">[[${err.message}]]</a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <h1 class="govuk-heading-l">Create an account</h1>
-                <div class="govuk-grid-row">
-                    <div class="govuk-grid-column-two-thirds">
-                        <h1 class="govuk-heading-l">Create an account</h1>
-
-                    <p class="govuk-body">Enter your details to create an account.</p>
-
-                    <div class="govuk-form-group" th:classappend="${#fields.hasErrors('firstName') ? 'govuk-form-group--error' : ''}">
-                        <label class="govuk-label govuk-label--s" for="firstName">
-                            First name
-                        </label>
-
-                        <p th:id="first-name-error"
-                           th:class="govuk-error-message"
-                           data-cy="cy-email-input-validation-error-details"
-                           data-testid="error-message-test-id"
-                           th:errors="*{firstName}"
-                        >
-                            <span className="govuk-visually-hidden">Error: </span>
-                        </p>
-
-                        <input th:field="*{firstName}"
-                               th:value="${firstName}"
-                               class="govuk-input govuk-!-width-two-thirds"
-                               th:classappend="${#fields.hasErrors('firstName') ? 'govuk-input--error' : ''}"
-                               id="firstName"
-                               name="firstName"
-                               type="text"
-                        />
-                    </div>
-
-                    <div class="govuk-form-group" th:classappend="${#fields.hasErrors('lastName') ? 'govuk-form-group--error' : ''}">
-                        <label class="govuk-label govuk-label--s" for="lastName">
-                            Last name
-                        </label>
-
-                        <p th:id="last-name-error"
-                           th:class="govuk-error-message"
-                           data-cy="cy-email-input-validation-error-details"
-                           data-testid="error-message-test-id"
-                           th:errors="*{lastName}"
-                        >
-                            <span className="govuk-visually-hidden">Error: </span>
-                        </p>
-
-                        <input th:field="*{lastName}"
-                               th:value="${lastName}"
-                               class="govuk-input govuk-!-width-two-thirds"
-                               th:classappend="${#fields.hasErrors('lastName') ? 'govuk-input--error' : ''}"
-                               id="lastName"
-                               name="lastName"
-                               type="text"
-                        />
-                    </div>
-
-                    <div class="govuk-form-group" th:classappend="${#fields.hasErrors('email') ? 'govuk-form-group--error' : ''}">
-                        <label class="govuk-label govuk-label--s" for="email">
-                            Enter your email address
-                        </label>
-                        <div id="email-hint" class="govuk-hint">
-                            You will use this email address every time you sign in.
-                        </div>
-
-                        <p th:id="email-error"
-                           th:class="govuk-error-message"
-                           data-cy="cy-email-input-validation-error-details"
-                           data-testid="error-message-test-id"
-                           th:errors="*{email}"
-                        >
-                            <span className="govuk-visually-hidden">Error: </span>
-                        </p>
-
-                        <input th:field="*{email}"
-                               th:value="${email}"
-                               class="govuk-input govuk-!-width-two-thirds"
-                               th:classappend="${#fields.hasErrors('email') ? 'govuk-input--error' : ''}"
-                               id="email"
-                               name="email"
-                               type="email"
-                               spellcheck="false"
-                               aria-describedby="email-hint"
-                               autocomplete="email"
-                        />
-                    </div>
-
-                    <div class="govuk-form-group" th:classappend="${#fields.hasErrors('emailConfirmed') ? 'govuk-form-group--error' : ''}">
-                        <label class="govuk-label govuk-label--s" for="emailConfirmed">
-                            Confirm your email address
-                        </label>
-
-                        <p th:id="confirm-email-error"
-                           th:class="govuk-error-message"
-                           data-cy="cy-email-input-validation-error-details"
-                           data-testid="error-message-test-id"
-                           th:errors="*{emailConfirmed}"
-                        >
-                            <span className="govuk-visually-hidden">Error: </span>
-                        </p>
-
-                        <input th:field="*{emailConfirmed}"
-                               th:value="${emailConfirmed}"
-                               class="govuk-input govuk-!-width-two-thirds"
-                               th:classappend="${#fields.hasErrors('emailConfirmed') ? 'govuk-input--error' : ''}"
-                               id="emailConfirmed"
-                               name="emailConfirmed"
-                               type="email"
-                               spellcheck="false"
-                               aria-describedby="email-hint"
-                               autocomplete="email" />
-                    </div>
-
-                    <div class="govuk-form-group" th:classappend="${#fields.hasErrors('telephone') ? 'govuk-form-group--error' : ''}">
-                        <label class="govuk-label govuk-label--s" for="telephone">
-                            UK telephone number (mobile)
-                        </label>
-                        <div id="telephone-hint" class="govuk-hint">
-                            You must enter a UK mobile telephone number to continue. We will send a verification code to
-                            this number every time you sign in.
-                        </div>
-
-                        <p th:id="telephone-number-error"
-                           th:class="govuk-error-message"
-                           data-cy="cy-email-input-validation-error-details"
-                           data-testid="error-message-test-id"
-                           th:errors="*{telephone}"
-                        >
-                            <span className="govuk-visually-hidden">Error: </span>
-                        </p>
-
-                        <input th:field="*{telephone}"
-                               th:value="${telephone}"
-                               class="govuk-input govuk-!-width-two-thirds"
-                               th:classappend="${#fields.hasErrors('telephone') ? 'govuk-input--error' : ''}"
-                               id="telephone"
-                               name="telephone"
-                               type="tel"
-                               aria-describedby="telephone-hint"
-                               autocomplete="tel">
-                    </div>
-
-                    <div class="govuk-form-group" th:classappend="${#fields.hasErrors('privacyPolicy') ? 'govuk-form-group--error' : ''}">
-                        <p th:id="privacy-policy-error"
-                           th:class="govuk-error-message"
-                           data-cy="cy-email-input-validation-error-details"
-                           data-testid="error-message-test-id"
-                           th:errors="*{privacyPolicy}"
-                        >
-                            <span className="govuk-visually-hidden">Error: </span>
-                        </p>
-
-                        <div class="govuk-checkboxes" data-module="govuk-checkboxes">
-                            <div class="govuk-checkboxes__item">
-                                <input type="checkbox"
-                                       th:id="privacyPolicy"
-                                       th:name="privacyPolicy"
-                                       th:checked="*{privacyPolicy == 'yes'}"
-                                       th:value="yes"
-                                       class="govuk-checkboxes__input"
-                                />
-
-                                <label class="govuk-label govuk-checkboxes__label" th:for="privacyPolicy">
-                                    I have read and agree to the Privacy policy
-                                </label>
+                                <div class="govuk-error-summary__body">
+                                    <ul class="govuk-list govuk-error-summary__list" data-cy="cyError-summary-list">
+                                        <li th:each="err : ${#fields.detailedErrors()}">
+                                            <a th:href="${err.global ? '' : '#' + err.fieldName}" aria-label="something" data-cy="something">[[${err.message}]]</a>
+                                        </li>
+                                    </ul>
+                                </div>
                             </div>
-                        </div>
-                    </div>
 
+                            <h1 class="govuk-heading-l">Create an account</h1>
+                            <p class="govuk-body">Enter your details to create an account.</p>
+
+                            <div class="govuk-form-group" th:classappend="${#fields.hasErrors('firstName') ? 'govuk-form-group--error' : ''}">
+                                <label class="govuk-label govuk-label--s" for="firstName">
+                                    First name
+                                </label>
+
+                                <p th:id="first-name-error"
+                                   th:class="govuk-error-message"
+                                   data-cy="cy-email-input-validation-error-details"
+                                   data-testid="error-message-test-id"
+                                   th:errors="*{firstName}"
+                                >
+                                    <span className="govuk-visually-hidden">Error: </span>
+                                </p>
+
+                                <input th:field="*{firstName}"
+                                       th:value="${firstName}"
+                                       class="govuk-input"
+                                       th:classappend="${#fields.hasErrors('firstName') ? 'govuk-input--error' : ''}"
+                                       id="firstName"
+                                       name="firstName"
+                                       type="text"
+                                />
+                            </div>
+
+                            <div class="govuk-form-group" th:classappend="${#fields.hasErrors('lastName') ? 'govuk-form-group--error' : ''}">
+                                <label class="govuk-label govuk-label--s" for="lastName">
+                                    Last name
+                                </label>
+
+                                <p th:id="last-name-error"
+                                   th:class="govuk-error-message"
+                                   data-cy="cy-email-input-validation-error-details"
+                                   data-testid="error-message-test-id"
+                                   th:errors="*{lastName}"
+                                >
+                                    <span className="govuk-visually-hidden">Error: </span>
+                                </p>
+
+                                <input th:field="*{lastName}"
+                                       th:value="${lastName}"
+                                       class="govuk-input"
+                                       th:classappend="${#fields.hasErrors('lastName') ? 'govuk-input--error' : ''}"
+                                       id="lastName"
+                                       name="lastName"
+                                       type="text"
+                                />
+                            </div>
+
+                            <div class="govuk-form-group" th:classappend="${#fields.hasErrors('email') ? 'govuk-form-group--error' : ''}">
+                                <label class="govuk-label govuk-label--s" for="email">
+                                    Enter your email address
+                                </label>
+                                <div id="email-hint" class="govuk-hint">
+                                    You will use this email address every time you sign in.
+                                </div>
+
+                                <p th:id="email-error"
+                                   th:class="govuk-error-message"
+                                   data-cy="cy-email-input-validation-error-details"
+                                   data-testid="error-message-test-id"
+                                   th:errors="*{email}"
+                                >
+                                    <span className="govuk-visually-hidden">Error: </span>
+                                </p>
+
+                                <input th:field="*{email}"
+                                       th:value="${email}"
+                                       class="govuk-input"
+                                       th:classappend="${#fields.hasErrors('email') ? 'govuk-input--error' : ''}"
+                                       id="email"
+                                       name="email"
+                                       type="email"
+                                       spellcheck="false"
+                                       aria-describedby="email-hint"
+                                       autocomplete="email"
+                                />
+                            </div>
+
+                            <div class="govuk-form-group" th:classappend="${#fields.hasErrors('emailConfirmed') ? 'govuk-form-group--error' : ''}">
+                                <label class="govuk-label govuk-label--s" for="emailConfirmed">
+                                    Confirm your email address
+                                </label>
+
+                                <p th:id="confirm-email-error"
+                                   th:class="govuk-error-message"
+                                   data-cy="cy-email-input-validation-error-details"
+                                   data-testid="error-message-test-id"
+                                   th:errors="*{emailConfirmed}"
+                                >
+                                    <span className="govuk-visually-hidden">Error: </span>
+                                </p>
+
+                                <input th:field="*{emailConfirmed}"
+                                       th:value="${emailConfirmed}"
+                                       class="govuk-input"
+                                       th:classappend="${#fields.hasErrors('emailConfirmed') ? 'govuk-input--error' : ''}"
+                                       id="emailConfirmed"
+                                       name="emailConfirmed"
+                                       type="email"
+                                       spellcheck="false"
+                                       aria-describedby="email-hint"
+                                       autocomplete="email" />
+                            </div>
+
+                            <div class="govuk-form-group" th:classappend="${#fields.hasErrors('telephone') ? 'govuk-form-group--error' : ''}">
+                                <label class="govuk-label govuk-label--s" for="telephone">
+                                    UK telephone number (mobile)
+                                </label>
+                                <div id="telephone-hint" class="govuk-hint">
+                                    You must enter a UK mobile telephone number to continue. We will send a verification code to
+                                    this number every time you sign in.
+                                </div>
+
+                                <p th:id="telephone-number-error"
+                                   th:class="govuk-error-message"
+                                   data-cy="cy-email-input-validation-error-details"
+                                   data-testid="error-message-test-id"
+                                   th:errors="*{telephone}"
+                                >
+                                    <span className="govuk-visually-hidden">Error: </span>
+                                </p>
+
+                                <input th:field="*{telephone}"
+                                       th:value="${telephone}"
+                                       class="govuk-input"
+                                       th:classappend="${#fields.hasErrors('telephone') ? 'govuk-input--error' : ''}"
+                                       id="telephone"
+                                       name="telephone"
+                                       type="tel"
+                                       aria-describedby="telephone-hint"
+                                       autocomplete="tel">
+                            </div>
+
+                            <div class="govuk-form-group" th:classappend="${#fields.hasErrors('privacyPolicy') ? 'govuk-form-group--error' : ''}">
+                                <p th:id="privacy-policy-error"
+                                   th:class="govuk-error-message"
+                                   data-cy="cy-email-input-validation-error-details"
+                                   data-testid="error-message-test-id"
+                                   th:errors="*{privacyPolicy}"
+                                >
+                                    <span className="govuk-visually-hidden">Error: </span>
+                                </p>
+
+                                <div class="govuk-checkboxes" data-module="govuk-checkboxes">
+                                    <div class="govuk-checkboxes__item">
+                                        <input type="checkbox"
+                                               th:id="privacyPolicy"
+                                               th:name="privacyPolicy"
+                                               th:checked="*{privacyPolicy == 'yes'}"
+                                               th:value="yes"
+                                               class="govuk-checkboxes__input"
+                                        />
+
+                                        <label class="govuk-label govuk-checkboxes__label" th:for="privacyPolicy">
+                                            I have read and agree to the Privacy policy
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
                             <button class="govuk-button" data-module="govuk-button">
                                 Save and continue
                             </button>
-                        </form>
+                        </div>
                     </div>
-                    <div class="govuk-footer__meta-item">
-                        <a
-                                class="govuk-footer__link govuk-footer__copyright-logo"
-                                href="https://www.nationalarchives.gov.uk/information-management/re-using-public-sector-information/uk-government-licensing-framework/crown-copyright/">©
-                            Crown copyright</a>
-                    </div>
-                </div>
+                </form>
             </main>
         </div>
 
