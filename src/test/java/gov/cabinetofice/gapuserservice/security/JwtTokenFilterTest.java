@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class JwtTokenFilterTest {
+class JwtTokenFilterTest {
 
     private JwtTokenFilter jwtTokenFilter;
     private @Mock DebugProperties debugProperties;
@@ -57,7 +57,7 @@ public class JwtTokenFilterTest {
         when(customJwtServiceImpl.isTokenValid("value")).thenReturn(true);
 
         try (MockedStatic<SecurityContextHolder> staticSecurityContextHolder = Mockito.mockStatic(SecurityContextHolder.class)) {
-            staticSecurityContextHolder.when(() -> SecurityContextHolder.getContext()).thenReturn(securityContext);
+            staticSecurityContextHolder.when(SecurityContextHolder::getContext).thenReturn(securityContext);
 
             jwtTokenFilter.doFilterInternal(request, response, chain);
 
@@ -78,7 +78,7 @@ public class JwtTokenFilterTest {
         when(debugProperties.isIgnoreJwt()).thenReturn(true);
 
         try (MockedStatic<SecurityContextHolder> staticSecurityContextHolder = Mockito.mockStatic(SecurityContextHolder.class)) {
-            staticSecurityContextHolder.when(() -> SecurityContextHolder.getContext()).thenReturn(securityContext);
+            staticSecurityContextHolder.when(SecurityContextHolder::getContext).thenReturn(securityContext);
 
             jwtTokenFilter.doFilterInternal(request, response, chain);
 
@@ -96,7 +96,7 @@ public class JwtTokenFilterTest {
         when(request.getCookies()).thenReturn(new Cookie[]{});
 
         try (MockedStatic<SecurityContextHolder> staticSecurityContextHolder = Mockito.mockStatic(SecurityContextHolder.class)) {
-            staticSecurityContextHolder.when(() -> SecurityContextHolder.getContext()).thenReturn(securityContext);
+            staticSecurityContextHolder.when(SecurityContextHolder::getContext).thenReturn(securityContext);
 
             jwtTokenFilter.doFilterInternal(request, response, chain);
 
@@ -112,7 +112,7 @@ public class JwtTokenFilterTest {
         when(request.getCookies()).thenReturn(new Cookie[]{});
 
         try (MockedStatic<SecurityContextHolder> staticSecurityContextHolder = Mockito.mockStatic(SecurityContextHolder.class)) {
-            staticSecurityContextHolder.when(() -> SecurityContextHolder.getContext()).thenReturn(securityContext);
+            staticSecurityContextHolder.when(SecurityContextHolder::getContext).thenReturn(securityContext);
 
             jwtTokenFilter.doFilterInternal(request, response, chain);
 
@@ -128,7 +128,7 @@ public class JwtTokenFilterTest {
         when(request.getCookies()).thenReturn(new Cookie[]{});
 
         try (MockedStatic<SecurityContextHolder> staticSecurityContextHolder = Mockito.mockStatic(SecurityContextHolder.class)) {
-            staticSecurityContextHolder.when(() -> SecurityContextHolder.getContext()).thenReturn(securityContext);
+            staticSecurityContextHolder.when(SecurityContextHolder::getContext).thenReturn(securityContext);
 
             jwtTokenFilter.doFilterInternal(request, response, chain);
 
@@ -146,7 +146,7 @@ public class JwtTokenFilterTest {
         when(customJwtServiceImpl.isTokenValid("value")).thenReturn(false);
 
         try (MockedStatic<SecurityContextHolder> staticSecurityContextHolder = Mockito.mockStatic(SecurityContextHolder.class)) {
-            staticSecurityContextHolder.when(() -> SecurityContextHolder.getContext()).thenReturn(securityContext);
+            staticSecurityContextHolder.when(SecurityContextHolder::getContext).thenReturn(securityContext);
 
             final UnauthorizedException error = assertThrows(UnauthorizedException.class, () -> jwtTokenFilter.doFilterInternal(request, response, chain));
             assertThat(error.getMessage()).isEqualTo("Token not valid");

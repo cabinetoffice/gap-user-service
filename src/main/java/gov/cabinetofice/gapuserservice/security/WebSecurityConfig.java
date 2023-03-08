@@ -42,7 +42,10 @@ public class WebSecurityConfig {
         // specify any paths you don't want subject to JWT validation/authentication
         return web -> web.ignoring().requestMatchers(
                 "/health",
-                "/login");
+                "/login",
+                "/is-user-logged-in",
+                "/redirect-after-cola-login"
+        );
     }
 
     @Bean
