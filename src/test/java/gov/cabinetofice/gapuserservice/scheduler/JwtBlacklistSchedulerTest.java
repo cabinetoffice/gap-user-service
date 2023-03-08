@@ -16,7 +16,7 @@ import java.time.ZoneId;
 import java.util.Date;
 
 @ExtendWith(MockitoExtension.class)
-public class JwtBlacklistSchedulerTest {
+class JwtBlacklistSchedulerTest {
 
     @Mock
     private JwtBlacklistService jwtBlacklistService;
