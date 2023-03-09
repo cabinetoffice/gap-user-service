@@ -41,6 +41,8 @@ public class WebSecurityConfig {
     public WebSecurityCustomizer webSecurityCustomizer() {
         // specify any paths you don't want subject to JWT validation/authentication
         return web -> web.ignoring().requestMatchers(
+                "/webjars/**",
+                "/register/**",
                 "/health",
                 "/login",
                 "/is-user-logged-in",
