@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 public class BlacklistedToken {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
     @Column(length = 4000)
