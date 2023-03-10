@@ -1,5 +1,9 @@
 package gov.cabinetofice.gapuserservice.web;
 
+import com.auth0.jwt.interfaces.Claim;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSObject;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
@@ -11,16 +15,18 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
+import com.nimbusds.jose.jwk.*;
+import com.nimbusds.jose.jwk.gen.*;
 
-import java.util.Optional;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 @RequiredArgsConstructor
 @Controller
@@ -65,13 +71,25 @@ public class LoginController {
             throw new TokenNotValidException("invalid token");
         }
 
+        final String trimmedToken = URLDecoder.decode(tokenCookie.getValue(), StandardCharsets.UTF_8).substring(2);
+
+
+        final DecodedJWT decodedJWT = thirdPartyJwtService.decodeJwt(trimmedToken);
+
+
+        Map<String, String> claims = new HashMap<>();
+        for (Map.Entry<String, Claim> entry : decodedJWT.getClaims().entrySet()) {
+            claims.put(entry.getKey(), entry.getValue().asString());
+            System.out.println(entry.getKey() + ":" + entry.getValue());
+        }
         final Cookie userTokenCookie = WebUtil.buildCookie(
-                new Cookie(USER_SERVICE_COOKIE_NAME, customJwtService.generateToken()),
+                new Cookie(USER_SERVICE_COOKIE_NAME, customJwtService.generateToken2(claims)),
                 Boolean.TRUE,
                 Boolean.TRUE
         );
 
         response.addCookie(userTokenCookie);
+        System.out.println(userTokenCookie.getValue());
 
         return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
     }
@@ -96,11 +114,19 @@ public class LoginController {
     }
 
     @GetMapping("/refresh-token")
+    @SneakyThrows
     public ResponseEntity<String> refreshToken(@CookieValue(USER_SERVICE_COOKIE_NAME) final String currentToken, final HttpServletResponse response) {
-
         jwtBlacklistService.addJwtToBlacklist(currentToken);
 
-        final String newToken = customJwtService.generateToken();
+        final DecodedJWT decodedJWT = thirdPartyJwtService.decodeJwt(currentToken);
+
+        Map<String, String> claims = new HashMap<>();
+        for (Map.Entry<String, Claim> entry : decodedJWT.getClaims().entrySet()) {
+            claims.put(entry.getKey(), entry.getValue().asString());
+            System.out.println(entry.getKey() + ":" + entry.getValue());
+        }
+
+        final String newToken = customJwtService.generateToken2(claims);
         final Cookie userTokenCookie = WebUtil.buildCookie(
                 new Cookie(USER_SERVICE_COOKIE_NAME, newToken),
                 Boolean.TRUE,
@@ -118,6 +144,13 @@ public class LoginController {
 
         final boolean isJwtValid = jwt != null && customJwtService.isTokenValid(jwt);
         return ResponseEntity.ok(isJwtValid);
+    }
+
+
+    @GetMapping("/.well-known/jwks.json")
+    public ResponseEntity<Map<String, Object>> test() throws JOSEException {
+        RSAKey jwk = this.customJwtService.getRsaKey();
+        return ResponseEntity.ok(jwk.toPublicJWK().toJSONObject());
     }
 
 

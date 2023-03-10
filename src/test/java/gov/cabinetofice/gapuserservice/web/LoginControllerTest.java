@@ -1,5 +1,6 @@
 package gov.cabinetofice.gapuserservice.web;
 
+import com.nimbusds.jose.JOSEException;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
@@ -73,7 +74,7 @@ class LoginControllerTest {
     }
 
     @Test
-    void loginShouldReturnRedirectUrl_IfOneIsProvided_AndTokenIsValid() {
+    void loginShouldReturnRedirectUrl_IfOneIsProvided_AndTokenIsValid() throws JOSEException {
         final String customToken = "a-custom-valid-token";
         final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/");
         final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());

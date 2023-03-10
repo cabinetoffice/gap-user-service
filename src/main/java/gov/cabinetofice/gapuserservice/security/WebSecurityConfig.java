@@ -44,7 +44,8 @@ public class WebSecurityConfig {
                 "/health",
                 "/login",
                 "/is-user-logged-in",
-                "/redirect-after-cola-login"
+                "/redirect-after-cola-login",
+                "/.well-known/jwks.json"
         );
     }
 
