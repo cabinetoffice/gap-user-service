@@ -98,6 +98,7 @@ public class CustomJwtServiceImpl implements JwtService {
                 .sign(signingKey);
     }
 
+
     @SneakyThrows
     public String generateToken2(Map<String, String> claims) {
         final Algorithm signingKey = Algorithm.RSA256(this.rsaKey.toRSAPublicKey(), this.rsaKey.toRSAPrivateKey());
