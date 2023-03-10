@@ -47,7 +47,8 @@ public class WebSecurityConfig {
                 "/login",
                 "/is-user-logged-in",
                 "/redirect-after-cola-login",
-                "/error/**"
+                "/error/**",
+                "/.well-known/jwks.json"
         );
     }
 

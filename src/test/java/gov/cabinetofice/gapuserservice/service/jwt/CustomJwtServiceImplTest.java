@@ -9,6 +9,7 @@ import static com.auth0.jwt.algorithms.Algorithm.HMAC256;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.Verification;
+import com.nimbusds.jose.JOSEException;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
 import gov.cabinetofice.gapuserservice.repository.JwtBlacklistRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
@@ -42,7 +43,7 @@ public class CustomJwtServiceImplTest {
     private final Clock clock = Clock.fixed(Instant.parse(CHRISTMAS_2022_MIDDAY), ZoneId.of("UTC"));
 
     @BeforeEach
-    void setup() {
+    void setup() throws JOSEException {
         final JwtProperties jwtProperties = JwtProperties.builder()
                 .signingKey("test-signing-key")
                 .issuer("test-issuer")
