@@ -3,7 +3,7 @@ package gov.cabinetofice.gapuserservice.web;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSObject;
+import com.nimbusds.jose.jwk.JWKSet;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
@@ -18,15 +18,17 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
-import com.nimbusds.jose.jwk.*;
-import com.nimbusds.jose.jwk.gen.*;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 @Controller
@@ -94,7 +96,7 @@ public class LoginController {
         return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
     }
 
-    @PostMapping("/logout")
+    @GetMapping("/logout")
     public RedirectView logout(
             final @CookieValue(name = USER_SERVICE_COOKIE_NAME) String jwt,
             final HttpServletResponse response) {
