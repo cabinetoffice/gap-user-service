@@ -149,8 +149,8 @@ public class LoginController {
 
     @GetMapping("/.well-known/jwks.json")
     public ResponseEntity<Map<String, Object>> test() throws JOSEException {
-        RSAKey jwk = this.customJwtService.getRsaKey();
-        return ResponseEntity.ok(jwk.toPublicJWK().toJSONObject());
+        JWKSet jwkset = this.customJwtService.getJWKSet();
+        return ResponseEntity.ok(jwkset.toJSONObject(true));
     }
 
 
