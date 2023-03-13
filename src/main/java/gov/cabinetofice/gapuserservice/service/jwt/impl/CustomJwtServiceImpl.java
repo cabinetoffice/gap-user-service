@@ -51,8 +51,9 @@ public class CustomJwtServiceImpl implements JwtService {
 
 
     @Override
+    @SneakyThrows
     public boolean isTokenValid(final String customJwt) {
-        final Algorithm signingKey = Algorithm.HMAC256(jwtProperties.getSigningKey());
+        final Algorithm signingKey = Algorithm.RSA256(this.rsaKey.toRSAPublicKey(), this.rsaKey.toRSAPrivateKey());
 
         try {
             // by default this verifies JWT was signed by same key and is not expired
@@ -114,5 +115,9 @@ public class CustomJwtServiceImpl implements JwtService {
 
     public RSAKey getRsaKey() {
         return this.rsaKey;
+    }
+
+    public JWKSet getJWKSet() {
+        return new JWKSet(this.rsaKey);
     }
 }
