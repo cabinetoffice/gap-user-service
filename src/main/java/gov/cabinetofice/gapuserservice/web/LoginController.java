@@ -1,5 +1,6 @@
 package gov.cabinetofice.gapuserservice.web;
 
+import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.nimbusds.jose.JOSEException;
@@ -117,10 +118,12 @@ public class LoginController {
 
     @GetMapping("/refresh-token")
     @SneakyThrows
-    public ResponseEntity<String> refreshToken(@CookieValue(USER_SERVICE_COOKIE_NAME) final String currentToken, final HttpServletResponse response) {
+    public RedirectView refreshToken(@CookieValue(USER_SERVICE_COOKIE_NAME) final String currentToken,
+                                   final HttpServletResponse response,
+                                   final @RequestParam String redirectUrl) {
         jwtBlacklistService.addJwtToBlacklist(currentToken);
 
-        final DecodedJWT decodedJWT = thirdPartyJwtService.decodeJwt(currentToken);
+        final DecodedJWT decodedJWT = JWT.decode(currentToken);
 
         Map<String, String> claims = new HashMap<>();
         for (Map.Entry<String, Claim> entry : decodedJWT.getClaims().entrySet()) {
@@ -137,7 +140,7 @@ public class LoginController {
 
         response.addCookie(userTokenCookie);
 
-        return ResponseEntity.ok(newToken);
+        return new RedirectView(redirectUrl);
     }
 
     @GetMapping("/is-user-logged-in")
