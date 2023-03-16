@@ -1,3 +1,0 @@
-CREATE SEQUENCE token_blacklist_seq
-INCREMENT 1
-START 1;
