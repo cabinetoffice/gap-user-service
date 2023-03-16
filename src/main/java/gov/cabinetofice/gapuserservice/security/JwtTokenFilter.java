@@ -50,7 +50,8 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         }
 
         // Check if cookie exists. If not, return without setting authentication in the security context
-        final Optional<Cookie> userServiceJwt = Arrays.stream(request.getCookies())
+        final Cookie[] cookies = request.getCookies();
+        final Optional<Cookie> userServiceJwt = cookies == null ? Optional.empty() : Arrays.stream(cookies)
                 .filter(cookie -> cookie.getName().equals(jwtProperties.getCookieName()))
                 .findFirst();
 
