@@ -88,7 +88,6 @@ public class LoginController {
         );
 
         response.addCookie(userTokenCookie);
-        System.out.println(userTokenCookie.getValue());
 
         return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
     }
