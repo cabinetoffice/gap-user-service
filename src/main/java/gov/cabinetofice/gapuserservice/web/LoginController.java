@@ -122,7 +122,6 @@ public class LoginController {
         Map<String, String> claims = new HashMap<>();
         for (Map.Entry<String, Claim> entry : decodedJWT.getClaims().entrySet()) {
             claims.put(entry.getKey(), entry.getValue().asString());
-            System.out.println(entry.getKey() + ":" + entry.getValue());
         }
 
         final String newToken = customJwtService.generateToken(claims);
