@@ -1,5 +1,7 @@
 package gov.cabinetofice.gapuserservice.web;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.nimbusds.jose.JOSEException;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
@@ -133,7 +135,9 @@ class LoginControllerTest {
     @Test
     void redirectAfterColaLogin_RedirectsToLoginEndpoint() {
         final MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setCookies(new Cookie(authenticationProvider.getTokenCookie(), "a-token"));
+        final String cookieValue = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+        final DecodedJWT jwt = JWT.decode(cookieValue);
+        request.setCookies(new Cookie(authenticationProvider.getTokenCookie(), cookieValue));
 
         final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
         final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/");
@@ -141,6 +145,7 @@ class LoginControllerTest {
 
         when(thirdPartyJwtService.isTokenValid(any()))
                 .thenReturn(true);
+        when(thirdPartyJwtService.decodeJwt(any())).thenReturn(jwt);
         when(customJwtService.generateToken(any()))
                 .thenReturn(token);
 

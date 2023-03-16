@@ -64,75 +64,67 @@ public class CustomJwtServiceImplTest {
     class IsTokenValid {
         @Mock
         private final JWTVerifier mockedJwtVerifier = mock(JWTVerifier.class);
-        private final Verification verification = JWT.require(any());
+        final Algorithm mockAlgorithm = mock(Algorithm.class);
+        private final Verification verification = JWT.require(mockAlgorithm);
 
         @Test
         void ReturnsTrue_IfValid() {
             final String jwt = "a-valid-jwt";
+            final Algorithm mockAlgorithm = mock(Algorithm.class);
             final Verification spiedVerification = spy(verification);
 
-            try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
-                staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
-                when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
+            try (MockedStatic<Algorithm> staticAlgorithm = Mockito.mockStatic(Algorithm.class)) {
+                staticAlgorithm.when(() -> RSA256(any(), any())).thenReturn(mockAlgorithm);
+                try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
+                    staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
+                    when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
 
-                final boolean response = serviceUnderTest.isTokenValid(jwt);
-
-                assertThat(response).isTrue();
-                verify(mockedJwtVerifier, times(1)).verify(jwt);
+                    final boolean response = serviceUnderTest.isTokenValid(jwt);
+                    assertThat(response).isTrue();
+                    verify(mockedJwtVerifier, times(1)).verify(jwt);
+                }
             }
         }
 
         @Test
         void ReturnsFalse_IfInvalid() {
             final String jwt = "an-invalid-jwt";
+            final Algorithm mockAlgorithm = mock(Algorithm.class);
             final Verification spiedVerification = spy(verification);
 
-            try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
-                staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
-                when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
-                when(mockedJwtVerifier.verify(jwt)).thenThrow(new JWTVerificationException("An error"));
+            try (MockedStatic<Algorithm> staticAlgorithm = Mockito.mockStatic(Algorithm.class)) {
+                staticAlgorithm.when(() -> RSA256(any(), any())).thenReturn(mockAlgorithm);
+                try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
+                    staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
+                    when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
+                    when(mockedJwtVerifier.verify(jwt)).thenThrow(new JWTVerificationException("An error"));
 
-                final boolean response = serviceUnderTest.isTokenValid(jwt);
-
-                assertThat(response).isFalse();
-                verify(mockedJwtVerifier, times(1)).verify(jwt);
+                    final boolean response = serviceUnderTest.isTokenValid(jwt);
+                    assertThat(response).isFalse();
+                    verify(mockedJwtVerifier, times(1)).verify(jwt);
+                }
             }
         }
 
         @Test
         void ReturnsFalse_IfBlacklisted() {
-            final String jwt = "an-blacklisted-jwt";
-            final Verification spiedVerification = spy(verification);
-
-            try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
-                staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
-                when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
-                when(jwtBlacklistRepository.existsByJwtIs(jwt)).thenReturn(true);
-
-                final boolean response = serviceUnderTest.isTokenValid(jwt);
-
-                assertThat(response).isFalse();
-                verify(mockedJwtVerifier, times(1)).verify(jwt);
-            }
-        }
-
-        @Test
-        void returnsFalse_IfBlacklisted() {
             final String jwt = "a-valid-jwt";
+            final Algorithm mockAlgorithm = mock(Algorithm.class);
             final Verification spiedVerification = spy(verification);
 
-            try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
-                staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
-                when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
+            try (MockedStatic<Algorithm> staticAlgorithm = Mockito.mockStatic(Algorithm.class)) {
+                staticAlgorithm.when(() -> RSA256(any(), any())).thenReturn(mockAlgorithm);
+                try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
+                    staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
+                    when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
+                    when(jwtBlacklistRepository.existsByJwtIs(jwt)).thenReturn(true);
 
-                doReturn(true)
-                        .when(jwtBlacklistRepository).existsByJwtIs(jwt);
+                    final boolean response = serviceUnderTest.isTokenValid(jwt);
 
-                final boolean response = serviceUnderTest.isTokenValid(jwt);
-
-                assertThat(response).isFalse();
-                verify(mockedJwtVerifier, times(1)).verify(jwt);
-                verify(jwtBlacklistRepository, atLeastOnce()).existsByJwtIs(jwt);
+                    assertThat(response).isFalse();
+                    verify(mockedJwtVerifier, times(1)).verify(jwt);
+                    verify(jwtBlacklistRepository, atLeastOnce()).existsByJwtIs(jwt);
+                }
             }
         }
 
@@ -162,16 +154,13 @@ public class CustomJwtServiceImplTest {
     class GenerateToken {
 
         private final DecodedJWT thirdPartyToken = TestDecodedJwt.builder().build();
-        final Map<String, String> claims = new HashMap<>();
 
-        @BeforeAll
-        public void setup() {
-            claims.put("test-claim-key", "test-claim-value");
-        }
 
         @Test
         void WithCorrectIssuer() {
             final JWTCreator.Builder mockedJwtBuilder = spy(JWTCreator.Builder.class);
+            final Map<String, String> claims = new HashMap<>();
+            claims.put("test-claim-key", "test-claim-value");
 
             try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
                 staticJwt.when(JWT::create).thenReturn(mockedJwtBuilder);
@@ -185,7 +174,8 @@ public class CustomJwtServiceImplTest {
         @Test
         void WithCorrectAudience() {
             final JWTCreator.Builder mockedJwtBuilder = spy(JWTCreator.Builder.class);
-
+            final Map<String, String> claims = new HashMap<>();
+            claims.put("test-claim-key", "test-claim-value");
             try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
                 staticJwt.when(JWT::create).thenReturn(mockedJwtBuilder);
 
@@ -199,6 +189,8 @@ public class CustomJwtServiceImplTest {
         void WithCorrectExpiration() {
             final JWTCreator.Builder mockedJwtBuilder = spy(JWTCreator.Builder.class);
             final long now = ZonedDateTime.now(clock).toInstant().toEpochMilli();
+            final Map<String, String> claims = new HashMap<>();
+            claims.put("test-claim-key", "test-claim-value");
 
             try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
                 staticJwt.when(JWT::create).thenReturn(mockedJwtBuilder);
@@ -213,6 +205,8 @@ public class CustomJwtServiceImplTest {
         void WithCorrectSigningKey() {
             final JWTCreator.Builder mockedJwtBuilder = spy(JWTCreator.Builder.class);
             final Algorithm mockAlgorithm = mock(Algorithm.class);
+            final Map<String, String> claims = new HashMap<>();
+            claims.put("test-claim-key", "test-claim-value");
 
             try (MockedStatic<Algorithm> staticAlgorithm = Mockito.mockStatic(Algorithm.class)) {
                 try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
@@ -231,6 +225,8 @@ public class CustomJwtServiceImplTest {
         @Test
         void ReturnsACustomJwt() {
             final JWTCreator.Builder mockedJwtBuilder = spy(JWTCreator.Builder.class);
+            final Map<String, String> claims = new HashMap<>();
+            claims.put("test-claim-key", "test-claim-value");
 
             try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
                 staticJwt.when(JWT::create).thenReturn(mockedJwtBuilder);
