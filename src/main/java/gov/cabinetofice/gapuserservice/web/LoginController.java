@@ -4,7 +4,6 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSObject;
 import com.nimbusds.jose.jwk.JWKSet;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
@@ -20,18 +19,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
-import com.nimbusds.jose.jwk.*;
-import com.nimbusds.jose.jwk.gen.*;
 
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -82,18 +75,14 @@ public class LoginController {
         }
 
         final String trimmedToken = URLDecoder.decode(tokenCookie.getValue(), StandardCharsets.UTF_8).substring(2);
-
-
         final DecodedJWT decodedJWT = thirdPartyJwtService.decodeJwt(trimmedToken);
-
 
         Map<String, String> claims = new HashMap<>();
         for (Map.Entry<String, Claim> entry : decodedJWT.getClaims().entrySet()) {
             claims.put(entry.getKey(), entry.getValue().asString());
-            System.out.println(entry.getKey() + ":" + entry.getValue());
         }
         final Cookie userTokenCookie = WebUtil.buildCookie(
-                new Cookie(USER_SERVICE_COOKIE_NAME, customJwtService.generateToken2(claims)),
+                new Cookie(USER_SERVICE_COOKIE_NAME, customJwtService.generateToken(claims)),
                 Boolean.TRUE,
                 Boolean.TRUE
         );
@@ -124,7 +113,6 @@ public class LoginController {
     }
 
     @GetMapping("/refresh-token")
-    @SneakyThrows
     public RedirectView refreshToken(@CookieValue(USER_SERVICE_COOKIE_NAME) final String currentToken,
                                    final HttpServletResponse response,
                                    final @RequestParam String redirectUrl) {
@@ -138,7 +126,7 @@ public class LoginController {
             System.out.println(entry.getKey() + ":" + entry.getValue());
         }
 
-        final String newToken = customJwtService.generateToken2(claims);
+        final String newToken = customJwtService.generateToken(claims);
         final Cookie userTokenCookie = WebUtil.buildCookie(
                 new Cookie(USER_SERVICE_COOKIE_NAME, newToken),
                 Boolean.TRUE,
@@ -160,8 +148,8 @@ public class LoginController {
 
 
     @GetMapping("/.well-known/jwks.json")
-    public ResponseEntity<Map<String, Object>> test() throws JOSEException {
-        JWKSet jwkset = this.customJwtService.getJWKSet();
+    public ResponseEntity<Map<String, Object>> test() {
+        JWKSet jwkset = this.customJwtService.getPublicJWKSet();
         return ResponseEntity.ok(jwkset.toJSONObject(true));
     }
 

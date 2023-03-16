@@ -13,7 +13,11 @@ import com.nimbusds.jose.JOSEException;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
 import gov.cabinetofice.gapuserservice.repository.JwtBlacklistRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+
+import static com.auth0.jwt.algorithms.Algorithm.RSA256;
 import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -29,6 +33,8 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -58,7 +64,7 @@ public class CustomJwtServiceImplTest {
     class IsTokenValid {
         @Mock
         private final JWTVerifier mockedJwtVerifier = mock(JWTVerifier.class);
-        private final Verification verification = JWT.require(HMAC256("test-secret"));
+        private final Verification verification = JWT.require(any());
 
         @Test
         void ReturnsTrue_IfValid() {
@@ -140,11 +146,11 @@ public class CustomJwtServiceImplTest {
                 try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
                     staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
                     when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
-                    staticAlgorithm.when(() -> HMAC256("test-signing-key")).thenReturn(mockAlgorithm);
+                    staticAlgorithm.when(() -> RSA256(any(), any())).thenReturn(mockAlgorithm);
 
                     serviceUnderTest.isTokenValid(jwt);
 
-                    staticAlgorithm.verify(() -> HMAC256("test-signing-key"), times(1));
+                    staticAlgorithm.verify(() -> RSA256(any(), any()), times(1));
                     staticJwt.verify(() -> JWT.require(mockAlgorithm), times(1));
                     verify(mockedJwtVerifier, times(1)).verify(jwt);
                 }
@@ -156,6 +162,12 @@ public class CustomJwtServiceImplTest {
     class GenerateToken {
 
         private final DecodedJWT thirdPartyToken = TestDecodedJwt.builder().build();
+        final Map<String, String> claims = new HashMap<>();
+
+        @BeforeAll
+        public void setup() {
+            claims.put("test-claim-key", "test-claim-value");
+        }
 
         @Test
         void WithCorrectIssuer() {
@@ -164,7 +176,7 @@ public class CustomJwtServiceImplTest {
             try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
                 staticJwt.when(JWT::create).thenReturn(mockedJwtBuilder);
 
-                serviceUnderTest.generateToken();
+                serviceUnderTest.generateToken(claims);
 
                 verify(mockedJwtBuilder, times(1)).withIssuer("test-issuer");
             }
@@ -177,7 +189,7 @@ public class CustomJwtServiceImplTest {
             try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
                 staticJwt.when(JWT::create).thenReturn(mockedJwtBuilder);
 
-                serviceUnderTest.generateToken();
+                serviceUnderTest.generateToken(claims);
 
                 verify(mockedJwtBuilder, times(1)).withAudience("test-audience");
             }
@@ -191,7 +203,7 @@ public class CustomJwtServiceImplTest {
             try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
                 staticJwt.when(JWT::create).thenReturn(mockedJwtBuilder);
 
-                serviceUnderTest.generateToken();
+                serviceUnderTest.generateToken(claims);
 
                 verify(mockedJwtBuilder, times(1)).withExpiresAt(new Date(now + 60 * 1000 * 60));
             }
@@ -205,12 +217,12 @@ public class CustomJwtServiceImplTest {
             try (MockedStatic<Algorithm> staticAlgorithm = Mockito.mockStatic(Algorithm.class)) {
                 try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
                     staticJwt.when(JWT::create).thenReturn(mockedJwtBuilder);
-                    staticAlgorithm.when(() -> HMAC256("test-signing-key")).thenReturn(mockAlgorithm);
+                    staticAlgorithm.when(() -> RSA256(any(), any())).thenReturn(mockAlgorithm);
                     doReturn("a-custom-jwt").when(mockedJwtBuilder).sign(mockAlgorithm);
 
-                    serviceUnderTest.generateToken();
+                    serviceUnderTest.generateToken(claims);
 
-                    staticAlgorithm.verify(() -> HMAC256("test-signing-key"), times(1));
+                    staticAlgorithm.verify(() -> RSA256(any(), any()), times(1));
                     verify(mockedJwtBuilder, times(1)).sign(mockAlgorithm);
                 }
             }
@@ -224,7 +236,7 @@ public class CustomJwtServiceImplTest {
                 staticJwt.when(JWT::create).thenReturn(mockedJwtBuilder);
                 doReturn("a-custom-jwt").when(mockedJwtBuilder).sign(any());
 
-                final String response = serviceUnderTest.generateToken();
+                final String response = serviceUnderTest.generateToken(claims);
 
                 assertThat(response).isEqualTo("a-custom-jwt");
             }

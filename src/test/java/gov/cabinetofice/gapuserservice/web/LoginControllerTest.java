@@ -25,6 +25,8 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.servlet.view.RedirectView;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
@@ -84,7 +86,7 @@ class LoginControllerTest {
 
         final RedirectView methodeResponse = controllerUnderTest.login(customToken, redirectUrl, response);
 
-        verify(customJwtService, times(0)).generateToken();
+        verify(customJwtService, times(0)).generateToken(any());
         assertThat(methodeResponse.getUrl()).isEqualTo(redirectUrl.get());
     }
 
@@ -99,7 +101,7 @@ class LoginControllerTest {
 
         final RedirectView methodeResponse = controllerUnderTest.login(customToken, redirectUrl, response);
 
-        verify(customJwtService, times(0)).generateToken();
+        verify(customJwtService, times(0)).generateToken(any());
         assertThat(methodeResponse.getUrl()).isEqualTo(configProperties.getDefaultRedirectUrl());
     }
 
@@ -139,7 +141,7 @@ class LoginControllerTest {
 
         when(thirdPartyJwtService.isTokenValid(any()))
                 .thenReturn(true);
-        when(customJwtService.generateToken())
+        when(customJwtService.generateToken(any()))
                 .thenReturn(token);
 
         final RedirectView methodeResponse = controllerUnderTest.redirectAfterColaLogin(redirectUrl, request, response);
@@ -205,7 +207,8 @@ class LoginControllerTest {
     @Test
     void refreshToken_ShouldAddExistingTokenToBlackList_AndReturnAFreshOne() {
 
-        final String existingToken = "a-token";
+        final String existingToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+        final String redirectUrl = "any-url";
         final String refreshedToken = "a-refreshed-token";
         final Cookie userTokenCookie = new Cookie(LoginController.USER_SERVICE_COOKIE_NAME, refreshedToken);
         userTokenCookie.setSecure(true);
@@ -213,14 +216,13 @@ class LoginControllerTest {
 
         final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
 
-        when(customJwtService.generateToken()).thenReturn(refreshedToken);
+        when(customJwtService.generateToken(any())).thenReturn(refreshedToken);
 
-        final ResponseEntity<String> methodResponse = controllerUnderTest.refreshToken(existingToken, response);
+        final RedirectView methodResponse = controllerUnderTest.refreshToken(existingToken, response, redirectUrl);
 
         verify(jwtBlacklistService, atLeastOnce()).addJwtToBlacklist(existingToken);
         verify(response).addCookie(userTokenCookie);
 
-        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(methodResponse.getBody()).isEqualTo(refreshedToken);
+        assertThat(methodResponse.getUrl()).isEqualTo(redirectUrl);
     }
 }
