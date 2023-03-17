@@ -1,5 +1,10 @@
 package gov.cabinetofice.gapuserservice.web;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.Claim;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.jwk.JWKSet;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
@@ -11,15 +16,19 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @RequiredArgsConstructor
@@ -65,8 +74,15 @@ public class LoginController {
             throw new TokenNotValidException("invalid token");
         }
 
+        final String trimmedToken = URLDecoder.decode(tokenCookie.getValue(), StandardCharsets.UTF_8).substring(2);
+        final DecodedJWT decodedJWT = thirdPartyJwtService.decodeJwt(trimmedToken);
+
+        Map<String, String> claims = new HashMap<>();
+        for (Map.Entry<String, Claim> entry : decodedJWT.getClaims().entrySet()) {
+            claims.put(entry.getKey(), entry.getValue().asString());
+        }
         final Cookie userTokenCookie = WebUtil.buildCookie(
-                new Cookie(USER_SERVICE_COOKIE_NAME, customJwtService.generateToken()),
+                new Cookie(USER_SERVICE_COOKIE_NAME, customJwtService.generateToken(claims)),
                 Boolean.TRUE,
                 Boolean.TRUE
         );
@@ -76,7 +92,7 @@ public class LoginController {
         return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
     }
 
-    @PostMapping("/logout")
+    @GetMapping("/logout")
     public RedirectView logout(
             final @CookieValue(name = USER_SERVICE_COOKIE_NAME) String jwt,
             final HttpServletResponse response) {
@@ -96,11 +112,19 @@ public class LoginController {
     }
 
     @GetMapping("/refresh-token")
-    public ResponseEntity<String> refreshToken(@CookieValue(USER_SERVICE_COOKIE_NAME) final String currentToken, final HttpServletResponse response) {
-
+    public RedirectView refreshToken(@CookieValue(USER_SERVICE_COOKIE_NAME) final String currentToken,
+                                   final HttpServletResponse response,
+                                   final @RequestParam String redirectUrl) {
         jwtBlacklistService.addJwtToBlacklist(currentToken);
 
-        final String newToken = customJwtService.generateToken();
+        final DecodedJWT decodedJWT = JWT.decode(currentToken);
+
+        Map<String, String> claims = new HashMap<>();
+        for (Map.Entry<String, Claim> entry : decodedJWT.getClaims().entrySet()) {
+            claims.put(entry.getKey(), entry.getValue().asString());
+        }
+
+        final String newToken = customJwtService.generateToken(claims);
         final Cookie userTokenCookie = WebUtil.buildCookie(
                 new Cookie(USER_SERVICE_COOKIE_NAME, newToken),
                 Boolean.TRUE,
@@ -109,7 +133,7 @@ public class LoginController {
 
         response.addCookie(userTokenCookie);
 
-        return ResponseEntity.ok(newToken);
+        return new RedirectView(redirectUrl);
     }
 
     @GetMapping("/is-user-logged-in")
@@ -118,6 +142,13 @@ public class LoginController {
 
         final boolean isJwtValid = jwt != null && customJwtService.isTokenValid(jwt);
         return ResponseEntity.ok(isJwtValid);
+    }
+
+
+    @GetMapping("/.well-known/jwks.json")
+    public ResponseEntity<Map<String, Object>> test() {
+        JWKSet jwkset = this.customJwtService.getPublicJWKSet();
+        return ResponseEntity.ok(jwkset.toJSONObject(true));
     }
 
 

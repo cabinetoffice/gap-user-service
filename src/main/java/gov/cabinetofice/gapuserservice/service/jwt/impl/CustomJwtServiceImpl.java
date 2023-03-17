@@ -4,62 +4,89 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.JWTVerifier;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.KeyUse;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
 import gov.cabinetofice.gapuserservice.repository.JwtBlacklistRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.JwtService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.ZonedDateTime;
 import java.util.Date;
+import java.util.Map;
+import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class CustomJwtServiceImpl implements JwtService {
 
     private final JwtProperties jwtProperties;
     private final JwtBlacklistRepository jwtBlacklistRepository;
     private final Clock clock;
+    private final RSAKey rsaKey;
+    public CustomJwtServiceImpl(JwtProperties jwtProperties, JwtBlacklistRepository jwtBlacklistRepository, Clock clock) throws JOSEException {
+        this.jwtProperties = jwtProperties;
+        this.jwtBlacklistRepository = jwtBlacklistRepository;
+        this.clock = clock;
+        // Generate 2048-bit RSA key pair in JWK format, attach some metadata
+        RSAKey jwk = new RSAKeyGenerator(2048)
+                .keyUse(KeyUse.SIGNATURE) // indicate the intended use of the key (optional)
+                .keyID(UUID.randomUUID().toString()) // give the key a unique ID (optional)
+                .issueTime(new Date()) // issued-at timestamp (optional)
+                .generate();
+
+        this.rsaKey = jwk;
+    }
 
     @Override
     public boolean isTokenValid(final String customJwt) {
-        final Algorithm signingKey = Algorithm.HMAC256(jwtProperties.getSigningKey());
-
         try {
-            // by default this verifies JWT was signed by same key and is not expired
-            // but we can add additional checks, such as must match specific issuer etc.
+            final Algorithm signingKey = Algorithm.RSA256(this.rsaKey.toRSAPublicKey(), this.rsaKey.toRSAPrivateKey());
             final JWTVerifier verifier = JWT.require(signingKey)
                     .withIssuer(jwtProperties.getIssuer())
                     .withAudience(jwtProperties.getAudience())
                     .build();
 
             verifier.verify(customJwt);
-        } catch (JWTVerificationException exception){
+            return !isTokenInBlacklist(customJwt);
+        } catch (JWTVerificationException exception) {
             log.error("JWT verification failed", exception);
             return false;
+        } catch (JOSEException exception) {
+            log.error("isTokenValid failed", exception);
+            throw new RuntimeException(exception);
         }
+    }
 
+    public String generateToken(Map<String, String> claims) {
+        try {
+            final Algorithm signingKey = Algorithm.RSA256(this.rsaKey.toRSAPublicKey(), this.rsaKey.toRSAPrivateKey());
 
-        return !isTokenInBlacklist(customJwt);
+            return JWT.create()
+                    .withPayload(claims)
+                    .withIssuer(jwtProperties.getIssuer())
+                    .withAudience(jwtProperties.getAudience())
+                    .withExpiresAt(new Date(ZonedDateTime.now(clock).toInstant().toEpochMilli() + (jwtProperties.getExpiresAfter() * 1000 * 60)))
+                    .withKeyId(this.rsaKey.getKeyID())
+                    .withIssuedAt(new Date())
+                    .withJWTId(UUID.randomUUID().toString())
+                    .sign(signingKey);
+        } catch (JOSEException exception) {
+            log.error("generateToken failed", exception);
+            throw new RuntimeException(exception);
+        }
+    }
+
+    public JWKSet getPublicJWKSet() {
+        return new JWKSet(this.rsaKey.toPublicJWK());
     }
 
     private boolean isTokenInBlacklist(final String customJwt) {
         return jwtBlacklistRepository.existsByJwtIs(customJwt);
-    }
-
-    public String generateToken() {
-        // TODO look up user from database, or add additional details from decoded JWT if needed?
-
-        final Algorithm signingKey = Algorithm.HMAC256(jwtProperties.getSigningKey());
-
-        // currently this signs the JWT, it does not encrypt the whole object - not sure if we need to?
-        return JWT.create()
-                .withIssuer(jwtProperties.getIssuer())
-                .withAudience(jwtProperties.getAudience())
-                .withExpiresAt(new Date(ZonedDateTime.now(clock).toInstant().toEpochMilli() + (jwtProperties.getExpiresAfter() * 1000 * 60)))
-                .sign(signingKey);
     }
 }
