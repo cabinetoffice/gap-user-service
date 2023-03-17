@@ -11,15 +11,11 @@ import gov.cabinetofice.gapuserservice.service.jwt.impl.ColaJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import static org.mockito.ArgumentMatchers.any;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import static org.mockito.Mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +26,11 @@ import org.springframework.web.servlet.view.RedirectView;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class LoginControllerTest {
@@ -72,6 +73,7 @@ class LoginControllerTest {
         final Cookie redirectUrlCookie = new Cookie(LoginController.REDIRECT_URL_COOKIE, redirectUrl.get());
         redirectUrlCookie.setSecure(true);
         redirectUrlCookie.setHttpOnly(true);
+        redirectUrlCookie.setPath("/");
 
         verify(response).addCookie(redirectUrlCookie);
         assertThat(methodeResponse.getUrl()).isEqualTo(authenticationProvider.getUrl());
@@ -218,6 +220,7 @@ class LoginControllerTest {
         final Cookie userTokenCookie = new Cookie(LoginController.USER_SERVICE_COOKIE_NAME, refreshedToken);
         userTokenCookie.setSecure(true);
         userTokenCookie.setHttpOnly(true);
+        userTokenCookie.setPath("/");
 
         final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
 

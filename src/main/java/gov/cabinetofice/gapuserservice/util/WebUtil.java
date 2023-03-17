@@ -11,6 +11,7 @@ public class WebUtil {
     public static Cookie buildCookie(final Cookie cookie, final boolean isSecure, final boolean isHttpOnly) {
         cookie.setSecure(isSecure);
         cookie.setHttpOnly(isHttpOnly);
+        cookie.setPath("/");
 
         return cookie;
     }
