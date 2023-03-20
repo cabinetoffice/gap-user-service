@@ -9,6 +9,7 @@ import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
 import gov.cabinetofice.gapuserservice.service.JwtBlacklistService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.ColaJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -193,9 +194,11 @@ class LoginControllerTest {
 
         controllerUnderTest.logout(customToken,response);
 
-        final Cookie userServiceCookie = new Cookie("user-service-token",null);
-        userServiceCookie.setSecure(true);
-        userServiceCookie.setHttpOnly(true);
+        final Cookie userServiceCookie = WebUtil.buildCookie(
+                new Cookie(LoginController.USER_SERVICE_COOKIE_NAME, null),
+                Boolean.TRUE,
+                Boolean.TRUE
+        );
         userServiceCookie.setMaxAge(0);
 
         verify(response).addCookie(userServiceCookie);

@@ -3,7 +3,6 @@ package gov.cabinetofice.gapuserservice.web;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.JWKSet;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
@@ -16,7 +15,6 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -94,21 +92,23 @@ public class LoginController {
 
     @GetMapping("/logout")
     public RedirectView logout(
-            final @CookieValue(name = USER_SERVICE_COOKIE_NAME) String jwt,
+            final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false) String jwt,
             final HttpServletResponse response) {
 
-        jwtBlacklistService.addJwtToBlacklist(jwt);
+        if (jwt != null) {
+            jwtBlacklistService.addJwtToBlacklist(jwt);
+        }
 
-        final Cookie userTokenCookie = new Cookie(USER_SERVICE_COOKIE_NAME, null);
-        userTokenCookie.setSecure(true);
-        userTokenCookie.setHttpOnly(true);
+        final Cookie userTokenCookie = WebUtil.buildCookie(
+                new Cookie(USER_SERVICE_COOKIE_NAME, null),
+                Boolean.TRUE,
+                Boolean.TRUE
+        );
         userTokenCookie.setMaxAge(0);
 
         response.addCookie(userTokenCookie);
 
-        final String colaLogout = authenticationProvider.getLogoutUrl();
-
-        return new RedirectView(colaLogout);
+        return new RedirectView(authenticationProvider.getLogoutUrl());
     }
 
     @GetMapping("/refresh-token")
