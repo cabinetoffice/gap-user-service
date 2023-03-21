@@ -15,6 +15,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -29,6 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
 @RequiredArgsConstructor
 @Controller
 public class LoginController {
@@ -85,6 +87,8 @@ public class LoginController {
                 Boolean.TRUE
         );
 
+        log.info("new token: " + userTokenCookie.getValue());
+
         response.addCookie(userTokenCookie);
 
         return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
@@ -140,7 +144,10 @@ public class LoginController {
     public ResponseEntity<Boolean> validateUser(
             final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false) String jwt) {
 
+        log.info("verifying token: " + jwt);
         final boolean isJwtValid = jwt != null && customJwtService.isTokenValid(jwt);
+        log.info("is token valid: " + isJwtValid);
+
         return ResponseEntity.ok(isJwtValid);
     }
 
