@@ -26,7 +26,7 @@ class WebUtilTest {
         assertThat(cookie.isHttpOnly()).isFalse();
         assertThat(cookie.getSecure()).isFalse();
 
-        final Cookie methodResponse = WebUtil.buildCookie(cookie, true, true);
+        final Cookie methodResponse = WebUtil.buildCookie(cookie, true, true, null);
 
         assertThat(methodResponse.isHttpOnly()).isTrue();
         assertThat(methodResponse.getSecure()).isTrue();
