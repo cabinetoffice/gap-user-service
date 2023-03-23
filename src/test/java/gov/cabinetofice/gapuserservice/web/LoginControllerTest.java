@@ -203,7 +203,7 @@ class LoginControllerTest {
         );
         userServiceCookie.setMaxAge(0);
 
-        final String authenticationCookieDomain = Objects.equals(this.configProperties.getProfile(), "LOCAL") ? "localhost" : "cabinetoffice.gov.uk";
+        final String authenticationCookieDomain = Objects.equals(this.configProperties.getProfile(), "LOCAL") ? "localhost" : ".cabinetoffice.gov.uk";
         final Cookie thirdPartyAuthToken = WebUtil.buildCookie(
                 new Cookie(authenticationProvider.getTokenCookie(), null),
                 Boolean.TRUE,
