@@ -28,6 +28,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @Slf4j
@@ -53,7 +54,8 @@ public class LoginController {
             final Cookie redirectUrlCookie = WebUtil.buildCookie(
                     new Cookie(REDIRECT_URL_COOKIE, redirectUrl.orElse(configProperties.getDefaultRedirectUrl())),
                     Boolean.TRUE,
-                    Boolean.TRUE
+                    Boolean.TRUE,
+                    null
             );
 
             response.addCookie(redirectUrlCookie);
@@ -84,10 +86,11 @@ public class LoginController {
         final Cookie userTokenCookie = WebUtil.buildCookie(
                 new Cookie(USER_SERVICE_COOKIE_NAME, customJwtService.generateToken(claims)),
                 Boolean.TRUE,
-                Boolean.TRUE
+                Boolean.TRUE,
+                null
         );
 
-        log.info("new token: " + userTokenCookie.getValue());
+        log.debug("new token from redirectAfterColaLogin method: " + userTokenCookie.getValue());
 
         response.addCookie(userTokenCookie);
 
@@ -106,11 +109,22 @@ public class LoginController {
         final Cookie userTokenCookie = WebUtil.buildCookie(
                 new Cookie(USER_SERVICE_COOKIE_NAME, null),
                 Boolean.TRUE,
-                Boolean.TRUE
+                Boolean.TRUE,
+                null
         );
         userTokenCookie.setMaxAge(0);
 
+        final String authenticationCookieDomain = Objects.equals(this.configProperties.getProfile(), "LOCAL") ? "localhost" : "cabinetoffice.gov.uk";
+        final Cookie thirdPartyAuthToken = WebUtil.buildCookie(
+                new Cookie(authenticationProvider.getTokenCookie(), null),
+                Boolean.TRUE,
+                Boolean.TRUE,
+                authenticationCookieDomain
+        );
+        thirdPartyAuthToken.setMaxAge(0);
+
         response.addCookie(userTokenCookie);
+        response.addCookie(thirdPartyAuthToken);
 
         return new RedirectView(authenticationProvider.getLogoutUrl());
     }
@@ -132,7 +146,8 @@ public class LoginController {
         final Cookie userTokenCookie = WebUtil.buildCookie(
                 new Cookie(USER_SERVICE_COOKIE_NAME, newToken),
                 Boolean.TRUE,
-                Boolean.TRUE
+                Boolean.TRUE,
+                null
         );
 
         response.addCookie(userTokenCookie);
@@ -143,10 +158,11 @@ public class LoginController {
     @GetMapping("/is-user-logged-in")
     public ResponseEntity<Boolean> validateUser(
             final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false) String jwt) {
+        log.debug("verifying token: " + jwt);
 
-        log.info("verifying token: " + jwt);
         final boolean isJwtValid = jwt != null && customJwtService.isTokenValid(jwt);
-        log.info("is token valid: " + isJwtValid);
+
+        log.debug("is token valid: " + isJwtValid);
 
         return ResponseEntity.ok(isJwtValid);
     }

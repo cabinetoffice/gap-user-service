@@ -26,6 +26,7 @@ import org.springframework.web.servlet.view.RedirectView;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -197,11 +198,22 @@ class LoginControllerTest {
         final Cookie userServiceCookie = WebUtil.buildCookie(
                 new Cookie(LoginController.USER_SERVICE_COOKIE_NAME, null),
                 Boolean.TRUE,
-                Boolean.TRUE
+                Boolean.TRUE,
+                null
         );
         userServiceCookie.setMaxAge(0);
 
-        verify(response).addCookie(userServiceCookie);
+        final String authenticationCookieDomain = Objects.equals(this.configProperties.getProfile(), "LOCAL") ? "localhost" : "cabinetoffice.gov.uk";
+        final Cookie thirdPartyAuthToken = WebUtil.buildCookie(
+                new Cookie(authenticationProvider.getTokenCookie(), null),
+                Boolean.TRUE,
+                Boolean.TRUE,
+                authenticationCookieDomain
+        );
+        thirdPartyAuthToken.setMaxAge(0);
+
+        verify(response, atLeastOnce()).addCookie(userServiceCookie);
+        verify(response, atLeastOnce()).addCookie(thirdPartyAuthToken);
     }
 
     @Test
