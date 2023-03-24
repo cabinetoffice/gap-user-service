@@ -92,7 +92,17 @@ public class LoginController {
 
         log.debug("new token from redirectAfterColaLogin method: " + userTokenCookie.getValue());
 
+        final String authenticationCookieDomain = Objects.equals(this.configProperties.getProfile(), "LOCAL") ? "localhost" : "cabinetoffice.gov.uk";
+        final Cookie thirdPartyAuthToken = WebUtil.buildCookie(
+                new Cookie(authenticationProvider.getTokenCookie(), null),
+                Boolean.TRUE,
+                Boolean.TRUE,
+                authenticationCookieDomain
+        );
+        thirdPartyAuthToken.setMaxAge(0);
+
         response.addCookie(userTokenCookie);
+        response.addCookie(thirdPartyAuthToken);
 
         return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
     }

@@ -147,6 +147,15 @@ class LoginControllerTest {
         final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/");
         final String token = "a-generated-token";
 
+        final String authenticationCookieDomain = Objects.equals(this.configProperties.getProfile(), "LOCAL") ? "localhost" : "cabinetoffice.gov.uk";
+        final Cookie thirdPartyAuthToken = WebUtil.buildCookie(
+                new Cookie(authenticationProvider.getTokenCookie(), null),
+                Boolean.TRUE,
+                Boolean.TRUE,
+                authenticationCookieDomain
+        );
+        thirdPartyAuthToken.setMaxAge(0);
+
         when(thirdPartyJwtService.isTokenValid(any()))
                 .thenReturn(true);
         when(thirdPartyJwtService.decodeJwt(any())).thenReturn(jwt);
@@ -155,6 +164,7 @@ class LoginControllerTest {
 
         final RedirectView methodeResponse = controllerUnderTest.redirectAfterColaLogin(redirectUrl, request, response);
 
+        verify(response, atLeastOnce()).addCookie(thirdPartyAuthToken);
         assertThat(methodeResponse.getUrl()).isEqualTo(redirectUrl.get());
     }
 
