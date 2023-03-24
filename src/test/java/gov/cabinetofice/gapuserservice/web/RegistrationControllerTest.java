@@ -1,5 +1,6 @@
 package gov.cabinetofice.gapuserservice.web;
 
+import gov.cabinetofice.gapuserservice.config.FindAGrantConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.dto.CreateUserDto;
 import gov.cabinetofice.gapuserservice.service.user.impl.ColaUserServiceImpl;
@@ -26,6 +27,9 @@ class RegistrationControllerTest {
 
     @Mock
     private ThirdPartyAuthProviderProperties authProviderProperties;
+
+    @Mock
+    private FindAGrantConfigProperties findAGrantProps;
 
     @InjectMocks
     private RegistrationController controllerUnderTest;

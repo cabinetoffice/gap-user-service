@@ -80,7 +80,7 @@ public class WebSecurityConfig {
         // handle exceptions when non-auth'd user hits an endpoint
         http
                 .exceptionHandling()
-                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED));
+                .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.NOT_FOUND));
 
         return http.build();
     }
