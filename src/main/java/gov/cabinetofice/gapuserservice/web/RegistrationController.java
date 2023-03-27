@@ -30,14 +30,13 @@ public class RegistrationController {
 
     @GetMapping
     public ModelAndView showRegistrationPage(final @ModelAttribute("user") CreateUserDto user) {
-        return new ModelAndView(REGISTRATION_PAGE_VIEW).addObject("homePageUrl", findProperties.getUrl());
+        return new ModelAndView(REGISTRATION_PAGE_VIEW).addObject("homePageUrl", findProperties.getUrl() + "/apply/applicant");
     }
 
     @GetMapping("/success")
     public ModelAndView showSuccessPage() {
         return new ModelAndView(REGISTRATION_SUCCESS_VIEW)
-                .addObject("loginUrl", authProviderProperties.getLoginUrl())
-                .addObject("homePageUrl", findProperties.getUrl());
+                .addObject("loginUrl", authProviderProperties.getLoginUrl());
     }
 
     @PostMapping
