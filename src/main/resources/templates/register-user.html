@@ -11,7 +11,7 @@
         <div th:replace="~{fragments/header :: header}"></div>
 
         <div class="govuk-width-container">
-            <a href="#" class="govuk-back-link">Back</a>
+            <a th:href="${homePageUrl}" class="govuk-back-link">Back</a>
 
             <main class="govuk-main-wrapper" id="main-content" role="main">
                 <form method="post" th:action="@{/register}" th:object="${user}" novalidate>
