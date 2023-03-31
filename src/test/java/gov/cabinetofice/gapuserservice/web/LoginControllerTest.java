@@ -18,11 +18,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.servlet.view.RedirectView;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -230,7 +233,7 @@ class LoginControllerTest {
 
         final RedirectView methodeResponse = controllerUnderTest.logout(customToken,response);
 
-        assertThat(methodeResponse.getUrl()).isEqualTo(authenticationProvider.getLoginUrl());
+        assertThat(methodeResponse.getUrl()).isEqualTo(authenticationProvider.getLogoutUrl());
     }
 
     @Test

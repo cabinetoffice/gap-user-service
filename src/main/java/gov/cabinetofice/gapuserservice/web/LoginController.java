@@ -138,7 +138,7 @@ public class LoginController {
         response.addCookie(userTokenCookie);
         response.addCookie(thirdPartyAuthToken);
 
-        return new RedirectView(authenticationProvider.getLoginUrl());
+        return new RedirectView(authenticationProvider.getLogoutUrl());
     }
 
     @GetMapping("/refresh-token")
