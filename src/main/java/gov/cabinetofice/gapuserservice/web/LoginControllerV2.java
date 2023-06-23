@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 @RequiredArgsConstructor
 @Controller
 @RequestMapping("v2")
-@ConditionalOnProperty(value = "feature.one.login.enabled", havingValue = "true")
+@ConditionalOnProperty(value = "feature.onelogin.enabled", havingValue = "true")
 public class LoginControllerV2 {
 
     private final OneLoginService oneLoginService;

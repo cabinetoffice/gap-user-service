@@ -26,19 +26,19 @@ import java.util.UUID;
 @Service
 public class OneLoginService {
 
-    @Value("${onelogin.client.id}")
+    @Value("${onelogin.client-id}")
     private String clientId;
 
-    @Value("${onelogin.base.url}")
+    @Value("${onelogin.base-url}")
     private String oneLoginBaseUrl;
 
-    @Value("${onelogin.client.assertion.type}")
+    @Value("${onelogin.client-assertion-type}")
     private String clientAssertionType;
 
-    @Value("${onelogin.service.redirect.url}")
+    @Value("${onelogin.service-redirect-url}")
     private String serviceRedirectUrl;
 
-    @Value("${onelogin.private.key}")
+    @Value("${onelogin.private-key}")
     public String privateKey;
 
     private static final String GRANT_TYPE = "authorization_code";
