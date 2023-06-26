@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS gap_users (
-  email VARCHAR(512),
+  hashedEmail VARCHAR(512),
+  encryptedEmail VARCHAR(512)
   gap_user_id VARCHAR(64),
   sub VARCHAR(64),
   roles VARCHAR(64),
