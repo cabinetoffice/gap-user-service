@@ -116,7 +116,7 @@ public class OneLoginServiceTest {
        Map<String, String> headers = new HashMap<>();
         headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + "accessToken");
 
-        when(RestUtils.getRequestWithBodyAndHeaders(DUMMY_BASE_URL + "/userinfo", headers))
+        when(RestUtils.getRequestWithHeaders(DUMMY_BASE_URL + "/userinfo", headers))
                 .thenReturn(new JSONObject(expectedResponse));
 
         String result = oneLoginService.getUserInfo("accessToken");
@@ -131,7 +131,7 @@ public class OneLoginServiceTest {
         Map<String, String> headers = new HashMap<>();
         headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + "accessToken");
 
-        when(RestUtils.getRequestWithBodyAndHeaders(DUMMY_BASE_URL + "/userinfo", headers))
+        when(RestUtils.getRequestWithHeaders(DUMMY_BASE_URL + "/userinfo", headers))
                 .thenThrow(new IOException());
 
 

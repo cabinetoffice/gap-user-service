@@ -27,7 +27,7 @@ public class RestUtils {
 
     }
 
-    public static JSONObject getRequestWithBodyAndHeaders(String url, Map<String, String> headers) throws IOException {
+    public static JSONObject getRequestWithHeaders(String url, Map<String, String> headers) throws IOException {
         HttpClient httpClient = HttpClients.createDefault();
         HttpGet httpGet = new HttpGet(url);
         headers.forEach(httpGet::setHeader);

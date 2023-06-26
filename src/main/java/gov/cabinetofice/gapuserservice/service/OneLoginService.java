@@ -66,7 +66,7 @@ public class OneLoginService {
             Map<String, String> headers = new HashMap<>();
             headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
 
-            JSONObject response = RestUtils.getRequestWithBodyAndHeaders(oneLoginBaseUrl + "/userinfo", headers);
+            JSONObject response = RestUtils.getRequestWithHeaders(oneLoginBaseUrl + "/userinfo", headers);
 
             return response.toString();
 

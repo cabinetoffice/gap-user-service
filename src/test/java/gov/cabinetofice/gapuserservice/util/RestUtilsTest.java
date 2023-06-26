@@ -44,7 +44,7 @@ public class RestUtilsTest {
     }
 
     @Test
-    void testGetRequestWithBodyAndHeaders() throws IOException {
+    void testGetRequestWithHeaders() throws IOException {
         String url = "https://example.com";
         Map<String, String> headers = new HashMap<>();
         headers.put("Authorization", "Bearer token");
@@ -59,7 +59,7 @@ public class RestUtilsTest {
         when(httpResponse.getEntity()).thenReturn(httpEntity);
         when(httpClient.execute(Mockito.any(HttpGet.class))).thenReturn(httpResponse);
 
-        JSONObject result = RestUtils.getRequestWithBodyAndHeaders(url, headers);
+        JSONObject result = RestUtils.getRequestWithHeaders(url, headers);
 
         verify(httpClient, times(1)).execute(any(HttpGet.class));
         verify(httpResponse, times(1)).getEntity();
