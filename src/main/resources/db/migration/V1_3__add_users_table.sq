@@ -1,9 +1,0 @@
-CREATE TABLE IF NOT EXISTS gap_users (
-  email VARCHAR(500),
-  gap_user_id VARCHAR(64),
-  sub VARCHAR(64),
-  phoneNumber VARCHAR(64),
-  roles VARCHAR(64),
-  dept VARCHAR(64),
-  PRIMARY KEY (sub)
-);
