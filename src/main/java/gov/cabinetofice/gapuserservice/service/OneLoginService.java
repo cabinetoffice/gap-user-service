@@ -1,8 +1,11 @@
 package gov.cabinetofice.gapuserservice.service;
 
-import gov.cabinetofice.gapuserservice.exceptions.AuthenticationException;
-import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
-import gov.cabinetofice.gapuserservice.exceptions.PrivateKeyParsingException;
+import gov.cabinetofice.gapuserservice.exceptions.*;
+import gov.cabinetofice.gapuserservice.model.Role;
+import gov.cabinetofice.gapuserservice.model.RoleEnum;
+import gov.cabinetofice.gapuserservice.model.User;
+import gov.cabinetofice.gapuserservice.repository.RoleRepository;
+import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -17,10 +20,8 @@ import java.io.IOException;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -43,6 +44,10 @@ public class OneLoginService {
 
     private static final String GRANT_TYPE = "authorization_code";
 
+    private final UserRepository userRepository;
+
+    private final RoleRepository roleRepository;
+
 
     public String createOneLoginJwt() {
 
@@ -59,16 +64,14 @@ public class OneLoginService {
                 .compact();
     }
 
-    public String getUserInfo(String accessToken) {
+    public JSONObject getUserInfo(String accessToken) {
 
         try {
 
             Map<String, String> headers = new HashMap<>();
             headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
 
-            JSONObject response = RestUtils.getRequestWithHeaders(oneLoginBaseUrl + "/userinfo", headers);
-
-            return response.toString();
+            return RestUtils.getRequestWithHeaders(oneLoginBaseUrl + "/userinfo", headers);
 
         } catch (IOException e) {
             throw new AuthenticationException("unable to retrieve user info");
@@ -98,7 +101,6 @@ public class OneLoginService {
 
     public PrivateKey parsePrivateKey() {
         try {
-
             byte [] pkcs8EncodedBytes = Base64.getDecoder().decode(privateKey);
 
             PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(pkcs8EncodedBytes);
@@ -107,6 +109,41 @@ public class OneLoginService {
         } catch (Exception e) {
             throw new PrivateKeyParsingException("Unable to parse private key");
         }
+    }
+
+    public boolean doesUserExistByEmail(final String email) {
+        return userRepository.existsByHashedEmail(email);
+    }
+
+    public boolean doesUserExistBySub(final String sub) {
+        return userRepository.existsBySub(sub);
+    }
+
+    public List<RoleEnum> getUsersRoles(final String sub) {
+        final User user = userRepository.findBySub(sub).orElseThrow(() -> new UserNotFoundException("Could not get users roles: User with sub '" + sub + "' not found"));
+        return user.getRoles().stream()
+                .map(Role::getName)
+                .collect(Collectors.toList());
+    }
+
+    public void createUser(final String sub, final String email) {
+        final User user = User.builder()
+                .sub(sub)
+                .hashedEmail("hash") // TODO - hash email
+                .encryptedEmail("encrypt") // TODO - encrypt email
+                .build();
+        user.addRole(roleRepository.findByName(RoleEnum.APPLICANT)
+                .orElseThrow(() -> new RoleNotFoundException("Could not create user: 'APPLICANT' role not found")));
+        user.addRole(roleRepository.findByName(RoleEnum.FIND)
+                .orElseThrow(() -> new RoleNotFoundException("Could not create user: 'FIND' role not found")));
+        userRepository.save(user);
+    }
+
+    public void addSubToUser(final String sub, final String email) {
+        final String hashedEmail = email; // TODO - hash email
+        final User user = userRepository.findByHashedEmail(hashedEmail).orElseThrow(() -> new UserNotFoundException("Could not add sub to user: User with email '" + email + "' not found"));
+        user.setSub(sub);
+        userRepository.save(user);
     }
 
 }
