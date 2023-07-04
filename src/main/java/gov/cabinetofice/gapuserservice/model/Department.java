@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -31,5 +32,6 @@ public class Department {
     @OneToMany(mappedBy="id", cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY)
     @ToString.Exclude
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
-    private List<User> users;
+    @Builder.Default
+    private List<User> users = new ArrayList<>();
 }

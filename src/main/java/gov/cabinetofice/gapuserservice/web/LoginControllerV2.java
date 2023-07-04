@@ -44,8 +44,8 @@ public class LoginControllerV2 {
     @Value("${onelogin.base-url}")
     private String oneLoginBaseUrl;
 
-    @GetMapping("/login")
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    @GetMapping("/login")
     public RedirectView login(final @RequestParam Optional<String> redirectUrl,
                               final HttpServletRequest request,
                               final HttpServletResponse response) {
@@ -65,14 +65,14 @@ public class LoginControllerV2 {
             response.addCookie(redirectUrlCookie);
 
             // TODO check if this is the correct URL
-            return new RedirectView(oneLoginBaseUrl + "/login");
+            return new RedirectView(oneLoginBaseUrl);
         }
 
         return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
     }
 
-    @GetMapping("/redirect-after-login")
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    @GetMapping("/redirect-after-login")
     public RedirectView redirect(final @CookieValue(name = REDIRECT_URL_COOKIE) Optional<String> redirectUrl,
                                  final HttpServletRequest request,
                                  final HttpServletResponse response,

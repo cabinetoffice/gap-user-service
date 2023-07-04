@@ -46,6 +46,7 @@ public class WebSecurityConfig {
                 "/health",
                 "/login",
                 "/v2/redirect-after-login",
+                "/v2/login",
                 "/is-user-logged-in",
                 "/redirect-after-cola-login",
                 "/error/**",

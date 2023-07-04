@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -29,11 +30,11 @@ public class Role {
     @JoinColumn(name = "id", nullable = false)
     @ToString.Exclude
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
-    private List<User> users;
+    @Builder.Default
+    private List<User> users = new ArrayList<>();
 
     public void addUser(User user) {
         this.users.add(user);
-        user.addRole(this);
     }
 }
 

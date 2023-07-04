@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -37,7 +38,8 @@ public class User {
     @JoinColumn(name = "id", nullable = false)
     @ToString.Exclude
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
-    private List<Role> roles;
+    @Builder.Default
+    private List<Role> roles = new ArrayList<>();
 
     @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY)
     @JoinColumn(name = "id")
@@ -47,6 +49,5 @@ public class User {
 
     public void addRole(final Role role) {
         this.roles.add(role);
-        role.addUser(this);
     }
 }
