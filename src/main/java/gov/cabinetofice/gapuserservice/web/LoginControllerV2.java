@@ -113,7 +113,7 @@ public class LoginControllerV2 {
     private String getRedirectUrl(final String sub, final Optional<String> redirectUrl) {
         final List<RoleEnum> usersRoles = oneLoginService.getUsersRoles(sub);
 
-        boolean isSuperAdmin = usersRoles.stream().anyMatch((role) -> role.equals(RoleEnum.SUPERADMIN));
+        boolean isSuperAdmin = usersRoles.stream().anyMatch((role) -> role.equals(RoleEnum.SUPER_ADMIN));
         if(isSuperAdmin) return adminBaseUrl + "/super-admin/dashboard";
 
         boolean isAdmin = usersRoles.stream().anyMatch((role) -> role.equals(RoleEnum.ADMIN));

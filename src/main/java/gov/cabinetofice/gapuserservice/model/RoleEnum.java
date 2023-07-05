@@ -1,7 +1,7 @@
 package gov.cabinetofice.gapuserservice.model;
 
 public enum RoleEnum {
-    SUPERADMIN,
+    SUPER_ADMIN,
     ADMIN,
     APPLICANT,
     FIND,

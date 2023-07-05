@@ -1,7 +1,7 @@
-DROP TABLE departments;
-DROP TABLE gap_users;
-DROP TABLE roles;
 DROP TABLE user_roles;
+DROP TABLE gap_users;
+DROP TABLE departments;
+DROP TABLE roles;
 
 CREATE TABLE departments (
 	id serial4 NOT NULL,
@@ -31,3 +31,9 @@ CREATE TABLE roles_users (
 	CONSTRAINT fk2mck5s7km22t2on8h2jpn44xq FOREIGN KEY (roles_id) REFERENCES roles(id),
 	CONSTRAINT fkhu2gdj9we2ucvgwy1qdfm5a5s FOREIGN KEY (users_gap_user_id) REFERENCES gap_users(gap_user_id)
 );
+
+INSERT INTO roles (name) VALUES
+  ('APPLICANT'),
+  ('FIND'),
+  ('ADMIN'),
+  ('SUPER_ADMIN');
