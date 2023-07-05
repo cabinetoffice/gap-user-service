@@ -1,5 +1,6 @@
 package gov.cabinetofice.gapuserservice.service;
 
+import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.exceptions.*;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
@@ -64,15 +65,16 @@ public class OneLoginService {
                 .compact();
     }
 
-    public JSONObject getUserInfo(String accessToken) {
-
+    public OneLoginUserInfoDto getUserInfo(String accessToken) {
         try {
-
             Map<String, String> headers = new HashMap<>();
             headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
 
-            return RestUtils.getRequestWithHeaders(oneLoginBaseUrl + "/userinfo", headers);
-
+            final JSONObject userInfo = RestUtils.getRequestWithHeaders(oneLoginBaseUrl + "/userinfo", headers);
+            return OneLoginUserInfoDto.builder()
+                    .email(userInfo.getString("email"))
+                    .sub(userInfo.getString("sub"))
+                    .build();
         } catch (IOException e) {
             throw new AuthenticationException("unable to retrieve user info");
         }
@@ -112,7 +114,7 @@ public class OneLoginService {
     }
 
     public boolean doesUserExistByEmail(final String email) {
-        return userRepository.existsByHashedEmail(email);
+        return userRepository.existsByEmail(email);
     }
 
     public boolean doesUserExistBySub(final String sub) {
@@ -129,8 +131,7 @@ public class OneLoginService {
     public void createUser(final String sub, final String email) {
         final User user = User.builder()
                 .sub(sub)
-                .hashedEmail("hash") // TODO - hash email
-                .encryptedEmail("encrypt") // TODO - encrypt email
+                .email(email)
                 .build();
         user.addRole(roleRepository.findByName(RoleEnum.APPLICANT)
                 .orElseThrow(() -> new RoleNotFoundException("Could not create user: 'APPLICANT' role not found")));
@@ -140,8 +141,7 @@ public class OneLoginService {
     }
 
     public void addSubToUser(final String sub, final String email) {
-        final String hashedEmail = email; // TODO - hash email
-        final User user = userRepository.findByHashedEmail(hashedEmail).orElseThrow(() -> new UserNotFoundException("Could not add sub to user: User with email '" + email + "' not found"));
+        final User user = userRepository.findByEmail(email).orElseThrow(() -> new UserNotFoundException("Could not add sub to user: User with email '" + email + "' not found"));
         user.setSub(sub);
         userRepository.save(user);
     }

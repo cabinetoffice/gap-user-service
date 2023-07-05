@@ -1,6 +1,7 @@
 package gov.cabinetofice.gapuserservice.web;
 
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
+import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
@@ -9,7 +10,6 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Controller;
@@ -44,6 +44,9 @@ public class LoginControllerV2 {
     @Value("${onelogin.base-url}")
     private String oneLoginBaseUrl;
 
+    @Value("${admin-base-url}")
+    private String adminBaseUrl;
+
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     @GetMapping("/login")
     public RedirectView login(final @RequestParam Optional<String> redirectUrl,
@@ -73,54 +76,50 @@ public class LoginControllerV2 {
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     @GetMapping("/redirect-after-login")
-    public RedirectView redirect(final @CookieValue(name = REDIRECT_URL_COOKIE) Optional<String> redirectUrl,
-                                 final HttpServletRequest request,
+    public RedirectView redirectAfterLogin(final @CookieValue(name = REDIRECT_URL_COOKIE) Optional<String> redirectUrl,
                                  final HttpServletResponse response,
                                  final @RequestParam String code) {
-
-        // 1. Grab user info from OneLogin
         final String jwt = oneLoginService.createOneLoginJwt();
         final String authToken = oneLoginService.getAuthToken(jwt, code);
-        final JSONObject userInfo = oneLoginService.getUserInfo(authToken);
-        final String sub = userInfo.getString("sub");
-        final String email = userInfo.getString("email");
-
-        // 2. Check if user is in the database
-        boolean userExistsByEmail = oneLoginService.doesUserExistByEmail(email);
-        boolean userExistsBySub = oneLoginService.doesUserExistBySub(sub);
+        final OneLoginUserInfoDto userInfo = oneLoginService.getUserInfo(authToken);
+        final boolean userExistsByEmail = oneLoginService.doesUserExistByEmail(userInfo.getEmail());
+        final boolean userExistsBySub = oneLoginService.doesUserExistBySub(userInfo.getSub());
 
         if(!userExistsByEmail) {
-            // 3. If user is not in the database, create a new user
-            oneLoginService.createUser(sub, email);
+            oneLoginService.createUser(userInfo.getSub(), userInfo.getEmail());
         } else if(!userExistsBySub) {
-            // 4. If user is in the database, but has not used OneLogin before, update user info
-            oneLoginService.addSubToUser(sub, email);
+            oneLoginService.addSubToUser(userInfo.getSub(), userInfo.getEmail());
         }
 
-        // 5. Create user service custom jwt from user info
+        final Cookie customJwtCookie = generateCustomJwtCookie(userInfo.getSub(), userInfo.getEmail());
+        response.addCookie(customJwtCookie);
+        return new RedirectView(getRedirectUrl(userInfo.getSub(), redirectUrl));
+    }
+
+    private Cookie generateCustomJwtCookie(final String sub, final String email) {
         final Map<String, String> claims = new HashMap<>();
         claims.put("email", email);
         claims.put("sub", sub);
 
-        final Cookie userTokenCookie = WebUtil.buildCookie(
+        return WebUtil.buildCookie(
                 new Cookie(userServiceCookieName, customJwtService.generateToken(claims)),
                 Boolean.TRUE,
                 Boolean.TRUE,
                 null
         );
+    }
 
-        response.addCookie(userTokenCookie);
-
-        // 6. Check the users roles and redirect to the correct page
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private String getRedirectUrl(final String sub, final Optional<String> redirectUrl) {
         final List<RoleEnum> usersRoles = oneLoginService.getUsersRoles(sub);
 
         boolean isSuperAdmin = usersRoles.stream().anyMatch((role) -> role.equals(RoleEnum.SUPERADMIN));
-        if(isSuperAdmin) return new RedirectView("Super admin dashboard"); // TODO fetch url from somewhere
+        if(isSuperAdmin) return adminBaseUrl + "/super-admin/dashboard";
 
         boolean isAdmin = usersRoles.stream().anyMatch((role) -> role.equals(RoleEnum.ADMIN));
-        if(isAdmin) return new RedirectView("Admin dashboard"); // TODO fetch url from somewhere
+        if(isAdmin) return adminBaseUrl + "/dashboard";
 
-        return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
+        return (redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
     }
 
 }

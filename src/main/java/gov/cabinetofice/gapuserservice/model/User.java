@@ -22,32 +22,26 @@ public class User {
     @Column(name = "gap_user_id")
     private Integer id;
 
-    @Column(name = "hashedemail")
-    private String hashedEmail;
-
-    @Column(name = "encryptedemail")
-    private String encryptedEmail;
+    @Column(name = "email")
+    private String email;
 
     @Column(name = "sub")
     private String sub;
 
-    @Column(name = "dept_id")
-    private String departmentId;
-
-    @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY)
-    @JoinColumn(name = "id", nullable = false)
+    @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY, mappedBy = "users")
     @ToString.Exclude
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
     @Builder.Default
     private List<Role> roles = new ArrayList<>();
 
     @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY)
-    @JoinColumn(name = "id")
+    @JoinColumn(name = "dept_id")
     @ToString.Exclude
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
     private Department department;
 
     public void addRole(final Role role) {
         this.roles.add(role);
+        role.addUser(this);
     }
 }
