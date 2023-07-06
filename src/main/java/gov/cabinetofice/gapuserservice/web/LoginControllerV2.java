@@ -85,21 +85,35 @@ public class LoginControllerV2 {
         final boolean userExistsByEmail = oneLoginService.doesUserExistByEmail(userInfo.getEmail());
         final boolean userExistsBySub = oneLoginService.doesUserExistBySub(userInfo.getSub());
 
-        if(!userExistsByEmail) {
-            oneLoginService.createUser(userInfo.getSub(), userInfo.getEmail());
-        } else if(!userExistsBySub) {
-            oneLoginService.addSubToUser(userInfo.getSub(), userInfo.getEmail());
+        final Cookie customJwtCookie = generateCustomJwtCookie(userInfo);
+        response.addCookie(customJwtCookie);
+
+        if (userExistsBySub) {
+            final List<RoleEnum> userRoles = oneLoginService.getUsersRolesBySub(userInfo.getSub());
+            return getRedirectView(userRoles, redirectUrl);
         }
 
-        final Cookie customJwtCookie = generateCustomJwtCookie(userInfo.getSub(), userInfo.getEmail());
-        response.addCookie(customJwtCookie);
-        return new RedirectView(getRedirectUrl(userInfo.getSub(), redirectUrl));
+        if (userExistsByEmail) {
+            final List<RoleEnum> userRoles = oneLoginService.getUsersRolesByEmail(userInfo.getEmail());
+            final boolean isApplicant = oneLoginService.isUserAnApplicant(userRoles);
+            if (isApplicant) {
+                // TODO GAP-1922: Create migration page with a yes/no option
+                return new RedirectView("/should-migrate-data");
+            } else {
+                // TODO GAP-1932: Migrate cola user data to this admin
+                oneLoginService.addSubToUser(userInfo.getSub(), userInfo.getEmail());
+                return getRedirectView(userRoles, redirectUrl);
+            }
+        }
+
+        final List<RoleEnum> userRoles = oneLoginService.createUser(userInfo.getSub(), userInfo.getEmail());
+        return getRedirectView(userRoles, redirectUrl);
     }
 
-    private Cookie generateCustomJwtCookie(final String sub, final String email) {
+    private Cookie generateCustomJwtCookie(final OneLoginUserInfoDto userInfo) {
         final Map<String, String> claims = new HashMap<>();
-        claims.put("email", email);
-        claims.put("sub", sub);
+        claims.put("email", userInfo.getEmail());
+        claims.put("sub", userInfo.getSub());
 
         return WebUtil.buildCookie(
                 new Cookie(userServiceCookieName, customJwtService.generateToken(claims)),
@@ -110,16 +124,10 @@ public class LoginControllerV2 {
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    private String getRedirectUrl(final String sub, final Optional<String> redirectUrl) {
-        final List<RoleEnum> usersRoles = oneLoginService.getUsersRoles(sub);
-
-        boolean isSuperAdmin = usersRoles.stream().anyMatch((role) -> role.equals(RoleEnum.SUPER_ADMIN));
-        if(isSuperAdmin) return adminBaseUrl + "/super-admin/dashboard";
-
-        boolean isAdmin = usersRoles.stream().anyMatch((role) -> role.equals(RoleEnum.ADMIN));
-        if(isAdmin) return adminBaseUrl + "/dashboard";
-
-        return (redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
+    private RedirectView getRedirectView(final List<RoleEnum> userRoles, final Optional<String> redirectUrl) {
+        if(oneLoginService.isUserASuperAdmin(userRoles)) return new RedirectView(adminBaseUrl + "/super-admin/dashboard");
+        if(oneLoginService.isUserAnAdmin(userRoles)) return new RedirectView(adminBaseUrl + "/dashboard");
+        return new RedirectView((redirectUrl.orElse(configProperties.getDefaultRedirectUrl())));
     }
 
 }

@@ -121,23 +121,52 @@ public class OneLoginService {
         return userRepository.existsBySub(sub);
     }
 
-    public List<RoleEnum> getUsersRoles(final String sub) {
-        final User user = userRepository.findBySub(sub).orElseThrow(() -> new UserNotFoundException("Could not get users roles: User with sub '" + sub + "' not found"));
-        return user.getRoles().stream()
+    public List<RoleEnum> getUsersRolesByEmail(final String email) {
+        return roleRepository.findByUsers_Email(email)
+                .stream()
                 .map(Role::getName)
                 .collect(Collectors.toList());
     }
 
-    public void createUser(final String sub, final String email) {
+    public List<RoleEnum> getUsersRolesBySub(final String sub) {
+        return roleRepository.findByUsers_Sub(sub)
+                .stream()
+                .map(Role::getName)
+                .collect(Collectors.toList());
+    }
+
+    public List<RoleEnum> getNewUserRoles() {
+        final List<RoleEnum> newUserRoles = new ArrayList<>();
+        newUserRoles.add(RoleEnum.APPLICANT);
+        newUserRoles.add(RoleEnum.FIND);
+        return newUserRoles;
+    }
+
+    public boolean isUserAnApplicant(final List<RoleEnum> userRoles) {
+        return !isUserAnAdmin(userRoles) && userRoles.stream().anyMatch((role) -> role.equals(RoleEnum.APPLICANT));
+    }
+
+    public boolean isUserAnAdmin(final List<RoleEnum> userRoles) {
+        return userRoles.stream().anyMatch((role) -> role.equals(RoleEnum.ADMIN) || role.equals(RoleEnum.SUPER_ADMIN));
+    }
+
+    public boolean isUserASuperAdmin(final List<RoleEnum> userRoles) {
+        return userRoles.stream().anyMatch((role) -> role.equals(RoleEnum.SUPER_ADMIN));
+    }
+
+    public List<RoleEnum> createUser(final String sub, final String email) {
         final User user = User.builder()
                 .sub(sub)
                 .email(email)
                 .build();
-        user.addRole(roleRepository.findByName(RoleEnum.APPLICANT)
-                .orElseThrow(() -> new RoleNotFoundException("Could not create user: 'APPLICANT' role not found")));
-        user.addRole(roleRepository.findByName(RoleEnum.FIND)
-                .orElseThrow(() -> new RoleNotFoundException("Could not create user: 'FIND' role not found")));
+        final List<RoleEnum> newUserRoles = getNewUserRoles();
+        for (RoleEnum roleEnum : newUserRoles) {
+            final Role role = roleRepository.findByName(roleEnum)
+                    .orElseThrow(() -> new RoleNotFoundException("Could not create user: '" + roleEnum + "' role not found"));
+            user.addRole(role);
+        }
         userRepository.save(user);
+        return newUserRoles;
     }
 
     public void addSubToUser(final String sub, final String email) {
@@ -145,5 +174,4 @@ public class OneLoginService {
         user.setSub(sub);
         userRepository.save(user);
     }
-
 }
