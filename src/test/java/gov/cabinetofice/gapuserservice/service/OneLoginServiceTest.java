@@ -186,60 +186,6 @@ public class OneLoginServiceTest {
     }
 
     @Test
-    void shouldReturnDoesUserExist_Email() {
-        when(userRepository.existsByEmail(anyString())).thenReturn(true);
-
-        final boolean result = oneLoginService.doesUserExistByEmail("");
-
-        Assertions.assertTrue(result);
-    }
-
-    @Test
-    void shouldReturnDoesUserExist_Sub() {
-        when(userRepository.existsBySub(anyString())).thenReturn(true);
-
-        final boolean result = oneLoginService.doesUserExistBySub("");
-
-        Assertions.assertTrue(result);
-    }
-
-    @Test
-    void shouldReturnUsersRoles_Email() {
-        final List<Role> roles = List.of(
-                Role.builder().name(RoleEnum.APPLICANT).build(),
-                Role.builder().name(RoleEnum.FIND).build(),
-                Role.builder().name(RoleEnum.ADMIN).build(),
-                Role.builder().name(RoleEnum.SUPER_ADMIN).build()
-        );
-
-        when(roleRepository.findByUsers_Email(anyString())).thenReturn(roles);
-
-        final List<RoleEnum> result = oneLoginService.getUsersRolesByEmail("");
-
-        Assertions.assertEquals(4, result.size());
-        Assertions.assertEquals(RoleEnum.APPLICANT, result.get(0));
-        Assertions.assertEquals(RoleEnum.FIND, result.get(1));
-        Assertions.assertEquals(RoleEnum.ADMIN, result.get(2));
-        Assertions.assertEquals(RoleEnum.SUPER_ADMIN, result.get(3));
-    }
-
-    @Test
-    void shouldReturnUsersRoles_Sub() {
-        final List<Role> roles = List.of(
-                Role.builder().name(RoleEnum.APPLICANT).build(),
-                Role.builder().name(RoleEnum.FIND).build()
-        );
-
-        when(roleRepository.findByUsers_Sub(anyString())).thenReturn(roles);
-
-        final List<RoleEnum> result = oneLoginService.getUsersRolesBySub("");
-
-        Assertions.assertEquals(2, result.size());
-        Assertions.assertEquals(RoleEnum.APPLICANT, result.get(0));
-        Assertions.assertEquals(RoleEnum.FIND, result.get(1));
-    }
-
-    @Test
     void shouldReturnNewUserRoles() {
         final List<RoleEnum> result = oneLoginService.getNewUserRoles();
 
@@ -249,116 +195,16 @@ public class OneLoginServiceTest {
     }
 
     @Nested
-    class isUserApplicant {
-        @Test
-        void shouldReturnFalseWhenUserIsAdmin() {
-            final List<RoleEnum> roles = List.of(RoleEnum.APPLICANT, RoleEnum.FIND, RoleEnum.ADMIN);
-
-            final boolean response = oneLoginService.isUserAnApplicant(roles);
-
-            Assertions.assertFalse(response);
-        }
-
-        @Test
-        void shouldReturnFalseWhenUserIsSuperAdmin() {
-            final List<RoleEnum> roles = List.of(RoleEnum.APPLICANT, RoleEnum.FIND, RoleEnum.SUPER_ADMIN, RoleEnum.ADMIN);
-
-            final boolean response = oneLoginService.isUserAnApplicant(roles);
-
-            Assertions.assertFalse(response);
-        }
-
-        @Test
-        void shouldReturnFalseWhenUserIsNotAnApplicant() {
-            final List<RoleEnum> roles = new ArrayList<>();
-
-            final boolean response = oneLoginService.isUserAnApplicant(roles);
-
-            Assertions.assertFalse(response);
-        }
-
-        @Test
-        void shouldReturnTrueWhenUserIsApplicant() {
-            final List<RoleEnum> roles = List.of(RoleEnum.APPLICANT, RoleEnum.FIND);
-
-            final boolean response = oneLoginService.isUserAnApplicant(roles);
-
-            Assertions.assertTrue(response);
-        }
-    }
-
-    @Nested
-    class isUserAdmin {
-        @Test
-        void shouldReturnTrueWhenUserIsAdmin() {
-            final List<RoleEnum> roles = List.of(RoleEnum.APPLICANT, RoleEnum.FIND, RoleEnum.ADMIN);
-
-            final boolean response = oneLoginService.isUserAnAdmin(roles);
-
-            Assertions.assertTrue(response);
-        }
-
-        @Test
-        void shouldReturnTrueWhenUserIsSuperAdmin() {
-            final List<RoleEnum> roles = List.of(RoleEnum.APPLICANT, RoleEnum.FIND, RoleEnum.SUPER_ADMIN, RoleEnum.ADMIN);
-
-            final boolean response = oneLoginService.isUserAnAdmin(roles);
-
-            Assertions.assertTrue(response);
-        }
-
-        @Test
-        void shouldReturnFalseWhenUserIsAnApplicant() {
-            final List<RoleEnum> roles = List.of(RoleEnum.APPLICANT, RoleEnum.FIND);
-
-            final boolean response = oneLoginService.isUserAnAdmin(roles);
-
-            Assertions.assertFalse(response);
-        }
-    }
-
-    @Nested
-    class isUserSuperAdmin {
-        @Test
-        void shouldReturnFalseWhenUserIsAdmin() {
-            final List<RoleEnum> roles = List.of(RoleEnum.APPLICANT, RoleEnum.FIND, RoleEnum.ADMIN);
-
-            final boolean response = oneLoginService.isUserASuperAdmin(roles);
-
-            Assertions.assertFalse(response);
-        }
-
-        @Test
-        void shouldReturnTrueWhenUserIsSuperAdmin() {
-            final List<RoleEnum> roles = List.of(RoleEnum.APPLICANT, RoleEnum.FIND, RoleEnum.SUPER_ADMIN, RoleEnum.ADMIN);
-
-            final boolean response = oneLoginService.isUserASuperAdmin(roles);
-
-            Assertions.assertTrue(response);
-        }
-
-        @Test
-        void shouldReturnFalseWhenUserIsAnApplicant() {
-            final List<RoleEnum> roles = List.of(RoleEnum.APPLICANT, RoleEnum.FIND);
-
-            final boolean response = oneLoginService.isUserASuperAdmin(roles);
-
-            Assertions.assertFalse(response);
-        }
-    }
-
-    @Nested
     class createUser {
         @Test
-        void shouldReturnUserRolesWhenUserIsCreated() {
-            when(roleRepository.findByName(RoleEnum.APPLICANT)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
-            when(roleRepository.findByName(RoleEnum.FIND)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).build()));
+        void shouldReturnSavedUser() {
+            when(roleRepository.findByName(any())).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
+            when(userRepository.save(any())).thenReturn(User.builder().roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build())).build());
 
-            final List<RoleEnum> result = oneLoginService.createUser("", "");
+            final User result = oneLoginService.createUser("", "");
 
-            Assertions.assertEquals(2, result.size());
-            Assertions.assertEquals(RoleEnum.APPLICANT, result.get(0));
-            Assertions.assertEquals(RoleEnum.FIND, result.get(1));
+            Assertions.assertEquals(1, result.getRoles().size());
+            Assertions.assertEquals(RoleEnum.APPLICANT, result.getRoles().get(0).getName());
         }
 
         @Test

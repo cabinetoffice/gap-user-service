@@ -82,8 +82,11 @@ public class LoginControllerV2 {
         final String authToken = oneLoginService.getAuthToken(jwt, code);
         final OneLoginUserInfoDto userInfo = oneLoginService.getUserInfo(authToken);
         final Optional<User> userOptional = oneLoginService.getUser(userInfo.getEmail(), userInfo.getSub());
+        final Cookie customJwt = generateCustomJwtCookie(userInfo);
 
-        if(userOptional.isPresent()) {
+        response.addCookie(customJwt);
+
+        if (userOptional.isPresent()) {
             final User user = userOptional.get();
             if (user.hasSub()) return getRedirectView(user, redirectUrl);
             if (user.isAnApplicant()) {

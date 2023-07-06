@@ -6,7 +6,6 @@ import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -46,10 +45,6 @@ public class User {
         role.addUser(this);
     }
 
-    public List<RoleEnum> getUsersRoles() {
-        return this.roles.stream().map(Role::getName).collect(Collectors.toList());
-    }
-
     public boolean hasSub() {
         return this.sub != null;
     }
@@ -59,17 +54,14 @@ public class User {
     }
 
     public boolean isAnApplicant() {
-        final List<RoleEnum> userRoles = getUsersRoles();
-        return !isAnAdmin() && userRoles.stream().anyMatch((role) -> role.equals(RoleEnum.APPLICANT));
+        return !isAnAdmin() && this.roles.stream().anyMatch((role) -> role.getName().equals(RoleEnum.APPLICANT));
     }
 
     public boolean isAnAdmin() {
-        final List<RoleEnum> userRoles = getUsersRoles();
-        return userRoles.stream().anyMatch((role) -> role.equals(RoleEnum.ADMIN) || role.equals(RoleEnum.SUPER_ADMIN));
+        return this.roles.stream().anyMatch((role) -> role.getName().equals(RoleEnum.ADMIN) || role.getName().equals(RoleEnum.SUPER_ADMIN));
     }
 
     public boolean isASuperAdmin() {
-        final List<RoleEnum> userRoles = getUsersRoles();
-        return userRoles.stream().anyMatch((role) -> role.equals(RoleEnum.SUPER_ADMIN));
+        return this.roles.stream().anyMatch((role) -> role.getName().equals(RoleEnum.SUPER_ADMIN));
     }
 }
