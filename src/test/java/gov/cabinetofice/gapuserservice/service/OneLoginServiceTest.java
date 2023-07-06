@@ -4,6 +4,7 @@ import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.exceptions.AuthenticationException;
 import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetofice.gapuserservice.exceptions.PrivateKeyParsingException;
+import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -21,9 +22,7 @@ import java.io.IOException;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static io.jsonwebtoken.impl.crypto.RsaProvider.generateKeyPair;
 import static org.mockito.Mockito.mockStatic;
@@ -206,22 +205,46 @@ public class OneLoginServiceTest {
     class isUserApplicant {
         @Test
         void shouldReturnFalseWhenUserIsAdmin() {
+            final List<RoleEnum> roles = new ArrayList<>();
+            roles.add(RoleEnum.ADMIN);
+            roles.add(RoleEnum.APPLICANT);
+            roles.add(RoleEnum.FIND);
 
+            final boolean response = oneLoginService.isUserAnApplicant(roles);
+
+            Assertions.assertFalse(response);
         }
 
         @Test
         void shouldReturnFalseWhenUserIsSuperAdmin() {
+            final List<RoleEnum> roles = new ArrayList<>();
+            roles.add(RoleEnum.SUPER_ADMIN);
+            roles.add(RoleEnum.APPLICANT);
+            roles.add(RoleEnum.FIND);
 
+            final boolean response = oneLoginService.isUserAnApplicant(roles);
+
+            Assertions.assertFalse(response);
         }
 
         @Test
         void shouldReturnFalseWhenUserIsNotAnApplicant() {
+            final List<RoleEnum> roles = new ArrayList<>();
 
+            final boolean response = oneLoginService.isUserAnApplicant(roles);
+
+            Assertions.assertFalse(response);
         }
 
         @Test
         void shouldReturnTrueWhenUserIsApplicant() {
+            final List<RoleEnum> roles = new ArrayList<>();
+            roles.add(RoleEnum.APPLICANT);
+            roles.add(RoleEnum.FIND);
 
+            final boolean response = oneLoginService.isUserAnApplicant(roles);
+
+            Assertions.assertTrue(response);
         }
     }
 
@@ -229,17 +252,38 @@ public class OneLoginServiceTest {
     class isUserAdmin {
         @Test
         void shouldReturnTrueWhenUserIsAdmin() {
+            final List<RoleEnum> roles = new ArrayList<>();
+            roles.add(RoleEnum.ADMIN);
+            roles.add(RoleEnum.APPLICANT);
+            roles.add(RoleEnum.FIND);
 
+            final boolean response = oneLoginService.isUserAnAdmin(roles);
+
+            Assertions.assertTrue(response);
         }
 
         @Test
         void shouldReturnTrueWhenUserIsSuperAdmin() {
+            final List<RoleEnum> roles = new ArrayList<>();
+            roles.add(RoleEnum.SUPER_ADMIN);
+            roles.add(RoleEnum.ADMIN);
+            roles.add(RoleEnum.APPLICANT);
+            roles.add(RoleEnum.FIND);
 
+            final boolean response = oneLoginService.isUserAnAdmin(roles);
+
+            Assertions.assertTrue(response);
         }
 
         @Test
         void shouldReturnFalseWhenUserIsAnApplicant() {
+            final List<RoleEnum> roles = new ArrayList<>();
+            roles.add(RoleEnum.APPLICANT);
+            roles.add(RoleEnum.FIND);
 
+            final boolean response = oneLoginService.isUserAnAdmin(roles);
+
+            Assertions.assertFalse(response);
         }
     }
 
@@ -247,17 +291,38 @@ public class OneLoginServiceTest {
     class isUserSuperAdmin {
         @Test
         void shouldReturnFalseWhenUserIsAdmin() {
+            final List<RoleEnum> roles = new ArrayList<>();
+            roles.add(RoleEnum.ADMIN);
+            roles.add(RoleEnum.APPLICANT);
+            roles.add(RoleEnum.FIND);
 
+            final boolean response = oneLoginService.isUserASuperAdmin(roles);
+
+            Assertions.assertFalse(response);
         }
 
         @Test
         void shouldReturnTrueWhenUserIsSuperAdmin() {
+            final List<RoleEnum> roles = new ArrayList<>();
+            roles.add(RoleEnum.SUPER_ADMIN);
+            roles.add(RoleEnum.ADMIN);
+            roles.add(RoleEnum.APPLICANT);
+            roles.add(RoleEnum.FIND);
 
+            final boolean response = oneLoginService.isUserASuperAdmin(roles);
+
+            Assertions.assertTrue(response);
         }
 
         @Test
         void shouldReturnFalseWhenUserIsAnApplicant() {
+            final List<RoleEnum> roles = new ArrayList<>();
+            roles.add(RoleEnum.APPLICANT);
+            roles.add(RoleEnum.FIND);
 
+            final boolean response = oneLoginService.isUserASuperAdmin(roles);
+
+            Assertions.assertFalse(response);
         }
     }
 
