@@ -1,5 +1,6 @@
 package gov.cabinetofice.gapuserservice.service;
 
+import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.exceptions.AuthenticationException;
 import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetofice.gapuserservice.exceptions.PrivateKeyParsingException;
@@ -79,7 +80,6 @@ public class OneLoginServiceTest {
 
     @Test
     void shouldThrowPrivateKeyParsingExceptionWhenKeyIsInvalid() {
-
         ReflectionTestUtils.setField(oneLoginService, "privateKey", "invalidKey");
 
         Assertions.assertThrows(PrivateKeyParsingException.class, () -> oneLoginService.createOneLoginJwt());
@@ -88,8 +88,6 @@ public class OneLoginServiceTest {
 
     @Test
     void shouldReturnValidAuthToken() throws IOException, JSONException {
-
-
         String requestBody = "grant_type=" + GRANT_TYPE +
                 "&code=" + "dummyCode" +
                 "&redirect_uri=" + DUMMY_BASE_URL + "/redirect" +
@@ -104,30 +102,30 @@ public class OneLoginServiceTest {
         String result = oneLoginService.getAuthToken("dummyJwt", "dummyCode");
 
         Assertions.assertEquals("dummyToken", result);
-
     }
 
     @Test
     void shouldReturnUserInfo() throws IOException, JSONException {
-
-        String expectedResponse = "{\"sub\":\"urn:fdc:gov.uk:2022:jhkdasy7dal7dadhadasdas\"" +
+        String jsonResponse = "{\"sub\":\"urn:fdc:gov.uk:2022:jhkdasy7dal7dadhadasdas\"" +
                 ",\"email_verified\":\"true\",\"email\":\"test.user@email.com\"}";
+        OneLoginUserInfoDto expectedResponse = OneLoginUserInfoDto.builder()
+                .sub("urn:fdc:gov.uk:2022:jhkdasy7dal7dadhadasdas")
+                .email("test.user@email.com")
+                .build();
 
        Map<String, String> headers = new HashMap<>();
         headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + "accessToken");
 
         when(RestUtils.getRequestWithHeaders(DUMMY_BASE_URL + "/userinfo", headers))
-                .thenReturn(new JSONObject(expectedResponse));
+                .thenReturn(new JSONObject(jsonResponse));
 
-        String result = oneLoginService.getUserInfo("accessToken");
+        OneLoginUserInfoDto result = oneLoginService.getUserInfo("accessToken");
 
         Assertions.assertEquals(expectedResponse, result);
-
     }
 
     @Test
     void shouldThrowAuthenticationExceptionWhenRequestFails() throws IOException {
-
         Map<String, String> headers = new HashMap<>();
         headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + "accessToken");
 
@@ -137,7 +135,6 @@ public class OneLoginServiceTest {
 
         Assertions.assertThrows(AuthenticationException.class, () -> oneLoginService
                 .getUserInfo("accessToken"));
-
     }
 
 
@@ -160,7 +157,6 @@ public class OneLoginServiceTest {
 
         Assertions.assertThrows(AuthenticationException.class, () -> oneLoginService
                 .getAuthToken("dummyJwt", "dummyCode"));
-
     }
 
     @Test
@@ -179,9 +175,122 @@ public class OneLoginServiceTest {
 
         Assertions.assertThrows(InvalidRequestException.class, () -> oneLoginService
                 .getAuthToken("dummyJwt", "dummyCode"));
+    }
+
+    @Test
+    void shouldReturnDoesUserExist_Email() {
 
     }
 
+    @Test
+    void shouldReturnDoesUserExist_Sub() {
+
+    }
+
+    @Test
+    void shouldReturnUsersRoles_Email() {
+
+    }
+
+    @Test
+    void shouldReturnUsersRoles_Sub() {
+
+    }
+
+    @Test
+    void shouldReturnNewUserRoles() {
+
+    }
+
+    @Nested
+    class isUserApplicant {
+        @Test
+        void shouldReturnFalseWhenUserIsAdmin() {
+
+        }
+
+        @Test
+        void shouldReturnFalseWhenUserIsSuperAdmin() {
+
+        }
+
+        @Test
+        void shouldReturnFalseWhenUserIsNotAnApplicant() {
+
+        }
+
+        @Test
+        void shouldReturnTrueWhenUserIsApplicant() {
+
+        }
+    }
+
+    @Nested
+    class isUserAdmin {
+        @Test
+        void shouldReturnTrueWhenUserIsAdmin() {
+
+        }
+
+        @Test
+        void shouldReturnTrueWhenUserIsSuperAdmin() {
+
+        }
+
+        @Test
+        void shouldReturnFalseWhenUserIsAnApplicant() {
+
+        }
+    }
+
+    @Nested
+    class isUserSuperAdmin {
+        @Test
+        void shouldReturnFalseWhenUserIsAdmin() {
+
+        }
+
+        @Test
+        void shouldReturnTrueWhenUserIsSuperAdmin() {
+
+        }
+
+        @Test
+        void shouldReturnFalseWhenUserIsAnApplicant() {
+
+        }
+    }
+
+    @Nested
+    class createUser {
+        @Test
+        void shouldReturnUserRolesWhenUserIsCreated() {
+
+        }
+
+        @Test
+        void shouldSaveUserWithSubAndEmailWhenUserIsCreated() {
+
+        }
+
+        @Test
+        void shouldThrowExceptionWhenRoleDoesNotExist() {
+
+        }
+    }
+
+    @Nested
+    class addSubToUser {
+        @Test
+        void shouldSaveUserWithSubWhenUserExists() {
+
+        }
+
+        @Test
+        void shouldThrowExceptionWhenUserDoesNotExist() {
+
+        }
+    }
 
     private Claims getClaims(String jwtToken) throws NoSuchAlgorithmException, InvalidKeySpecException {
 
