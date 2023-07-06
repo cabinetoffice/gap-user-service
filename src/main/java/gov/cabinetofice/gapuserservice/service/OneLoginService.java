@@ -136,10 +136,7 @@ public class OneLoginService {
     }
 
     public List<RoleEnum> getNewUserRoles() {
-        final List<RoleEnum> newUserRoles = new ArrayList<>();
-        newUserRoles.add(RoleEnum.APPLICANT);
-        newUserRoles.add(RoleEnum.FIND);
-        return newUserRoles;
+        return List.of(RoleEnum.APPLICANT, RoleEnum.FIND);
     }
 
     public boolean isUserAnApplicant(final List<RoleEnum> userRoles) {
