@@ -22,7 +22,6 @@ import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -113,45 +112,11 @@ public class OneLoginService {
         }
     }
 
-    public boolean doesUserExistByEmail(final String email) {
-        return userRepository.existsByEmail(email);
-    }
-
-    public boolean doesUserExistBySub(final String sub) {
-        return userRepository.existsBySub(sub);
-    }
-
-    public List<RoleEnum> getUsersRolesByEmail(final String email) {
-        return roleRepository.findByUsers_Email(email)
-                .stream()
-                .map(Role::getName)
-                .collect(Collectors.toList());
-    }
-
-    public List<RoleEnum> getUsersRolesBySub(final String sub) {
-        return roleRepository.findByUsers_Sub(sub)
-                .stream()
-                .map(Role::getName)
-                .collect(Collectors.toList());
-    }
-
     public List<RoleEnum> getNewUserRoles() {
         return List.of(RoleEnum.APPLICANT, RoleEnum.FIND);
     }
 
-    public boolean isUserAnApplicant(final List<RoleEnum> userRoles) {
-        return !isUserAnAdmin(userRoles) && userRoles.stream().anyMatch((role) -> role.equals(RoleEnum.APPLICANT));
-    }
-
-    public boolean isUserAnAdmin(final List<RoleEnum> userRoles) {
-        return userRoles.stream().anyMatch((role) -> role.equals(RoleEnum.ADMIN) || role.equals(RoleEnum.SUPER_ADMIN));
-    }
-
-    public boolean isUserASuperAdmin(final List<RoleEnum> userRoles) {
-        return userRoles.stream().anyMatch((role) -> role.equals(RoleEnum.SUPER_ADMIN));
-    }
-
-    public List<RoleEnum> createUser(final String sub, final String email) {
+    public User createUser(final String sub, final String email) {
         final User user = User.builder()
                 .sub(sub)
                 .email(email)
@@ -162,13 +127,18 @@ public class OneLoginService {
                     .orElseThrow(() -> new RoleNotFoundException("Could not create user: '" + roleEnum + "' role not found"));
             user.addRole(role);
         }
-        userRepository.save(user);
-        return newUserRoles;
+        return userRepository.save(user);
     }
 
     public void addSubToUser(final String sub, final String email) {
         final User user = userRepository.findByEmail(email).orElseThrow(() -> new UserNotFoundException("Could not add sub to user: User with email '" + email + "' not found"));
         user.setSub(sub);
         userRepository.save(user);
+    }
+
+    public Optional<User> getUser(final String email, final String sub) {
+        final Optional<User> userBySub = userRepository.findBySub(sub);
+        if (userBySub.isPresent()) return userBySub;
+        return userRepository.findByEmail(email);
     }
 }

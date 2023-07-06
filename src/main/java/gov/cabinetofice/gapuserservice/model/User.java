@@ -6,6 +6,7 @@ import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -28,13 +29,13 @@ public class User {
     @Column(name = "sub")
     private String sub;
 
-    @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY, mappedBy = "users")
+    @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.EAGER, mappedBy = "users")
     @ToString.Exclude
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
     @Builder.Default
     private List<Role> roles = new ArrayList<>();
 
-    @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY)
+    @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.EAGER)
     @JoinColumn(name = "dept_id")
     @ToString.Exclude
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
@@ -43,5 +44,32 @@ public class User {
     public void addRole(final Role role) {
         this.roles.add(role);
         role.addUser(this);
+    }
+
+    public List<RoleEnum> getUsersRoles() {
+        return this.roles.stream().map(Role::getName).collect(Collectors.toList());
+    }
+
+    public boolean hasSub() {
+        return this.sub != null;
+    }
+
+    public boolean hasEmail() {
+        return this.email != null;
+    }
+
+    public boolean isAnApplicant() {
+        final List<RoleEnum> userRoles = getUsersRoles();
+        return !isAnAdmin() && userRoles.stream().anyMatch((role) -> role.equals(RoleEnum.APPLICANT));
+    }
+
+    public boolean isAnAdmin() {
+        final List<RoleEnum> userRoles = getUsersRoles();
+        return userRoles.stream().anyMatch((role) -> role.equals(RoleEnum.ADMIN) || role.equals(RoleEnum.SUPER_ADMIN));
+    }
+
+    public boolean isASuperAdmin() {
+        final List<RoleEnum> userRoles = getUsersRoles();
+        return userRoles.stream().anyMatch((role) -> role.equals(RoleEnum.SUPER_ADMIN));
     }
 }

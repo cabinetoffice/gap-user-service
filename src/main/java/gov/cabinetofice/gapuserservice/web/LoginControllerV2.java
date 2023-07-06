@@ -2,7 +2,7 @@ package gov.cabinetofice.gapuserservice.web;
 
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
-import gov.cabinetofice.gapuserservice.model.RoleEnum;
+import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
@@ -21,7 +21,6 @@ import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -82,32 +81,23 @@ public class LoginControllerV2 {
         final String jwt = oneLoginService.createOneLoginJwt();
         final String authToken = oneLoginService.getAuthToken(jwt, code);
         final OneLoginUserInfoDto userInfo = oneLoginService.getUserInfo(authToken);
-        final boolean userExistsByEmail = oneLoginService.doesUserExistByEmail(userInfo.getEmail());
-        final boolean userExistsBySub = oneLoginService.doesUserExistBySub(userInfo.getSub());
+        final Optional<User> userOptional = oneLoginService.getUser(userInfo.getEmail(), userInfo.getSub());
 
-        final Cookie customJwtCookie = generateCustomJwtCookie(userInfo);
-        response.addCookie(customJwtCookie);
-
-        if (userExistsBySub) {
-            final List<RoleEnum> userRoles = oneLoginService.getUsersRolesBySub(userInfo.getSub());
-            return getRedirectView(userRoles, redirectUrl);
-        }
-
-        if (userExistsByEmail) {
-            final List<RoleEnum> userRoles = oneLoginService.getUsersRolesByEmail(userInfo.getEmail());
-            final boolean isApplicant = oneLoginService.isUserAnApplicant(userRoles);
-            if (isApplicant) {
+        if(userOptional.isPresent()) {
+            final User user = userOptional.get();
+            if (user.hasSub()) return getRedirectView(user, redirectUrl);
+            if (user.isAnApplicant()) {
                 // TODO GAP-1922: Create migration page with a yes/no option
                 return new RedirectView("/should-migrate-data");
             } else {
                 // TODO GAP-1932: Migrate cola user data to this admin
                 oneLoginService.addSubToUser(userInfo.getSub(), userInfo.getEmail());
-                return getRedirectView(userRoles, redirectUrl);
+                return getRedirectView(user, redirectUrl);
             }
         }
 
-        final List<RoleEnum> userRoles = oneLoginService.createUser(userInfo.getSub(), userInfo.getEmail());
-        return getRedirectView(userRoles, redirectUrl);
+        final User user = oneLoginService.createUser(userInfo.getSub(), userInfo.getEmail());
+        return getRedirectView(user, redirectUrl);
     }
 
     private Cookie generateCustomJwtCookie(final OneLoginUserInfoDto userInfo) {
@@ -124,9 +114,9 @@ public class LoginControllerV2 {
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    private RedirectView getRedirectView(final List<RoleEnum> userRoles, final Optional<String> redirectUrl) {
-        if(oneLoginService.isUserASuperAdmin(userRoles)) return new RedirectView(adminBaseUrl + "/super-admin/dashboard");
-        if(oneLoginService.isUserAnAdmin(userRoles)) return new RedirectView(adminBaseUrl + "/dashboard");
+    private RedirectView getRedirectView(final User user, final Optional<String> redirectUrl) {
+        if(user.isASuperAdmin()) return new RedirectView(adminBaseUrl + "/super-admin/dashboard");
+        if(user.isAnAdmin()) return new RedirectView(adminBaseUrl + "/dashboard");
         return new RedirectView((redirectUrl.orElse(configProperties.getDefaultRedirectUrl())));
     }
 
