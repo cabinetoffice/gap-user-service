@@ -82,8 +82,8 @@ public class LoginControllerV2 {
         final String authToken = oneLoginService.getAuthToken(jwt, code);
         final OneLoginUserInfoDto userInfo = oneLoginService.getUserInfo(authToken);
         final Optional<User> userOptional = oneLoginService.getUser(userInfo.getEmail(), userInfo.getSub());
-        final Cookie customJwt = generateCustomJwtCookie(userInfo);
 
+        final Cookie customJwt = generateCustomJwtCookie(userInfo);
         response.addCookie(customJwt);
 
         if (userOptional.isPresent()) {
@@ -94,7 +94,7 @@ public class LoginControllerV2 {
                 return new RedirectView("/should-migrate-data");
             } else {
                 // TODO GAP-1932: Migrate cola user data to this admin
-                oneLoginService.addSubToUser(userInfo.getSub(), userInfo.getEmail());
+                oneLoginService.addSubToUser(user.getSub(), user.getEmail());
                 return getRedirectView(user, redirectUrl);
             }
         }
@@ -107,6 +107,8 @@ public class LoginControllerV2 {
         final Map<String, String> claims = new HashMap<>();
         claims.put("email", userInfo.getEmail());
         claims.put("sub", userInfo.getSub());
+        // TODO Add roles to claims
+        // TODO Add department details to claims
 
         return WebUtil.buildCookie(
                 new Cookie(userServiceCookieName, customJwtService.generateToken(claims)),
