@@ -53,15 +53,15 @@ public class User {
         return this.email != null;
     }
 
-    public boolean isAnApplicant() {
-        return !isAnAdmin() && this.roles.stream().anyMatch((role) -> role.getName().equals(RoleEnum.APPLICANT));
+    public boolean isApplicant() {
+        return !isAdmin() && this.roles.stream().anyMatch((role) -> role.getName().equals(RoleEnum.APPLICANT));
     }
 
-    public boolean isAnAdmin() {
+    public boolean isAdmin() {
         return this.roles.stream().anyMatch((role) -> role.getName().equals(RoleEnum.ADMIN) || role.getName().equals(RoleEnum.SUPER_ADMIN));
     }
 
-    public boolean isASuperAdmin() {
+    public boolean isSuperAdmin() {
         return this.roles.stream().anyMatch((role) -> role.getName().equals(RoleEnum.SUPER_ADMIN));
     }
 }

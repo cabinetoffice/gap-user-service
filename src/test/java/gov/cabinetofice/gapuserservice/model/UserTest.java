@@ -22,7 +22,7 @@ public class UserTest {
             );
             final User user = User.builder().roles(roles).build();
 
-            final boolean response = user.isAnApplicant();
+            final boolean response = user.isApplicant();
 
             Assertions.assertFalse(response);
         }
@@ -37,7 +37,7 @@ public class UserTest {
             );
             final User user = User.builder().roles(roles).build();
 
-            final boolean response = user.isAnApplicant();
+            final boolean response = user.isApplicant();
 
             Assertions.assertFalse(response);
         }
@@ -46,7 +46,7 @@ public class UserTest {
         void shouldReturnFalseWhenUserIsNotAnApplicant() {
             final User user = User.builder().build();
 
-            final boolean response = user.isAnApplicant();
+            final boolean response = user.isApplicant();
 
             Assertions.assertFalse(response);
         }
@@ -59,7 +59,7 @@ public class UserTest {
             );
             final User user = User.builder().roles(roles).build();
 
-            final boolean response = user.isAnApplicant();
+            final boolean response = user.isApplicant();
 
             Assertions.assertTrue(response);
         }
@@ -76,7 +76,7 @@ public class UserTest {
             );
             final User user = User.builder().roles(roles).build();
 
-            final boolean response = user.isAnAdmin();
+            final boolean response = user.isAdmin();
 
             Assertions.assertTrue(response);
         }
@@ -91,7 +91,7 @@ public class UserTest {
             );
             final User user = User.builder().roles(roles).build();
 
-            final boolean response = user.isAnAdmin();
+            final boolean response = user.isAdmin();
 
             Assertions.assertTrue(response);
         }
@@ -104,7 +104,7 @@ public class UserTest {
             );
             final User user = User.builder().roles(roles).build();
 
-            final boolean response = user.isAnAdmin();
+            final boolean response = user.isAdmin();
 
             Assertions.assertFalse(response);
         }
@@ -121,7 +121,7 @@ public class UserTest {
             );
             final User user = User.builder().roles(roles).build();
 
-            final boolean response = user.isASuperAdmin();
+            final boolean response = user.isSuperAdmin();
 
             Assertions.assertFalse(response);
         }
@@ -136,7 +136,7 @@ public class UserTest {
             );
             final User user = User.builder().roles(roles).build();
 
-            final boolean response = user.isASuperAdmin();
+            final boolean response = user.isSuperAdmin();
 
             Assertions.assertTrue(response);
         }
@@ -149,7 +149,7 @@ public class UserTest {
             );
             final User user = User.builder().roles(roles).build();
 
-            final boolean response = user.isASuperAdmin();
+            final boolean response = user.isSuperAdmin();
 
             Assertions.assertFalse(response);
         }

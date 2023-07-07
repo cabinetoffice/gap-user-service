@@ -89,7 +89,7 @@ public class LoginControllerV2 {
         if (userOptional.isPresent()) {
             final User user = userOptional.get();
             if (user.hasSub()) return getRedirectView(user, redirectUrl);
-            if (user.isAnApplicant()) {
+            if (user.isApplicant()) {
                 // TODO GAP-1922: Create migration page with a yes/no option
                 return new RedirectView("/should-migrate-data");
             } else {
@@ -120,8 +120,8 @@ public class LoginControllerV2 {
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private RedirectView getRedirectView(final User user, final Optional<String> redirectUrl) {
-        if(user.isASuperAdmin()) return new RedirectView(adminBaseUrl + "/super-admin/dashboard");
-        if(user.isAnAdmin()) return new RedirectView(adminBaseUrl + "/dashboard");
+        if(user.isSuperAdmin()) return new RedirectView(adminBaseUrl + "/super-admin/dashboard");
+        if(user.isAdmin()) return new RedirectView(adminBaseUrl + "/dashboard");
         return new RedirectView((redirectUrl.orElse(configProperties.getDefaultRedirectUrl())));
     }
 
