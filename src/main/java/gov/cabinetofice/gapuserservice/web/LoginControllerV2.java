@@ -94,7 +94,7 @@ public class LoginControllerV2 {
                 return new RedirectView("/should-migrate-data");
             } else {
                 // TODO GAP-1932: Migrate cola user data to this admin
-                oneLoginService.addSubToUser(user.getSub(), user.getEmail());
+                oneLoginService.addSubToUser(userInfo.getSub(), user.getEmail());
                 return getRedirectView(user, redirectUrl);
             }
         }
