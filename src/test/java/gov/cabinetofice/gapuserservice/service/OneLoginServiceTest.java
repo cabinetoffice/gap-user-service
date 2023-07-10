@@ -1,8 +1,12 @@
 package gov.cabinetofice.gapuserservice.service;
 
-import gov.cabinetofice.gapuserservice.exceptions.AuthenticationException;
-import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
-import gov.cabinetofice.gapuserservice.exceptions.PrivateKeyParsingException;
+import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
+import gov.cabinetofice.gapuserservice.exceptions.*;
+import gov.cabinetofice.gapuserservice.model.Role;
+import gov.cabinetofice.gapuserservice.model.RoleEnum;
+import gov.cabinetofice.gapuserservice.model.User;
+import gov.cabinetofice.gapuserservice.repository.RoleRepository;
+import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -11,7 +15,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -20,13 +26,11 @@ import java.io.IOException;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static io.jsonwebtoken.impl.crypto.RsaProvider.generateKeyPair;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class OneLoginServiceTest {
@@ -42,6 +46,11 @@ public class OneLoginServiceTest {
     private static final String DUMMY_BASE_URL = "https://test.url.gov";
     private static final String GRANT_TYPE = "authorization_code";
 
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private RoleRepository roleRepository;
 
     @BeforeEach
     void setUp() {
@@ -79,7 +88,6 @@ public class OneLoginServiceTest {
 
     @Test
     void shouldThrowPrivateKeyParsingExceptionWhenKeyIsInvalid() {
-
         ReflectionTestUtils.setField(oneLoginService, "privateKey", "invalidKey");
 
         Assertions.assertThrows(PrivateKeyParsingException.class, () -> oneLoginService.createOneLoginJwt());
@@ -88,8 +96,6 @@ public class OneLoginServiceTest {
 
     @Test
     void shouldReturnValidAuthToken() throws IOException, JSONException {
-
-
         String requestBody = "grant_type=" + GRANT_TYPE +
                 "&code=" + "dummyCode" +
                 "&redirect_uri=" + DUMMY_BASE_URL + "/redirect" +
@@ -104,30 +110,30 @@ public class OneLoginServiceTest {
         String result = oneLoginService.getAuthToken("dummyJwt", "dummyCode");
 
         Assertions.assertEquals("dummyToken", result);
-
     }
 
     @Test
     void shouldReturnUserInfo() throws IOException, JSONException {
-
-        String expectedResponse = "{\"sub\":\"urn:fdc:gov.uk:2022:jhkdasy7dal7dadhadasdas\"" +
+        String jsonResponse = "{\"sub\":\"urn:fdc:gov.uk:2022:jhkdasy7dal7dadhadasdas\"" +
                 ",\"email_verified\":\"true\",\"email\":\"test.user@email.com\"}";
+        OneLoginUserInfoDto expectedResponse = OneLoginUserInfoDto.builder()
+                .sub("urn:fdc:gov.uk:2022:jhkdasy7dal7dadhadasdas")
+                .email("test.user@email.com")
+                .build();
 
        Map<String, String> headers = new HashMap<>();
         headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + "accessToken");
 
         when(RestUtils.getRequestWithHeaders(DUMMY_BASE_URL + "/userinfo", headers))
-                .thenReturn(new JSONObject(expectedResponse));
+                .thenReturn(new JSONObject(jsonResponse));
 
-        String result = oneLoginService.getUserInfo("accessToken");
+        OneLoginUserInfoDto result = oneLoginService.getUserInfo("accessToken");
 
         Assertions.assertEquals(expectedResponse, result);
-
     }
 
     @Test
     void shouldThrowAuthenticationExceptionWhenRequestFails() throws IOException {
-
         Map<String, String> headers = new HashMap<>();
         headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + "accessToken");
 
@@ -137,7 +143,6 @@ public class OneLoginServiceTest {
 
         Assertions.assertThrows(AuthenticationException.class, () -> oneLoginService
                 .getUserInfo("accessToken"));
-
     }
 
 
@@ -160,7 +165,6 @@ public class OneLoginServiceTest {
 
         Assertions.assertThrows(AuthenticationException.class, () -> oneLoginService
                 .getAuthToken("dummyJwt", "dummyCode"));
-
     }
 
     @Test
@@ -179,9 +183,73 @@ public class OneLoginServiceTest {
 
         Assertions.assertThrows(InvalidRequestException.class, () -> oneLoginService
                 .getAuthToken("dummyJwt", "dummyCode"));
-
     }
 
+    @Test
+    void shouldReturnNewUserRoles() {
+        final List<RoleEnum> result = oneLoginService.getNewUserRoles();
+
+        Assertions.assertEquals(2, result.size());
+        Assertions.assertEquals(RoleEnum.APPLICANT, result.get(0));
+        Assertions.assertEquals(RoleEnum.FIND, result.get(1));
+    }
+
+    @Nested
+    class createUser {
+        @Test
+        void shouldReturnSavedUser() {
+            when(roleRepository.findByName(any())).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
+            when(userRepository.save(any())).thenReturn(User.builder().roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build())).build());
+
+            final User result = oneLoginService.createUser("", "");
+
+            Assertions.assertEquals(1, result.getRoles().size());
+            Assertions.assertEquals(RoleEnum.APPLICANT, result.getRoles().get(0).getName());
+        }
+
+        @Test
+        void shouldSaveUserWithSubAndEmailWhenUserIsCreated() {
+            when(roleRepository.findByName(any())).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
+
+            oneLoginService.createUser("sub", "test@email.com");
+
+            final ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
+            verify(userRepository).save(userArgumentCaptor.capture());
+            Assertions.assertEquals("sub", userArgumentCaptor.getValue().getSub());
+            Assertions.assertEquals("test@email.com", userArgumentCaptor.getValue().getEmail());
+        }
+
+        @Test
+        void shouldThrowExceptionWhenRoleDoesNotExist() {
+            when(roleRepository.findByName(any())).thenReturn(Optional.empty());
+
+            Assertions.assertThrows(RoleNotFoundException.class, () -> oneLoginService.createUser("", ""));
+        }
+    }
+
+    @Nested
+    class addSubToUser {
+        @Test
+        void shouldSaveUserWithSubWhenUserExists() {
+            final String email = "email@test.com";
+            final User user = User.builder().id(1).email(email).build();
+
+            when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+
+            oneLoginService.addSubToUser("sub", email);
+
+            final ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
+            verify(userRepository).save(userArgumentCaptor.capture());
+            Assertions.assertEquals("sub", userArgumentCaptor.getValue().getSub());
+        }
+
+        @Test
+        void shouldThrowExceptionWhenUserDoesNotExist() {
+            when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+
+            Assertions.assertThrows(UserNotFoundException.class, () -> oneLoginService.addSubToUser("", ""));
+        }
+    }
 
     private Claims getClaims(String jwtToken) throws NoSuchAlgorithmException, InvalidKeySpecException {
 
