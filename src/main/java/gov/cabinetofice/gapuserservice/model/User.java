@@ -20,7 +20,7 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "gap_user_id")
-    private Integer id;
+    private Integer gap_user_id;
 
     @Column(name = "email")
     private String email;
@@ -28,13 +28,13 @@ public class User {
     @Column(name = "sub")
     private String sub;
 
-    @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.EAGER, mappedBy = "users")
+    @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY, mappedBy = "users")
     @ToString.Exclude
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
     @Builder.Default
     private List<Role> roles = new ArrayList<>();
 
-    @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.EAGER)
+    @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY)
     @JoinColumn(name = "dept_id")
     @ToString.Exclude
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })

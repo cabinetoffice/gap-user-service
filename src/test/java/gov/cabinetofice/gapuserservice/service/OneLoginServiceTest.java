@@ -232,7 +232,7 @@ public class OneLoginServiceTest {
         @Test
         void shouldSaveUserWithSubWhenUserExists() {
             final String email = "email@test.com";
-            final User user = User.builder().id(1).email(email).build();
+            final User user = User.builder().gap_user_id(1).email(email).build();
 
             when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
 
