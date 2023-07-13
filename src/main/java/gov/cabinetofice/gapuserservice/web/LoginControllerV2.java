@@ -48,11 +48,6 @@ public class LoginControllerV2 {
     @Value("${admin-base-url}")
     private String adminBaseUrl;
 
-    @GetMapping("/notice-page")
-    public ModelAndView returnNoticePage() {
-        return new ModelAndView("notice-page");
-    }
-
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     @GetMapping("/login")
     public RedirectView login(final @RequestParam Optional<String> redirectUrl,
