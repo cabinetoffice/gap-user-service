@@ -1,6 +1,7 @@
 package gov.cabinetofice.gapuserservice.web;
-import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
+
 import gov.cabinetofice.gapuserservice.dto.RoleDto;
+import gov.cabinetofice.gapuserservice.dto.UserDto;
 import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
 import gov.cabinetofice.gapuserservice.mappers.UserMapper;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -47,11 +48,11 @@ public class SpadminController {
     }
 
     @GetMapping("/get-user-data/{users_sub}")
-    public ResponseEntity<OneLoginUserInfoDto> getUserData(@PathVariable String users_sub) {
+    public ResponseEntity<UserDto> getUserData(@PathVariable String users_sub) {
         User user = userRepository.findBySub(users_sub)
                 .orElseThrow(()-> new RuntimeException("User not found"));
 
-        OneLoginUserInfoDto response = OneLoginUserInfoDto.builder()
+        UserDto response = UserDto.builder()
                 .emailAddress(user.getEmailAddress())
                 .sub(user.getSub())
                 .roles(user.getRoles()
