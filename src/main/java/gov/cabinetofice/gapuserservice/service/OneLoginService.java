@@ -1,7 +1,6 @@
 package gov.cabinetofice.gapuserservice.service;
 
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
-import gov.cabinetofice.gapuserservice.dto.RoleDto;
 import gov.cabinetofice.gapuserservice.exceptions.*;
 import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
 import gov.cabinetofice.gapuserservice.model.Role;
@@ -24,7 +23,6 @@ import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -75,7 +73,7 @@ public class OneLoginService {
 
             final JSONObject userInfo = RestUtils.getRequestWithHeaders(oneLoginBaseUrl + "/userinfo", headers);
             return OneLoginUserInfoDto.builder()
-                    .emailAddress("email")
+                    .emailAddress(userInfo.getString("email"))
                     .sub(userInfo.getString("sub"))
                     .build();
         } catch (IOException e) {
