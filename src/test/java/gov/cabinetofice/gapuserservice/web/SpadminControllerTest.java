@@ -1,7 +1,7 @@
 package gov.cabinetofice.gapuserservice.web;
 
-import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.RoleDto;
+import gov.cabinetofice.gapuserservice.dto.UserDto;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
@@ -59,8 +59,8 @@ class SpadminControllerTest {
     void getUserData() {
         User mockUser = User.builder().sub("1").build();
         when(userRepository.findBySub("1")).thenReturn(Optional.of(mockUser));
-        final ResponseEntity<OneLoginUserInfoDto> methodResponse = controller.getUserData("1");
+        final ResponseEntity<UserDto> methodResponse = controller.getUserData("1");
 
-        assertThat(methodResponse.getBody()).isEqualTo(OneLoginUserInfoDto.builder().sub("1").roles(List.of()).build());
+        assertThat(methodResponse.getBody()).isEqualTo(UserDto.builder().sub("1").roles(List.of()).build());
     }
 }
