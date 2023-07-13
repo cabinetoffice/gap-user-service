@@ -5,6 +5,6 @@ import gov.cabinetofice.gapuserservice.model.Department;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
-public interface DeptMapper {
+public interface DepartmentMapper {
     DeptDto deptToDeptDto(Department dept);
 }

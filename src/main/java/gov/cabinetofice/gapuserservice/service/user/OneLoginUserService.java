@@ -17,8 +17,12 @@ public class OneLoginUserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     public List<UserDto> getPaginatedUsers(Pageable pageable) {
-        return userRepository.findPaginatedUsers(pageable).stream()
-                .map(userMapper::userTouserDto)
+        return userRepository.findAll(pageable).stream()
+                .map(userMapper::userToUserDto)
                 .collect(Collectors.toList());
+    }
+
+    public long getUserCount() {
+        return userRepository.count();
     }
 }

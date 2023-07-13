@@ -194,9 +194,9 @@
 				<groupId>org.flywaydb</groupId>
 				<artifactId>flyway-maven-plugin</artifactId>
 				<configuration>
-					<url>jdbc:postgresql://localhost:5432/gp</url>
-					<user>john</user>
-					<password>root</password>
+					<url>jdbc:postgresql://localhost:5432/gapuserlocaldb</url>
+					<user>postgres</user>
+					<password>postgres</password>
 					<cleanDisabled>false</cleanDisabled>
 				</configuration>
 			</plugin>

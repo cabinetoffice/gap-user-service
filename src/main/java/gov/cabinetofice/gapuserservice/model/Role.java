@@ -1,5 +1,6 @@
 package gov.cabinetofice.gapuserservice.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
@@ -30,6 +31,7 @@ public class Role {
     @JoinColumn(name = "id", nullable = false)
     @ToString.Exclude
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
+    @JsonBackReference
     @Builder.Default
     private List<User> users = new ArrayList<>();
 

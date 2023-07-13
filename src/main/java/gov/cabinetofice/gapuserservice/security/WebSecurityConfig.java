@@ -52,7 +52,7 @@ public class WebSecurityConfig {
                 "/error/**",
                 "/.well-known/jwks.json",
                 "/logout",
-                "/spadmin-dashboard"
+                "/super-admin-dashboard"
                 );
     }
 

@@ -1,6 +1,7 @@
 package gov.cabinetofice.gapuserservice.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -31,12 +32,14 @@ public class User {
     @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY, mappedBy = "users")
     @ToString.Exclude
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
+    @JsonManagedReference
     @Builder.Default
     private List<Role> roles = new ArrayList<>();
 
     @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY)
     @JoinColumn(name = "dept_id")
     @ToString.Exclude
+    @JsonManagedReference
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
     private Department department;
 
