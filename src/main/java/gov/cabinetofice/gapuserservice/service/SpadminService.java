@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,15 +25,13 @@ public class SpadminService {
     private final RoleRepository roleRepository;
     private final RoleMapper roleMapper;
 
-    public User updateRolesForUser(String userSub, Collection<List<String>> roleCollection) {
+    public User updateRolesForUser(String userSub, Object roles) {
         User user = userRepository.findBySub(userSub).orElseThrow(()-> new RuntimeException("User not found"));
         user.removeAllRoles();
-        for (List<String> roles : roleCollection) {
-            for (String id : roles) {
+            for (String id : (ArrayList<String>) roles) {
                 Role fullRole = roleRepository.findById(Integer.valueOf(id)).orElseThrow();
                 user.addRole(fullRole);
             }
-        }
         userRepository.save(user);
         return user;
     }

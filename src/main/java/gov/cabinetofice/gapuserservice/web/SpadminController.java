@@ -11,11 +11,10 @@ import gov.cabinetofice.gapuserservice.service.SpadminService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
 
-import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,9 +34,8 @@ public class SpadminController {
     private String redirectUrl;
 
     @PostMapping("/edit-role/{users_sub}")
-    public RedirectView updateRolesForUserId(@RequestParam MultiValueMap<String, String> roles, @PathVariable String users_sub) {
-        Collection<List<String>> newRoles = roles.values();
-        spadminService.updateRolesForUser(users_sub, newRoles);
+    public RedirectView updateRolesForUserId(@RequestBody Object body, @PathVariable String users_sub) {
+        spadminService.updateRolesForUser(users_sub, ((LinkedHashMap) body).get("newUserRoles"));
         return new RedirectView(redirectUrl + "/edit-role/" + users_sub + "?success");
     }
 

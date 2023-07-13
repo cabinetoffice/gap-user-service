@@ -40,8 +40,9 @@ public class SpadminServiceTest {
     @Test
     public void testUpdateRolesForUser() {
         String userSub = "user123";
-        Collection<List<String>> newRoles = new ArrayList<>();
-        newRoles.add(List.of("2", "1"));
+        ArrayList<String> newRoles = new ArrayList<String>();
+        newRoles.add("1");
+        newRoles.add("2");
 
         List<Role> currentUserRoles = spy(List.of(Role.builder().name(RoleEnum.FIND).id(1).build()));
         User user = spy(User.builder().id(1).sub(userSub).roles(currentUserRoles).build());

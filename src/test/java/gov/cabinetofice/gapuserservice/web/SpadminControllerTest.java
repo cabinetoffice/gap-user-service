@@ -2,6 +2,9 @@ package gov.cabinetofice.gapuserservice.web;
 
 import gov.cabinetofice.gapuserservice.dto.RoleDto;
 import gov.cabinetofice.gapuserservice.dto.UserDto;
+import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
+import gov.cabinetofice.gapuserservice.model.Role;
+import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
@@ -10,12 +13,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.servlet.view.RedirectView;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,10 +39,13 @@ class SpadminControllerTest {
     @Mock
     private RoleRepository roleRepository;
 
+    @Mock
+    private RoleMapper roleMapper;
+
     @Test
     void updateRolesForUserId() {
-        MultiValueMap<String, String> roles = new LinkedMultiValueMap<String, String>();
-        roles.add("roles", "4");
+        LinkedHashMap<String, String> roles = new LinkedHashMap<String, String>();
+        roles.put("roles", "4");
         final RedirectView methodResponse = controller.updateRolesForUserId(roles, "1");
 
         assertThat(methodResponse.getUrl()).contains("edit-role/1?success");
@@ -57,10 +63,16 @@ class SpadminControllerTest {
 
     @Test
     void getUserData() {
-        User mockUser = User.builder().sub("1").build();
+        User mockUser = User.builder().sub("1").id(1)
+                .roles(List.of(Role.builder()
+                        .name(RoleEnum.FIND)
+                        .description("desc").build()))
+                .emailAddress("john").build();
+
         when(userRepository.findBySub("1")).thenReturn(Optional.of(mockUser));
+        when(roleMapper.roleToRoleDto(Mockito.any())).thenReturn(RoleDto.builder().name("FIND").id("1").description("desc").build());
         final ResponseEntity<UserDto> methodResponse = controller.getUserData("1");
 
-        assertThat(methodResponse.getBody()).isEqualTo(UserDto.builder().sub("1").roles(List.of()).build());
+        assertThat(methodResponse.getBody()).isEqualTo(UserDto.builder().roles(List.of(RoleDto.builder().name("FIND").id("1").description("desc").build())).emailAddress("john").sub("1").build());
     }
 }
