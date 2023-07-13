@@ -53,6 +53,10 @@ public class User {
         return this.email != null;
     }
 
+    public boolean hasDepartment() {
+        return this.department != null;
+    }
+
     public boolean isApplicant() {
         return !isAdmin() && this.roles.stream().anyMatch((role) -> role.getName().equals(RoleEnum.APPLICANT));
     }
