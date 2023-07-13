@@ -1,38 +1,39 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
-  <meta charset="UTF-8">
-  <title>Register</title>
+    <meta charset="UTF-8">
 
-  <link rel="stylesheet" th:href="@{/webjars/govuk-frontend/4.5.0/govuk-frontend.min.css}" />
+
+    <link rel="stylesheet" th:href="@{/webjars/govuk-frontend/4.5.0/govuk-frontend.min.css}" />
 </head>
 
 <body class="govuk-template__body">
 <div th:replace="~{fragments/header :: header}"></div>
 
-<div class="govuk-width-container">
-  <main class="govuk-main-wrapper govuk-main-wrapper--l" id="main-content" role="main">
-    <div class="govuk-grid-row">
-      <div class="govuk-grid-column-two-thirds">
-        <div class="govuk-panel govuk-panel--confirmation">
-          <h1 class="govuk-panel__title">
-            Registration complete
-          </h1>
+<div class="govuk-width-container" >
+    <a th:href="${homePageUrl}" class="govuk-back-link">Back</a>
+
+    <main class="govuk-main-wrapper" id="main-content" role="main">
+        <div class="govuk-grid-row">
+            <div class="govuk-grid-column-two-thirds">
+                <h1 class="govuk-heading-l">The way you sign into Find a grant has changed</h1>
+                <p class="govuk-body">
+                    You use GOV.UK One Login to sign into Find a grant.
+                </p>
+                <p class="govuk-body">
+                    If you do not have a One Login account already, you will need to create one.
+                </p>
+                <p class="govuk-body">
+                    Once you sign in with One Login, you will still be able to see all of your Find a grant information.
+                </p>
+                <button class="govuk-button" data-module="govuk-button">
+                    Continue to One Login
+                </button>
+            </div>
         </div>
-        <p class="govuk-body">Your account has been created.</p>
-        <h2 class="govuk-heading-m">What happens next</h2>
-        <p class="govuk-body">
-          You can sign in to search and apply for government grants.
-        </p>
-        <a th:href="${loginUrl}" role="button" draggable="false" class="govuk-button" data-module="govuk-button">
-          Sign in
-        </a>
-      </div>
-    </div>
-  </main>
+    </main>
 </div>
 
 <div th:replace="~{fragments/footer :: footer}"></div>
-
 </body>
 </html>

@@ -27,7 +27,6 @@ import java.util.Optional;
 
 import static gov.cabinetofice.gapuserservice.web.LoginController.REDIRECT_URL_COOKIE;
 
-
 @RequiredArgsConstructor
 @Controller
 @RequestMapping("v2")
@@ -49,11 +48,16 @@ public class LoginControllerV2 {
     @Value("${admin-base-url}")
     private String adminBaseUrl;
 
+    @GetMapping("/notice-page")
+    public ModelAndView returnNoticePage() {
+        return new ModelAndView("notice-page");
+    }
+
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     @GetMapping("/login")
     public RedirectView login(final @RequestParam Optional<String> redirectUrl,
-                              final HttpServletRequest request,
-                              final HttpServletResponse response) {
+            final HttpServletRequest request,
+            final HttpServletResponse response) {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
 
         final boolean isTokenValid = customJWTCookie != null
@@ -64,8 +68,7 @@ public class LoginControllerV2 {
                     new Cookie(REDIRECT_URL_COOKIE, redirectUrl.orElse(configProperties.getDefaultRedirectUrl())),
                     Boolean.TRUE,
                     Boolean.TRUE,
-                    null
-            );
+                    null);
 
             response.addCookie(redirectUrlCookie);
 
@@ -79,8 +82,8 @@ public class LoginControllerV2 {
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     @GetMapping("/redirect-after-login")
     public RedirectView redirectAfterLogin(final @CookieValue(name = REDIRECT_URL_COOKIE) Optional<String> redirectUrl,
-                                 final HttpServletResponse response,
-                                 final @RequestParam String code) {
+            final HttpServletResponse response,
+            final @RequestParam String code) {
         final String jwt = oneLoginService.createOneLoginJwt();
         final String authToken = oneLoginService.getAuthToken(jwt, code);
         final OneLoginUserInfoDto userInfo = oneLoginService.getUserInfo(authToken);
@@ -91,7 +94,8 @@ public class LoginControllerV2 {
 
         if (userOptional.isPresent()) {
             final User user = userOptional.get();
-            if (user.hasSub()) return getRedirectView(user, redirectUrl);
+            if (user.hasSub())
+                return getRedirectView(user, redirectUrl);
             if (user.isApplicant()) {
                 // TODO GAP-1922: Create migration page with a yes/no option
                 return new RedirectView("/should-migrate-data");
@@ -117,14 +121,15 @@ public class LoginControllerV2 {
                 new Cookie(userServiceCookieName, customJwtService.generateToken(claims)),
                 Boolean.TRUE,
                 Boolean.TRUE,
-                null
-        );
+                null);
     }
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private RedirectView getRedirectView(final User user, final Optional<String> redirectUrl) {
-        if(user.isSuperAdmin()) return new RedirectView(adminBaseUrl + "/super-admin/dashboard");
-        if(user.isAdmin()) return new RedirectView(adminBaseUrl + "/dashboard");
+        if (user.isSuperAdmin())
+            return new RedirectView(adminBaseUrl + "/super-admin/dashboard");
+        if (user.isAdmin())
+            return new RedirectView(adminBaseUrl + "/dashboard");
         return new RedirectView((redirectUrl.orElse(configProperties.getDefaultRedirectUrl())));
     }
 
