@@ -159,7 +159,7 @@ public class UserTest {
     class hasEmail {
         @Test
         void shouldReturnTrueWhenUserHasEmail() {
-            final User user = User.builder().email("").build();
+            final User user = User.builder().emailAddress("").build();
 
             final boolean response = user.hasEmail();
 

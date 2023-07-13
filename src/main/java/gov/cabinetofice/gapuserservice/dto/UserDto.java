@@ -5,9 +5,10 @@ import lombok.Data;
 
 import java.util.List;
 
-@Data
 @Builder
-public class OneLoginUserInfoDto {
+@Data
+public class UserDto {
+    private String gap_user_id;
     private String emailAddress;
     private String sub;
     private List<RoleDto> roles;

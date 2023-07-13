@@ -26,6 +26,9 @@ public class Role {
     @Enumerated(EnumType.STRING)
     private RoleEnum name;
 
+    @Column(name = "description")
+    private String description;
+
     @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY)
     @JoinColumn(name = "id", nullable = false)
     @ToString.Exclude
@@ -36,5 +39,6 @@ public class Role {
     public void addUser(User user) {
         this.users.add(user);
     }
+    public void removeUser( User user) { this.users.remove(user); }
 }
 

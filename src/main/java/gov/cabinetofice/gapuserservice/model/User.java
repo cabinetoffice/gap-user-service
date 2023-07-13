@@ -23,26 +23,27 @@ public class User {
     private Integer id;
 
     @Column(name = "email")
-    private String email;
+    private String emailAddress;
 
     @Column(name = "sub")
     private String sub;
 
-    @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.EAGER, mappedBy = "users")
+    @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY, mappedBy = "users")
     @ToString.Exclude
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
     @Builder.Default
     private List<Role> roles = new ArrayList<>();
 
-    @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.EAGER)
+    @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY)
     @JoinColumn(name = "dept_id")
     @ToString.Exclude
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
     private Department department;
 
-    public void addRole(final Role role) {
+    public User addRole(final Role role) {
         this.roles.add(role);
         role.addUser(this);
+        return this;
     }
 
     public boolean hasSub() {
@@ -50,7 +51,7 @@ public class User {
     }
 
     public boolean hasEmail() {
-        return this.email != null;
+        return this.emailAddress != null;
     }
 
     public boolean isApplicant() {
@@ -63,5 +64,13 @@ public class User {
 
     public boolean isSuperAdmin() {
         return this.roles.stream().anyMatch((role) -> role.getName().equals(RoleEnum.SUPER_ADMIN));
+    }
+
+    public User removeAllRoles() {
+        for (Role role : this.roles) {
+            role.removeUser(this);
+        }
+        this.roles.clear();
+        return this;
     }
 }
