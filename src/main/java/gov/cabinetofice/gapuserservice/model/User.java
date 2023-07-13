@@ -40,10 +40,9 @@ public class User {
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
     private Department department;
 
-    public User addRole(final Role role) {
+    public void addRole(final Role role) {
         this.roles.add(role);
         role.addUser(this);
-        return this;
     }
 
     public boolean hasSub() {
