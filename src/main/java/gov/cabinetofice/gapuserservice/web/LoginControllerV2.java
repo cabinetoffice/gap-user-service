@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
+import org.springframework.web.servlet.ModelAndView;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -36,6 +37,8 @@ public class LoginControllerV2 {
     private final OneLoginService oneLoginService;
     private final CustomJwtServiceImpl customJwtService;
     private final ApplicationConfigProperties configProperties;
+
+    public static final String PRIVACY_POLICY_PAGE_VIEW = "privacy-policy";
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
@@ -101,6 +104,12 @@ public class LoginControllerV2 {
 
         final User user = oneLoginService.createUser(userInfo.getSub(), userInfo.getEmail());
         return getRedirectView(user, redirectUrl);
+    }
+
+    @GetMapping("/privacy-policy")
+    public ModelAndView showNoticePage() {
+        return new ModelAndView(PRIVACY_POLICY_PAGE_VIEW)
+                .addObject("loginUrl", oneLoginBaseUrl);
     }
 
     private Cookie generateCustomJwtCookie(final OneLoginUserInfoDto userInfo) {
