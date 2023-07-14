@@ -14,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -62,11 +61,11 @@ public class OneLoginUserService {
         return userRepository.save(user);
     }
 
-    public User updateRoles(Integer id, Object newRoles) {
+    public User updateRoles(Integer id, List<Integer> newRoles) {
         User user = userRepository.findById(id).orElseThrow(()-> new RuntimeException("User not found"));
         user.removeAllRoles();
-        for (String roleId : (ArrayList<String>) newRoles) {
-            Role role = roleRepository.findById(Integer.valueOf(roleId)).orElseThrow();
+        for (Integer roleId : newRoles) {
+            Role role = roleRepository.findById(roleId).orElseThrow();
             user.addRole(role);
         }
         userRepository.save(user);

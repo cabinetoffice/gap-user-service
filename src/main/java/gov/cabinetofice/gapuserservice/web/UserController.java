@@ -4,27 +4,20 @@ import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.view.RedirectView;
 
-import java.util.LinkedHashMap;
+import java.util.List;
 
 
 @RequiredArgsConstructor
 @Controller
 @ConditionalOnProperty(value = "feature.onelogin.enabled", havingValue = "true")
 public class UserController {
-
     private final OneLoginUserService oneLoginUserService;
     private final RoleMapper roleMapper;
-
-    @Value("${super-admin-redirect-url}")
-    private String redirectUrl;
-
 
     @GetMapping("/user/{id}")
     public ResponseEntity<User> getUserById(@PathVariable("id") Integer id) {
@@ -39,9 +32,9 @@ public class UserController {
     }
 
     @PatchMapping("/user/{id}/role")
-    public RedirectView updateRoles(@RequestBody() Object body,
-                                             @PathVariable("id") Integer id) {
-        oneLoginUserService.updateRoles(id, ((LinkedHashMap) body).get("newUserRoles"));
-        return new RedirectView(redirectUrl + "/edit-role/" + id);
+    public ResponseEntity<String> updateRoles(@RequestBody() List<Integer> roleIds,
+                                @PathVariable("id") Integer id) {
+        oneLoginUserService.updateRoles(id, roleIds);
+        return ResponseEntity.ok("success");
     }
 }
