@@ -1,6 +1,6 @@
 package gov.cabinetofice.gapuserservice.web;
 
-import gov.cabinetofice.gapuserservice.dto.DeptDto;
+import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
 import gov.cabinetofice.gapuserservice.dto.RoleDto;
 import gov.cabinetofice.gapuserservice.dto.SuperAdminDashboardPageDto;
 import gov.cabinetofice.gapuserservice.dto.UserDto;
@@ -27,7 +27,7 @@ public class SuperAdminController {
 
     @GetMapping("/super-admin-dashboard")
     public ResponseEntity<SuperAdminDashboardPageDto> superAdminDashboard(final Pageable pagination) {
-        List<DeptDto> departments = departmentService.getAllDepartments();
+        List<DepartmentDto> departments = departmentService.getAllDepartments();
         List<RoleDto> roles = roleService.getAllRoles();
         List<UserDto> users = oneLoginUserService.getPaginatedUsers(pagination);
         long userCount = oneLoginUserService.getUserCount();

@@ -9,7 +9,7 @@ import java.util.List;
 @Builder
 public class SuperAdminDashboardPageDto {
     private List<RoleDto> roles;
-    private List<DeptDto> departments;
+    private List<DepartmentDto> departments;
     private List<UserDto> users;
     private long userCount;
 }

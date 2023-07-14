@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @Builder
-public class DeptDto {
+public class DepartmentDto {
     private String id;
     private String name;
     private String ggisID;

@@ -1,7 +1,7 @@
 package gov.cabinetofice.gapuserservice.service;
 
 
-import gov.cabinetofice.gapuserservice.dto.DeptDto;
+import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
 import gov.cabinetofice.gapuserservice.mappers.DepartmentMapper;
 import gov.cabinetofice.gapuserservice.repository.DepartmentRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,9 +15,9 @@ import java.util.stream.Collectors;
 public class DepartmentService {
     private final DepartmentRepository departmentRepository;
     private final DepartmentMapper departmentMapper;
-    public List<DeptDto> getAllDepartments() {
+    public List<DepartmentDto> getAllDepartments() {
         return departmentRepository.findAll().stream()
-                .map(departmentMapper::deptToDeptDto)
+                .map(departmentMapper::departmentToDepartmentDto)
                 .collect(Collectors.toList());
     }
 }
