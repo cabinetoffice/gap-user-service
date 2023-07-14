@@ -37,7 +37,7 @@ public class LoginControllerV2 {
     private final CustomJwtServiceImpl customJwtService;
     private final ApplicationConfigProperties configProperties;
 
-    private static final String NOTICE_PAGE_VIEW = "notice-page";
+    public static final String NOTICE_PAGE_VIEW = "notice-page";
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
