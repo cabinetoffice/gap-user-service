@@ -1,7 +1,6 @@
 package gov.cabinetofice.gapuserservice.dto;
 
 import gov.cabinetofice.gapuserservice.model.Department;
-import gov.cabinetofice.gapuserservice.model.Role;
 import lombok.Builder;
 import lombok.Data;
 
@@ -11,8 +10,8 @@ import java.util.List;
 @Data
 public class UserDto {
     private String gap_user_id;
-    private String email;
+    private String emailAddress;
     private String sub;
-    private List<Role> roles;
+    private List<RoleDto> roles;
     private Department department;
 }

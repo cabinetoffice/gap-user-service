@@ -11,14 +11,11 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Integer> {
 
     @EntityGraph(attributePaths = {"department", "roles"})
-    Optional<User> findByEmail(String email);
+    Optional<User> findByEmailAddress(String email);
     @EntityGraph(attributePaths = {"department", "roles"})
     Optional<User> findBySub(String sub);
 
     @EntityGraph(attributePaths = {"department", "roles"})
     Optional<User> findById(int id);
-
-    void deleteByRoles_Id(Integer id);
-
 }
 

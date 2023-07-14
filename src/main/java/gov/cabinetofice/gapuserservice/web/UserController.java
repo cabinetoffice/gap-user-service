@@ -1,15 +1,16 @@
 package gov.cabinetofice.gapuserservice.web;
 
+import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.view.RedirectView;
+
+import java.util.LinkedHashMap;
 
 
 @RequiredArgsConstructor
@@ -18,10 +19,14 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class UserController {
 
     private final OneLoginUserService oneLoginUserService;
+    private final RoleMapper roleMapper;
+
+    @Value("${super-admin-redirect-url}")
+    private String redirectUrl;
 
 
     @GetMapping("/user/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable int id) {
+    public ResponseEntity<User> getUserById(@PathVariable("id") Integer id) {
        return ResponseEntity.ok(oneLoginUserService.getUserById(id));
    }
 
@@ -32,4 +37,10 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
+    @PatchMapping("/user/{id}/role")
+    public RedirectView updateRoles(@RequestBody() Object body,
+                                             @PathVariable("id") Integer id) {
+        oneLoginUserService.updateRoles(id, ((LinkedHashMap) body).get("newUserRoles"));
+        return new RedirectView(redirectUrl + "/edit-role/" + id);
+    }
 }
