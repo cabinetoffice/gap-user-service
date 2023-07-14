@@ -2,48 +2,63 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-
-
-    <link rel="stylesheet" th:href="@{/webjars/govuk-frontend/4.5.0/govuk-frontend.min.css}" />
+    <link rel="stylesheet" th:href="@{/webjars/govuk-frontend/4.5.0/govuk-frontend.min.css}"/>
 </head>
 
 <body class="govuk-template__body">
 <div th:replace="~{fragments/header :: header}"></div>
 
-<div class="govuk-width-container" >
+<div class="govuk-width-container">
     <a th:href="${homePageUrl}" class="govuk-back-link">Back</a>
 
     <main class="govuk-main-wrapper" id="main-content" role="main">
         <div class="govuk-grid-row">
             <div class="govuk-grid-column-two-thirds">
-                <h1 class="govuk-heading-l">Do you accept our privacy policy?</h1>
-                <p class="govuk-body">
-                    Before you can continue, you need to read and agree to the
-                    <a href="https://www.find-government-grants.service.gov.uk/info/privacy" target="_blank">
-                        Find a grant privacy policy (opens in a new tab)</a>
-                </p>
-                <p>
-                <div class="govuk-checkboxes" data-module="govuk-checkboxes">
-                    <div class="govuk-checkboxes__item">
-                        <input type="checkbox"
-                               th:id="privacyPolicy"
-                               th:name="privacyPolicy"
-                               th:checked="*{privacyPolicy == 'yes'}"
-                               th:value="yes"
-                               class="govuk-checkboxes__input"
-                        />
+                <form method="post" th:action="@{/v2/privacy-policy}" th:object="${privacyPolicy}" novalidate>
+                    <div th:classappend="${#fields.hasErrors('acceptPrivacyPolicy') ? 'govuk-form-group--error' : ''}">
+                        <h1 class="govuk-heading-l">Do you accept our privacy policy?</h1>
+                        <p class="govuk-body">
+                            Before you can continue, you need to read and agree to the
+                            <a href="https://www.find-government-grants.service.gov.uk/info/privacy" target="_blank">
+                                Find a grant privacy policy (opens in a new tab).</a>
+                        </p>
 
-                        <label class="govuk-label govuk-checkboxes__label" th:for="privacyPolicy">
-                            Yes, I have read and agree to the Find a grant privacy policy
-                        </label>
+                        <div class="govuk-form-group">
+                            <p th:id="privacy-policy-error"
+                               th:class="govuk-error-message"
+                               data-cy="cy-email-input-validation-error-details"
+                               data-testid="error-message-test-id"
+                               th:errors="*{acceptPrivacyPolicy}"
+                            >
+                                <span className="govuk-visually-hidden">Error: </span>
+                            </p>
+
+                            <div class="govuk-checkboxes" data-module="govuk-checkboxes">
+                                <div class="govuk-checkboxes__item">
+                                    <input type="checkbox"
+                                           th:id="acceptPrivacyPolicy"
+                                           th:name="acceptPrivacyPolicy"
+                                           th:checked="*{acceptPrivacyPolicy == 'yes'}"
+                                           th:value="yes"
+                                           class="govuk-checkboxes__input"
+                                    />
+
+                                    <label class="govuk-label govuk-checkboxes__label" th:for="acceptPrivacyPolicy">
+                                        Yes, I have read and agree to the Find a grant privacy policy
+                                    </label>
+                                </div>
+                            </div>
+
+                        </div>
+
                     </div>
-                </div>
-                </p>
+                    <div class="govuk-form-group">
+                        <button class="govuk-button" data-module="govuk-button">
+                            Continue
+                        </button>
+                    </div>
 
-
-                <a th:href="${loginUrl}" role="button" draggable="false" class="govuk-button" data-module="govuk-button">
-                    Continue
-                </a>
+                </form>
             </div>
         </div>
     </main>

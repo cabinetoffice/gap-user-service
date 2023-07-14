@@ -2,6 +2,7 @@ package gov.cabinetofice.gapuserservice.web;
 
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
+import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
@@ -9,17 +10,16 @@ import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
-import org.springframework.web.servlet.ModelAndView;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -107,10 +107,21 @@ public class LoginControllerV2 {
     }
 
     @GetMapping("/privacy-policy")
-    public ModelAndView showNoticePage() {
-        return new ModelAndView(PRIVACY_POLICY_PAGE_VIEW)
-                .addObject("loginUrl", oneLoginBaseUrl);
+    public ModelAndView showPrivacyPolicyPage(final @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto) {
+        return new ModelAndView(PRIVACY_POLICY_PAGE_VIEW);
     }
+
+    @PostMapping("/privacy-policy")
+    public ModelAndView showPrivacyPolicyPage(final @Valid @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto, final BindingResult result) {
+
+        if (result.hasErrors()) {
+            return new ModelAndView(PRIVACY_POLICY_PAGE_VIEW);
+        }
+
+        //TODO: GAP-1972 will implement correct redirect
+        return new ModelAndView( "redirect:/register/success");
+    }
+
 
     private Cookie generateCustomJwtCookie(final OneLoginUserInfoDto userInfo) {
         final Map<String, String> claims = new HashMap<>();
