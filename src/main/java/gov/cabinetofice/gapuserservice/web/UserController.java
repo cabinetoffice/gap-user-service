@@ -33,8 +33,8 @@ public class UserController {
 
     @PatchMapping("/user/{userId}/department")
     public ResponseEntity<User> updateDepartment(@PathVariable("userId") Integer userId,
-                                                   @RequestParam("department") Integer department) {
-        User user = oneLoginUserService.updateDepartment(userId, department);
+                                                   @RequestParam("departmentId") Integer departmentId) {
+        User user = oneLoginUserService.updateDepartment(userId, departmentId);
         return ResponseEntity.ok(user);
     }
 
