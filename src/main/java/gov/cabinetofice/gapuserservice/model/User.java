@@ -24,7 +24,7 @@ public class User {
     private Integer gapUserId;
 
     @Column(name = "email")
-    private String email;
+    private String emailAddress;
 
     @Column(name = "sub")
     private String sub;
@@ -53,7 +53,7 @@ public class User {
     }
 
     public boolean hasEmail() {
-        return this.email != null;
+        return this.emailAddress != null;
     }
 
     public boolean isApplicant() {
@@ -66,5 +66,13 @@ public class User {
 
     public boolean isSuperAdmin() {
         return this.roles.stream().anyMatch((role) -> role.getName().equals(RoleEnum.SUPER_ADMIN));
+    }
+
+    public User removeAllRoles() {
+        for (Role role : this.roles) {
+            role.removeUser(this);
+        }
+        this.roles.clear();
+        return this;
     }
 }

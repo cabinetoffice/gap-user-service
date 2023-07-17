@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
@@ -24,7 +25,6 @@ public class UserController {
 
     private final OneLoginUserService oneLoginUserService;
     private final DepartmentService departmentService;
-
 
     @GetMapping("/user/{id}")
     public ResponseEntity<User> getUserById(@PathVariable int id) {
@@ -48,4 +48,10 @@ public class UserController {
                 .build());
     }
 
+    @PatchMapping("/user/{id}/role")
+    public ResponseEntity<String> updateRoles(@RequestBody() List<Integer> roleIds,
+                                @PathVariable("id") Integer id) {
+        oneLoginUserService.updateRoles(id, roleIds);
+        return ResponseEntity.ok("success");
+    }
 }

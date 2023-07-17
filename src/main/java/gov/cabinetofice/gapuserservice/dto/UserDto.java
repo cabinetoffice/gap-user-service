@@ -10,7 +10,7 @@ import java.util.List;
 @Data
 public class UserDto {
     private String gapUserId;
-    private String email;
+    private String emailAddress;
     private String sub;
     private List<RoleDto> roles;
     private Department department;
