@@ -67,7 +67,9 @@ public class LoginControllerV2 {
 
             response.addCookie(redirectUrlCookie);
 
-            // TODO check if this is the correct URL
+            // TODO : Decide on where to set and evaluate nonce and state
+            final String nonce = oneLoginService.generateNonce();
+            final String state = oneLoginService.generateState();
             return new RedirectView(NOTICE_PAGE_VIEW);
         }
 
@@ -131,7 +133,7 @@ public class LoginControllerV2 {
     @GetMapping("/notice-page")
     public ModelAndView showNoticePage() {
         return new ModelAndView(NOTICE_PAGE_VIEW)
-                .addObject("loginUrl", oneLoginBaseUrl);
+                .addObject("loginUrl", oneLoginService.getOneLoginAuthorizeUrl());
     }
 
 }

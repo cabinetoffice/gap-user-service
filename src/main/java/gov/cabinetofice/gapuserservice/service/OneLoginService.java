@@ -42,6 +42,16 @@ public class OneLoginService {
     @Value("${onelogin.private-key}")
     public String privateKey;
 
+    private String nonce;
+
+    private String state;
+
+    private static final String SCOPE = "openid email";
+
+    private static final String VTR = "[\"Cl.Cm\"]";
+
+    private static final String UI = "en";
+
     private static final String GRANT_TYPE = "authorization_code";
 
     private final UserRepository userRepository;
@@ -140,5 +150,28 @@ public class OneLoginService {
         final Optional<User> userBySub = userRepository.findBySub(sub);
         if (userBySub.isPresent()) return userBySub;
         return userRepository.findByEmail(email);
+    }
+
+    public String generateNonce() {
+         nonce = UUID.randomUUID().toString();
+         return nonce;
+    }
+
+    public String generateState() {
+        state = UUID.randomUUID().toString();
+        return state;
+    }
+
+    public String getOneLoginAuthorizeUrl() {
+        return
+                oneLoginBaseUrl +
+                        "/authorize?response_type=code" +
+                        "&scope=" + SCOPE +
+                        "&client_id=" + clientId +
+                        "&state=" + nonce +
+                        "&redirect_uri=" + serviceRedirectUrl +
+                        "&nonce=" + state +
+                        "&vtr=" + VTR +
+                        "&ui_locales=" + UI;
     }
 }
