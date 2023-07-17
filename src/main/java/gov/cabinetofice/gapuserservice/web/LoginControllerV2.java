@@ -68,8 +68,6 @@ public class LoginControllerV2 {
             response.addCookie(redirectUrlCookie);
 
             // TODO : Decide on where to set and evaluate nonce and state
-            final String nonce = oneLoginService.generateNonce();
-            final String state = oneLoginService.generateState();
             return new RedirectView(NOTICE_PAGE_VIEW);
         }
 

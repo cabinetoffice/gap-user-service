@@ -42,10 +42,6 @@ public class OneLoginService {
     @Value("${onelogin.private-key}")
     public String privateKey;
 
-    private String nonce;
-
-    private String state;
-
     private static final String SCOPE = "openid email";
 
     private static final String VTR = "[\"Cl.Cm\"]";
@@ -153,13 +149,13 @@ public class OneLoginService {
     }
 
     public String generateNonce() {
-         nonce = UUID.randomUUID().toString();
-         return nonce;
+         return UUID.randomUUID().toString();
+
     }
 
     public String generateState() {
-        state = UUID.randomUUID().toString();
-        return state;
+        return UUID.randomUUID().toString();
+
     }
 
     public String getOneLoginAuthorizeUrl() {
@@ -168,9 +164,9 @@ public class OneLoginService {
                         "/authorize?response_type=code" +
                         "&scope=" + SCOPE +
                         "&client_id=" + clientId +
-                        "&state=" + nonce +
+                        "&state=" + generateState() +
                         "&redirect_uri=" + serviceRedirectUrl +
-                        "&nonce=" + state +
+                        "&nonce=" + generateNonce() +
                         "&vtr=" + VTR +
                         "&ui_locales=" + UI;
     }
