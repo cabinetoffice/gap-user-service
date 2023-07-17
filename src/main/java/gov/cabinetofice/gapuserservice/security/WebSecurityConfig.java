@@ -51,10 +51,7 @@ public class WebSecurityConfig {
                 "/redirect-after-cola-login",
                 "/error/**",
                 "/.well-known/jwks.json",
-                "/logout",
-                "/super-admin-dashboard",
-                "/user/**",
-                "/user/**/department"
+                "/logout"
                 );
     }
 
