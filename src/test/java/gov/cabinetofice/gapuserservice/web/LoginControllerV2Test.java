@@ -22,6 +22,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
 
+import java.sql.Ref;
 import java.util.List;
 import java.util.Optional;
 
@@ -119,9 +120,12 @@ class LoginControllerV2Test {
 
         @Test
         void showNoticePage_ShowsNoticePage_WithLoginUrl() {
+            when(oneLoginService.getOneLoginAuthorizeUrl())
+                    .thenReturn("loginUrl");
+
             final ModelAndView methodResponse = loginController.showNoticePage();
             assertThat(methodResponse.getViewName()).isEqualTo(LoginControllerV2.NOTICE_PAGE_VIEW);
-            assertThat(methodResponse.getModel().get("loginUrl")).isEqualTo("oneLoginBaseUrl");
+            assertThat(methodResponse.getModel().get("loginUrl")).isEqualTo("loginUrl");
 
         }
     }
