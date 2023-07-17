@@ -27,7 +27,7 @@ public class UserController {
     private final DepartmentService departmentService;
 
     @GetMapping("/user/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable int id) {
+    public ResponseEntity<User> getUserById(@PathVariable("id") Integer id) {
        return ResponseEntity.ok(oneLoginUserService.getUserById(id));
    }
 
