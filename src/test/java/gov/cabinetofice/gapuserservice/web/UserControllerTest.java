@@ -27,7 +27,7 @@ class UserControllerTest {
     }
     @Test
     void getUserData() {
-        User mockUser = User.builder().sub("1").gap_user_id(1)
+        User mockUser = User.builder().sub("1").gapUserId(1)
                 .roles(List.of(Role.builder()
                         .name(RoleEnum.FIND)
                         .description("desc").build()))

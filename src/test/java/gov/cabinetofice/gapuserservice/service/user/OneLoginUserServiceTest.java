@@ -5,7 +5,6 @@ import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
-import gov.cabinetofice.gapuserservice.service.RoleService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -32,16 +31,12 @@ public class OneLoginUserServiceTest {
     @Mock
     private RoleRepository roleRepository;
 
-
-    @Mock
-    private RoleService roleService;
-
     @Test
     void testUpdateRolesForUser() {
         Integer userId = 1;
         List<Integer> newRoles = List.of(1, 2);
         List<Role> currentUserRoles = spy(List.of(Role.builder().name(RoleEnum.FIND).id(1).build()));
-        User user = spy(User.builder().gap_user_id(1).sub("sub").roles(currentUserRoles).build());
+        User user = spy(User.builder().gapUserId(1).sub("sub").roles(currentUserRoles).build());
         Role role1 = Role.builder().id(1).name(RoleEnum.FIND).description("a desc").build();
         Role role2 = Role.builder().id(2).name(RoleEnum.APPLICANT).description("a desc 2").build();
 
