@@ -31,10 +31,10 @@ public class UserController {
        return ResponseEntity.ok(oneLoginUserService.getUserById(id));
    }
 
-    @PatchMapping("/user/{id}/department")
-    public ResponseEntity<User> updateDepartment(@PathVariable("id") Integer id,
-                                                   @RequestParam("departmentId") Integer departmentId) {
-        User user = oneLoginUserService.updateDepartment(id, departmentId);
+    @PatchMapping("/user/{userId}/department")
+    public ResponseEntity<User> updateDepartment(@PathVariable("userId") Integer userId,
+                                                   @RequestParam("department") Integer department) {
+        User user = oneLoginUserService.updateDepartment(userId, department);
         return ResponseEntity.ok(user);
     }
 
