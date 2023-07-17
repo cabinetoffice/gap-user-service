@@ -209,7 +209,7 @@ class LoginControllerV2Test {
             final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrl, response, "a-custom-valid-token");
 
             verify(oneLoginService).addSubToUser("sub", "email");
-            assertThat(methodResponse.getUrl()).isEqualTo("adminBaseUrl/dashboard");
+            assertThat(methodResponse.getUrl()).isEqualTo("adminBaseUrl");
 
             verify(response).addCookie(customJwtCookie);
             final Map<String, String> claims = new HashMap<>();
