@@ -21,7 +21,7 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "gap_user_id")
-    private Integer gap_user_id;
+    private Integer gapUserId;
 
     @Column(name = "email")
     private String email;
