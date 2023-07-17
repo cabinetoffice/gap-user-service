@@ -118,7 +118,7 @@ public class OneLoginServiceTest {
                 ",\"email_verified\":\"true\",\"email\":\"test.user@email.com\"}";
         OneLoginUserInfoDto expectedResponse = OneLoginUserInfoDto.builder()
                 .sub("urn:fdc:gov.uk:2022:jhkdasy7dal7dadhadasdas")
-                .email("test.user@email.com")
+                .emailAddress("test.user@email.com")
                 .build();
 
        Map<String, String> headers = new HashMap<>();
@@ -216,7 +216,7 @@ public class OneLoginServiceTest {
             final ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
             verify(userRepository).save(userArgumentCaptor.capture());
             Assertions.assertEquals("sub", userArgumentCaptor.getValue().getSub());
-            Assertions.assertEquals("test@email.com", userArgumentCaptor.getValue().getEmail());
+            Assertions.assertEquals("test@email.com", userArgumentCaptor.getValue().getEmailAddress());
         }
 
         @Test
@@ -232,9 +232,9 @@ public class OneLoginServiceTest {
         @Test
         void shouldSaveUserWithSubWhenUserExists() {
             final String email = "email@test.com";
-            final User user = User.builder().id(1).email(email).build();
+            final User user = User.builder().gapUserId(1).emailAddress(email).build();
 
-            when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+            when(userRepository.findByEmailAddress(email)).thenReturn(Optional.of(user));
 
             oneLoginService.addSubToUser("sub", email);
 
@@ -245,7 +245,7 @@ public class OneLoginServiceTest {
 
         @Test
         void shouldThrowExceptionWhenUserDoesNotExist() {
-            when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+            when(userRepository.findByEmailAddress(anyString())).thenReturn(Optional.empty());
 
             Assertions.assertThrows(UserNotFoundException.class, () -> oneLoginService.addSubToUser("", ""));
         }

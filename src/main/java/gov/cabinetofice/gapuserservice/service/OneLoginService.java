@@ -2,6 +2,7 @@ package gov.cabinetofice.gapuserservice.service;
 
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.exceptions.*;
+import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -53,6 +54,7 @@ public class OneLoginService {
     private final UserRepository userRepository;
 
     private final RoleRepository roleRepository;
+    private final RoleMapper roleMapper;
 
 
     public String createOneLoginJwt() {
@@ -77,7 +79,7 @@ public class OneLoginService {
 
             final JSONObject userInfo = RestUtils.getRequestWithHeaders(oneLoginBaseUrl + "/userinfo", headers);
             return OneLoginUserInfoDto.builder()
-                    .email(userInfo.getString("email"))
+                    .emailAddress(userInfo.getString("email"))
                     .sub(userInfo.getString("sub"))
                     .build();
         } catch (IOException e) {
@@ -125,7 +127,7 @@ public class OneLoginService {
     public User createUser(final String sub, final String email) {
         final User user = User.builder()
                 .sub(sub)
-                .email(email)
+                .emailAddress(email)
                 .build();
         final List<RoleEnum> newUserRoles = getNewUserRoles();
         for (RoleEnum roleEnum : newUserRoles) {
@@ -137,7 +139,7 @@ public class OneLoginService {
     }
 
     public void addSubToUser(final String sub, final String email) {
-        final User user = userRepository.findByEmail(email).orElseThrow(() -> new UserNotFoundException("Could not add sub to user: User with email '" + email + "' not found"));
+        final User user = userRepository.findByEmailAddress(email).orElseThrow(() -> new UserNotFoundException("Could not add sub to user: User with email '" + email + "' not found"));
         user.setSub(sub);
         userRepository.save(user);
     }
@@ -145,7 +147,7 @@ public class OneLoginService {
     public Optional<User> getUser(final String email, final String sub) {
         final Optional<User> userBySub = userRepository.findBySub(sub);
         if (userBySub.isPresent()) return userBySub;
-        return userRepository.findByEmail(email);
+        return userRepository.findByEmailAddress(email);
     }
 
     public String generateNonce() {

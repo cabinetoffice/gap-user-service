@@ -2,6 +2,7 @@ package gov.cabinetofice.gapuserservice.web;
 
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
+import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
@@ -31,6 +32,7 @@ import static gov.cabinetofice.gapuserservice.web.LoginController.REDIRECT_URL_C
 @Controller
 @RequestMapping("v2")
 @ConditionalOnProperty(value = "feature.onelogin.enabled", havingValue = "true")
+@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class LoginControllerV2 {
 
     private final OneLoginService oneLoginService;
@@ -48,11 +50,10 @@ public class LoginControllerV2 {
     @Value("${admin-base-url}")
     private String adminBaseUrl;
 
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     @GetMapping("/login")
     public RedirectView login(final @RequestParam Optional<String> redirectUrl,
-            final HttpServletRequest request,
-            final HttpServletResponse response) {
+                              final HttpServletRequest request,
+                              final HttpServletResponse response) {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
 
         final boolean isTokenValid = customJWTCookie != null
@@ -63,7 +64,8 @@ public class LoginControllerV2 {
                     new Cookie(REDIRECT_URL_COOKIE, redirectUrl.orElse(configProperties.getDefaultRedirectUrl())),
                     Boolean.TRUE,
                     Boolean.TRUE,
-                    null);
+                    null
+            );
 
             response.addCookie(redirectUrlCookie);
 
@@ -74,57 +76,61 @@ public class LoginControllerV2 {
         return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
     }
 
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     @GetMapping("/redirect-after-login")
     public RedirectView redirectAfterLogin(final @CookieValue(name = REDIRECT_URL_COOKIE) Optional<String> redirectUrl,
-            final HttpServletResponse response,
-            final @RequestParam String code) {
+                                 final HttpServletResponse response,
+                                 final @RequestParam String code) {
         final String jwt = oneLoginService.createOneLoginJwt();
         final String authToken = oneLoginService.getAuthToken(jwt, code);
         final OneLoginUserInfoDto userInfo = oneLoginService.getUserInfo(authToken);
-        final Optional<User> userOptional = oneLoginService.getUser(userInfo.getEmail(), userInfo.getSub());
+        final Optional<User> userOptional = oneLoginService.getUser(userInfo.getEmailAddress(), userInfo.getSub());
 
-        final Cookie customJwt = generateCustomJwtCookie(userInfo);
+        final Cookie customJwt = generateCustomJwtCookie(userInfo, userOptional);
         response.addCookie(customJwt);
 
         if (userOptional.isPresent()) {
             final User user = userOptional.get();
-            if (user.hasSub())
-                return getRedirectView(user, redirectUrl);
+            if (user.hasSub()) return getRedirectView(user, redirectUrl);
             if (user.isApplicant()) {
                 // TODO GAP-1922: Create migration page with a yes/no option
                 return new RedirectView("/should-migrate-data");
             } else {
                 // TODO GAP-1932: Migrate cola user data to this admin
-                oneLoginService.addSubToUser(userInfo.getSub(), user.getEmail());
+                oneLoginService.addSubToUser(userInfo.getSub(), user.getEmailAddress());
                 return getRedirectView(user, redirectUrl);
             }
         }
 
-        final User user = oneLoginService.createUser(userInfo.getSub(), userInfo.getEmail());
+        final User user = oneLoginService.createUser(userInfo.getSub(), userInfo.getEmailAddress());
         return getRedirectView(user, redirectUrl);
     }
 
-    private Cookie generateCustomJwtCookie(final OneLoginUserInfoDto userInfo) {
+    private Cookie generateCustomJwtCookie(final OneLoginUserInfoDto userInfo, final Optional<User> userOptional) {
         final Map<String, String> claims = new HashMap<>();
-        claims.put("email", userInfo.getEmail());
+        claims.put("email", userInfo.getEmailAddress());
         claims.put("sub", userInfo.getSub());
-        // TODO Add roles to claims
-        // TODO Add department details to claims
+
+        if(userOptional.isPresent()) {
+            final User user = userOptional.get();
+            claims.put("roles", user.getRoles().stream().map(Role::getName).toList().toString());
+            if (user.hasDepartment()) {
+                claims.put("department", user.getDepartment().getName());
+            }
+        } else {
+            claims.put("roles", oneLoginService.getNewUserRoles().toString());
+        }
 
         return WebUtil.buildCookie(
                 new Cookie(userServiceCookieName, customJwtService.generateToken(claims)),
                 Boolean.TRUE,
                 Boolean.TRUE,
-                null);
+                null
+        );
     }
 
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private RedirectView getRedirectView(final User user, final Optional<String> redirectUrl) {
-        if (user.isSuperAdmin())
-            return new RedirectView(adminBaseUrl + "/super-admin/dashboard");
-        if (user.isAdmin())
-            return new RedirectView(adminBaseUrl + "/dashboard");
+        if(user.isSuperAdmin()) return new RedirectView(adminBaseUrl + "/super-admin/dashboard");
+        if(user.isAdmin()) return new RedirectView(adminBaseUrl);
         return new RedirectView((redirectUrl.orElse(configProperties.getDefaultRedirectUrl())));
     }
 

@@ -1,5 +1,6 @@
 package gov.cabinetofice.gapuserservice.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
@@ -29,9 +30,10 @@ public class Department {
     private String ggisID;
 
     @Column(name = "users")
-    @OneToMany(mappedBy="id", cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy="gapUserId", cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY)
     @ToString.Exclude
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
+    @JsonBackReference
     @Builder.Default
     private List<User> users = new ArrayList<>();
 }

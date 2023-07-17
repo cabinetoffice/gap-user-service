@@ -2,6 +2,7 @@ package gov.cabinetofice.gapuserservice.web;
 
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
+import gov.cabinetofice.gapuserservice.model.Department;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -22,8 +23,10 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
 
+import java.util.HashMap;
 import java.sql.Ref;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -147,7 +150,7 @@ class LoginControllerV2Test {
             when(oneLoginService.getUserInfo(null))
                     .thenReturn(OneLoginUserInfoDto.builder()
                             .sub("sub")
-                            .email("email")
+                            .emailAddress("email")
                             .build());
             when(customJwtService.generateToken(any()))
                     .thenReturn("a-custom-valid-token");
@@ -162,39 +165,28 @@ class LoginControllerV2Test {
                     .thenReturn(Optional.empty());
             when(oneLoginService.createUser("sub", "email"))
                     .thenReturn(User.builder().build());
+            when(oneLoginService.getNewUserRoles())
+                    .thenReturn(List.of(RoleEnum.APPLICANT, RoleEnum.FIND));
 
             final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrl, response, "a-custom-valid-token");
 
-            verify(response).addCookie(customJwtCookie);
             verify(oneLoginService).createUser("sub", "email");
             assertThat(methodResponse.getUrl()).isEqualTo(redirectUrl.get());
+
+            verify(response).addCookie(customJwtCookie);
+            final Map<String, String> claims = new HashMap<>();
+            claims.put("sub", "sub");
+            claims.put("email", "email");
+            claims.put("roles", "[APPLICANT, FIND]");
+            verify(customJwtService).generateToken(claims);
         }
 
         @Test
         void shouldDoNothing_WhenUserFoundWithSub() {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final Optional<String> redirectUrl = Optional.of("redirectUrl");
-            final User user = User.builder().sub("sub").email("email").build();
-
-            when(oneLoginService.getUser("email", "sub"))
-                    .thenReturn(Optional.of(user));
-
-            final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrl, response, "a-custom-valid-token");
-
-            verify(response).addCookie(customJwtCookie);
-            verify(oneLoginService, times(0)).createUser(anyString(), anyString());
-            verify(oneLoginService, times(0)).addSubToUser(anyString(), anyString());
-            assertThat(methodResponse.getUrl()).isEqualTo(redirectUrl.get());
-        }
-
-        @Test
-        void shouldUpdateUser_WhenUserFoundWithoutSub_AndIsAdmin() {
-            final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
-            final Optional<String> redirectUrl = Optional.of("redirectUrl");
-            final User user = User.builder().email("email").roles(List.of(
-                    Role.builder().name(RoleEnum.ADMIN).build(),
-                    Role.builder().name(RoleEnum.APPLICANT).build(),
-                    Role.builder().name(RoleEnum.FIND).build()
+            final User user = User.builder().sub("sub").emailAddress("email").roles(List.of(
+                    Role.builder().name(RoleEnum.APPLICANT).build()
             )).build();
 
             when(oneLoginService.getUser("email", "sub"))
@@ -202,16 +194,50 @@ class LoginControllerV2Test {
 
             final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrl, response, "a-custom-valid-token");
 
+            verify(oneLoginService, times(0)).createUser(anyString(), anyString());
+            verify(oneLoginService, times(0)).addSubToUser(anyString(), anyString());
+            assertThat(methodResponse.getUrl()).isEqualTo(redirectUrl.get());
+
             verify(response).addCookie(customJwtCookie);
+            final Map<String, String> claims = new HashMap<>();
+            claims.put("sub", "sub");
+            claims.put("email", "email");
+            claims.put("roles", "[APPLICANT]");
+            verify(customJwtService).generateToken(claims);
+        }
+
+        @Test
+        void shouldUpdateUser_WhenUserFoundWithoutSub_AndIsAdmin() {
+            final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+            final Optional<String> redirectUrl = Optional.of("redirectUrl");
+            final User user = User.builder().emailAddress("email").roles(List.of(
+                    Role.builder().name(RoleEnum.ADMIN).build(),
+                    Role.builder().name(RoleEnum.APPLICANT).build(),
+                    Role.builder().name(RoleEnum.FIND).build()
+            )).department(Department.builder().name("department").build()).build();
+
+            when(oneLoginService.getUser("email", "sub"))
+                    .thenReturn(Optional.of(user));
+
+            final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrl, response, "a-custom-valid-token");
+
             verify(oneLoginService).addSubToUser("sub", "email");
-            assertThat(methodResponse.getUrl()).isEqualTo("adminBaseUrl/dashboard");
+            assertThat(methodResponse.getUrl()).isEqualTo("adminBaseUrl");
+
+            verify(response).addCookie(customJwtCookie);
+            final Map<String, String> claims = new HashMap<>();
+            claims.put("sub", "sub");
+            claims.put("email", "email");
+            claims.put("roles", "[ADMIN, APPLICANT, FIND]");
+            claims.put("department", "department");
+            verify(customJwtService).generateToken(claims);
         }
 
         @Test
         void shouldUpdateUser_WhenUserFoundWithoutSub_AndIsSuperAdmin() {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final Optional<String> redirectUrl = Optional.of("redirectUrl");
-            final User user = User.builder().email("email").roles(List.of(
+            final User user = User.builder().emailAddress("email").roles(List.of(
                     Role.builder().name(RoleEnum.SUPER_ADMIN).build(),
                     Role.builder().name(RoleEnum.ADMIN).build(),
                     Role.builder().name(RoleEnum.APPLICANT).build(),
@@ -223,16 +249,22 @@ class LoginControllerV2Test {
 
             final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrl, response, "a-custom-valid-token");
 
-            verify(response).addCookie(customJwtCookie);
             verify(oneLoginService).addSubToUser("sub", "email");
             assertThat(methodResponse.getUrl()).isEqualTo("adminBaseUrl/super-admin/dashboard");
+
+            verify(response).addCookie(customJwtCookie);
+            final Map<String, String> claims = new HashMap<>();
+            claims.put("sub", "sub");
+            claims.put("email", "email");
+            claims.put("roles", "[SUPER_ADMIN, ADMIN, APPLICANT, FIND]");
+            verify(customJwtService).generateToken(claims);
         }
 
         @Test
         void shouldGoToMigrateDataPage_WhenUserFoundWithoutSub_AndIsAnApplicant() {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final Optional<String> redirectUrl = Optional.of("redirectUrl");
-            final User user = User.builder().email("email").roles(List.of(
+            final User user = User.builder().emailAddress("email").roles(List.of(
                     Role.builder().name(RoleEnum.APPLICANT).build(),
                     Role.builder().name(RoleEnum.FIND).build()
             )).build();
@@ -242,8 +274,14 @@ class LoginControllerV2Test {
 
             final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrl, response, "a-custom-valid-token");
 
-            verify(response).addCookie(customJwtCookie);
             assertThat(methodResponse.getUrl()).isEqualTo("/should-migrate-data");
+
+            verify(response).addCookie(customJwtCookie);
+            final Map<String, String> claims = new HashMap<>();
+            claims.put("sub", "sub");
+            claims.put("email", "email");
+            claims.put("roles", "[APPLICANT, FIND]");
+            verify(customJwtService).generateToken(claims);
         }
     }
 }
