@@ -28,8 +28,8 @@ CREATE TABLE roles (
 CREATE TABLE roles_users (
 	roles_id int4 NOT NULL,
 	users_gap_user_id int4 NOT NULL,
-	CONSTRAINT fk2mck5s7km22t2on8h2jpn44xq FOREIGN KEY (roles_id) REFERENCES roles(id),
-	CONSTRAINT fkhu2gdj9we2ucvgwy1qdfm5a5s FOREIGN KEY (users_gap_user_id) REFERENCES gap_users(gap_user_id)
+	CONSTRAINT fk2mck5s7km22t2on8h2jpn44xq FOREIGN KEY (roles_id) REFERENCES roles(id) ON DELETE CASCADE,
+	CONSTRAINT fkhu2gdj9we2ucvgwy1qdfm5a5s FOREIGN KEY (users_gap_user_id) REFERENCES gap_users(gap_user_id) ON DELETE CASCADE
 );
 
 INSERT INTO roles (name) VALUES

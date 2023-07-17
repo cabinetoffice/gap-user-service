@@ -81,7 +81,7 @@ public class LoginControllerV2 {
         final String jwt = oneLoginService.createOneLoginJwt();
         final String authToken = oneLoginService.getAuthToken(jwt, code);
         final OneLoginUserInfoDto userInfo = oneLoginService.getUserInfo(authToken);
-        final Optional<User> userOptional = oneLoginService.getUser(userInfo.getEmail(), userInfo.getSub());
+        final Optional<User> userOptional = oneLoginService.getUser(userInfo.getEmailAddress(), userInfo.getSub());
 
         final Cookie customJwt = generateCustomJwtCookie(userInfo, userOptional);
         response.addCookie(customJwt);
@@ -94,18 +94,18 @@ public class LoginControllerV2 {
                 return new RedirectView("/should-migrate-data");
             } else {
                 // TODO GAP-1932: Migrate cola user data to this admin
-                oneLoginService.addSubToUser(userInfo.getSub(), user.getEmail());
+                oneLoginService.addSubToUser(userInfo.getSub(), user.getEmailAddress());
                 return getRedirectView(user, redirectUrl);
             }
         }
 
-        final User user = oneLoginService.createUser(userInfo.getSub(), userInfo.getEmail());
+        final User user = oneLoginService.createUser(userInfo.getSub(), userInfo.getEmailAddress());
         return getRedirectView(user, redirectUrl);
     }
 
     private Cookie generateCustomJwtCookie(final OneLoginUserInfoDto userInfo, final Optional<User> userOptional) {
         final Map<String, String> claims = new HashMap<>();
-        claims.put("email", userInfo.getEmail());
+        claims.put("email", userInfo.getEmailAddress());
         claims.put("sub", userInfo.getSub());
 
         if(userOptional.isPresent()) {
@@ -128,7 +128,7 @@ public class LoginControllerV2 {
 
     private RedirectView getRedirectView(final User user, final Optional<String> redirectUrl) {
         if(user.isSuperAdmin()) return new RedirectView(adminBaseUrl + "/super-admin/dashboard");
-        if(user.isAdmin()) return new RedirectView(adminBaseUrl + "/dashboard");
+        if(user.isAdmin()) return new RedirectView(adminBaseUrl);
         return new RedirectView((redirectUrl.orElse(configProperties.getDefaultRedirectUrl())));
     }
 
