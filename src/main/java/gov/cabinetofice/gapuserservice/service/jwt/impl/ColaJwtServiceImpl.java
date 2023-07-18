@@ -32,6 +32,7 @@ public class ColaJwtServiceImpl implements JwtService {
 
     @Override
     public boolean isTokenValid(final String colaJwt) {
+
         final String trimmedToken = URLDecoder.decode(colaJwt, StandardCharsets.UTF_8).substring(2);
 
         if (!isValidColaSignature(trimmedToken)) {

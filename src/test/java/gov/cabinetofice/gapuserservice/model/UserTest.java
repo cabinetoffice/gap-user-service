@@ -159,7 +159,7 @@ public class UserTest {
     class hasEmail {
         @Test
         void shouldReturnTrueWhenUserHasEmail() {
-            final User user = User.builder().email("").build();
+            final User user = User.builder().emailAddress("").build();
 
             final boolean response = user.hasEmail();
 
@@ -192,6 +192,27 @@ public class UserTest {
             final User user = User.builder().build();
 
             final boolean response = user.hasSub();
+
+            Assertions.assertFalse(response);
+        }
+    }
+
+    @Nested
+    class hasDepartment {
+        @Test
+        void shouldReturnTrueWhenUserHasDepartment() {
+            final User user = User.builder().department(Department.builder().build()).build();
+
+            final boolean response = user.hasDepartment();
+
+            Assertions.assertTrue(response);
+        }
+
+        @Test
+        void shouldReturnFalseWhenUserDoesNotHaveDepartment() {
+            final User user = User.builder().build();
+
+            final boolean response = user.hasDepartment();
 
             Assertions.assertFalse(response);
         }

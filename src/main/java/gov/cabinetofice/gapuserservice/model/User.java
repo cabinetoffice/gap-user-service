@@ -1,6 +1,7 @@
 package gov.cabinetofice.gapuserservice.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,10 +21,10 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "gap_user_id")
-    private Integer id;
+    private Integer gapUserId;
 
     @Column(name = "email")
-    private String email;
+    private String emailAddress;
 
     @Column(name = "sub")
     private String sub;
@@ -31,15 +32,17 @@ public class User {
     @Column(name = "accepted_privacy_policy")
     private Boolean acceptedPrivacyPolicy;
 
-    @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.EAGER, mappedBy = "users")
+    @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY, mappedBy = "users")
     @ToString.Exclude
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
+    @JsonManagedReference
     @Builder.Default
     private List<Role> roles = new ArrayList<>();
 
-    @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.EAGER)
+    @ManyToOne(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY)
     @JoinColumn(name = "dept_id")
     @ToString.Exclude
+    @JsonManagedReference
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
     private Department department;
 
@@ -53,7 +56,11 @@ public class User {
     }
 
     public boolean hasEmail() {
-        return this.email != null;
+        return this.emailAddress != null;
+    }
+
+    public boolean hasDepartment() {
+        return this.department != null;
     }
 
     public boolean isApplicant() {
@@ -66,5 +73,13 @@ public class User {
 
     public boolean isSuperAdmin() {
         return this.roles.stream().anyMatch((role) -> role.getName().equals(RoleEnum.SUPER_ADMIN));
+    }
+
+    public User removeAllRoles() {
+        for (Role role : this.roles) {
+            role.removeUser(this);
+        }
+        this.roles.clear();
+        return this;
     }
 }
