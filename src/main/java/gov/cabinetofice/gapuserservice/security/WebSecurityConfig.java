@@ -47,6 +47,7 @@ public class WebSecurityConfig {
                 "/login",
                 "/v2/redirect-after-login",
                 "/v2/login",
+                "/v2/notice-page",
                 "/is-user-logged-in",
                 "/redirect-after-cola-login",
                 "/error/**",

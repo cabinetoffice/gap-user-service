@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
 
@@ -26,7 +27,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import static gov.cabinetofice.gapuserservice.web.LoginController.REDIRECT_URL_COOKIE;
-
 
 @RequiredArgsConstructor
 @Controller
@@ -38,6 +38,8 @@ public class LoginControllerV2 {
     private final OneLoginService oneLoginService;
     private final CustomJwtServiceImpl customJwtService;
     private final ApplicationConfigProperties configProperties;
+
+    public static final String NOTICE_PAGE_VIEW = "notice-page";
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
@@ -67,8 +69,8 @@ public class LoginControllerV2 {
 
             response.addCookie(redirectUrlCookie);
 
-            // TODO check if this is the correct URL
-            return new RedirectView(oneLoginBaseUrl);
+            // TODO : Decide on where to set and evaluate nonce and state
+            return new RedirectView(NOTICE_PAGE_VIEW);
         }
 
         return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
@@ -130,6 +132,12 @@ public class LoginControllerV2 {
         if(user.isSuperAdmin()) return new RedirectView(adminBaseUrl + "/super-admin/dashboard");
         if(user.isAdmin()) return new RedirectView(adminBaseUrl);
         return new RedirectView((redirectUrl.orElse(configProperties.getDefaultRedirectUrl())));
+    }
+
+    @GetMapping("/notice-page")
+    public ModelAndView showNoticePage() {
+        return new ModelAndView(NOTICE_PAGE_VIEW)
+                .addObject("loginUrl", oneLoginService.getOneLoginAuthorizeUrl());
     }
 
 }

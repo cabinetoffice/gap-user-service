@@ -19,10 +19,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
 
 import java.util.HashMap;
+import java.sql.Ref;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -68,7 +70,7 @@ class LoginControllerV2Test {
     @Nested
     class login {
         @Test
-        void shouldRedirectToOneLogin_IfTokenIsNull() {
+        void shouldRedirectToNoticePage_IfTokenIsNull() {
             final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/");
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final MockHttpServletRequest request = new MockHttpServletRequest();
@@ -81,7 +83,7 @@ class LoginControllerV2Test {
             redirectUrlCookie.setPath("/");
 
             verify(response).addCookie(redirectUrlCookie);
-            assertThat(methodResponse.getUrl()).isEqualTo("oneLoginBaseUrl");
+            assertThat(methodResponse.getUrl()).isEqualTo("notice-page");
         }
 
         @Test
@@ -117,6 +119,17 @@ class LoginControllerV2Test {
 
             verify(customJwtService, times(0)).generateToken(any());
             assertThat(methodResponse.getUrl()).isEqualTo(configProperties.getDefaultRedirectUrl());
+        }
+
+        @Test
+        void showNoticePage_ShowsNoticePage_WithLoginUrl() {
+            when(oneLoginService.getOneLoginAuthorizeUrl())
+                    .thenReturn("loginUrl");
+
+            final ModelAndView methodResponse = loginController.showNoticePage();
+            assertThat(methodResponse.getViewName()).isEqualTo(LoginControllerV2.NOTICE_PAGE_VIEW);
+            assertThat(methodResponse.getModel().get("loginUrl")).isEqualTo("loginUrl");
+
         }
     }
 
