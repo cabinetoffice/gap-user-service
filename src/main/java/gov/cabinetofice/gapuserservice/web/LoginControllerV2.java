@@ -28,7 +28,6 @@ import java.util.Optional;
 
 import static gov.cabinetofice.gapuserservice.web.LoginController.REDIRECT_URL_COOKIE;
 
-
 @RequiredArgsConstructor
 @Controller
 @RequestMapping("v2")
@@ -41,6 +40,8 @@ public class LoginControllerV2 {
     private final ApplicationConfigProperties configProperties;
 
     public static final String PRIVACY_POLICY_PAGE_VIEW = "privacy-policy";
+
+    public static final String NOTICE_PAGE_VIEW = "notice-page";
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
@@ -70,8 +71,8 @@ public class LoginControllerV2 {
 
             response.addCookie(redirectUrlCookie);
 
-            // TODO check if this is the correct URL
-            return new RedirectView(oneLoginBaseUrl);
+            // TODO : Decide on where to set and evaluate nonce and state
+            return new RedirectView(NOTICE_PAGE_VIEW);
         }
 
         return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
@@ -149,6 +150,12 @@ public class LoginControllerV2 {
         if(user.isSuperAdmin()) return new RedirectView(adminBaseUrl + "/super-admin/dashboard");
         if(user.isAdmin()) return new RedirectView(adminBaseUrl);
         return new RedirectView((redirectUrl.orElse(configProperties.getDefaultRedirectUrl())));
+    }
+
+    @GetMapping("/notice-page")
+    public ModelAndView showNoticePage() {
+        return new ModelAndView(NOTICE_PAGE_VIEW)
+                .addObject("loginUrl", oneLoginService.getOneLoginAuthorizeUrl());
     }
 
 }
