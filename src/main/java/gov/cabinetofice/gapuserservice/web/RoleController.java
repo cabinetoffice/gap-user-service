@@ -10,11 +10,14 @@ import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.WebUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,20 +29,23 @@ public class RoleController {
     private final OneLoginService oneLoginService;
     private final CustomJwtServiceImpl jwtService;
 
+    @Value("${jwt.cookie-name}")
+    public String userServiceCookieName;
+
     @GetMapping("/role")
     public ResponseEntity<List<RoleDto>> getAll() {
         return ResponseEntity.ok(roleService.getAllRoles());
     }
 
     @GetMapping("/user/roles")
-    public ResponseEntity<UserRolesJwtResponse> getUserRolesFromJwt(final @RequestHeader("Authorization") String jwtToken) {
-        if (jwtToken.length() <= 0) {
+    public ResponseEntity<UserRolesJwtResponse> getUserRolesFromJwt(final HttpServletRequest request) {
+        final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
+        if (customJWTCookie == null || customJWTCookie.getValue() == null) {
             throw new UnauthorizedException("No JWT token provided");
         }
 
-        final String normalisedJwt = jwtToken.split(" ")[1];
-        final boolean isValid = jwtService.isTokenValid(normalisedJwt);
-        final DecodedJWT decodedJwt = jwtService.decodedJwt(normalisedJwt);
+        final boolean isValid = jwtService.isTokenValid(customJWTCookie.getValue());
+        final DecodedJWT decodedJwt = jwtService.decodedJwt(customJWTCookie.getValue());
         final JwtPayload payload = jwtService.decodeTheTokenPayloadInAReadableFormat(decodedJwt);
 
         final Optional<User> optionalUser = oneLoginService.getUser(payload.getEmail(), payload.getSub());
