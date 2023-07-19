@@ -11,7 +11,9 @@ import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.apache.http.HttpHeaders;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -48,6 +50,10 @@ public class OneLoginService {
     private static final String VTR = "[\"Cl.Cm\"]";
 
     private static final String UI = "en";
+
+    @Getter
+    @Setter
+    private String redirectUrl;
 
     private static final String GRANT_TYPE = "authorization_code";
 

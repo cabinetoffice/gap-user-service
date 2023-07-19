@@ -109,26 +109,6 @@ public class LoginControllerV2 {
         return getRedirectView(user, redirectUrl);
     }
 
-    @GetMapping("/privacy-policy")
-    public ModelAndView showPrivacyPolicyPage(final @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto) {
-        return new ModelAndView(PRIVACY_POLICY_PAGE_VIEW);
-    }
-
-    @PostMapping("/privacy-policy")
-    public ModelAndView showPrivacyPolicyPage(final @Valid @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto, final HttpServletRequest request, final BindingResult result) {
-        final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
-        DecodedJWT jwt = JWT.decode(customJWTCookie.getValue());
-
-        if (result.hasErrors()) {
-            return new ModelAndView(PRIVACY_POLICY_PAGE_VIEW);
-        }
-
-        oneLoginService.acceptPrivacyPolicy(jwt.getSubject());
-
-        //TODO: GAP-1972 will implement correct redirect
-        return new ModelAndView( "redirect:/register/success");
-    }
-
     private Cookie generateCustomJwtCookie(final OneLoginUserInfoDto userInfo, final Optional<User> userOptional) {
         final Map<String, String> claims = new HashMap<>();
         claims.put("email", userInfo.getEmailAddress());
@@ -153,15 +133,42 @@ public class LoginControllerV2 {
     }
 
     private RedirectView getRedirectView(final User user, final Optional<String> redirectUrl) {
-        if(user.isSuperAdmin()) return new RedirectView(adminBaseUrl + "/super-admin/dashboard");
-        if(user.isAdmin()) return new RedirectView(adminBaseUrl);
-        return new RedirectView((redirectUrl.orElse(configProperties.getDefaultRedirectUrl())));
+        oneLoginService.setRedirectUrl(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
+
+        if (user.isSuperAdmin())
+            oneLoginService.setRedirectUrl(adminBaseUrl + "/super-admin/dashboard");
+        if (user.isAdmin())
+            oneLoginService.setRedirectUrl(adminBaseUrl);
+
+        if (user.getAcceptedPrivacyPolicy()) {
+            return new RedirectView(oneLoginService.getRedirectUrl());
+        } else {
+            return new RedirectView(PRIVACY_POLICY_PAGE_VIEW);
+        }
     }
 
     @GetMapping("/notice-page")
     public ModelAndView showNoticePage() {
         return new ModelAndView(NOTICE_PAGE_VIEW)
                 .addObject("loginUrl", oneLoginService.getOneLoginAuthorizeUrl());
+    }
+
+    @GetMapping("/privacy-policy")
+    public ModelAndView showPrivacyPolicyPage(final @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto) {
+        return new ModelAndView(PRIVACY_POLICY_PAGE_VIEW);
+    }
+
+    @PostMapping("/privacy-policy")
+    public RedirectView showPrivacyPolicyPage(final @Valid @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto, final HttpServletRequest request, final BindingResult result) {
+        final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
+        DecodedJWT jwt = JWT.decode(customJWTCookie.getValue());
+
+        if (result.hasErrors()) {
+            return new RedirectView(PRIVACY_POLICY_PAGE_VIEW);
+        }
+
+        oneLoginService.acceptPrivacyPolicy(jwt.getSubject());
+        return new RedirectView(oneLoginService.getRedirectUrl());
     }
 
 }
