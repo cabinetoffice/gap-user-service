@@ -3,6 +3,7 @@ package gov.cabinetofice.gapuserservice.service.jwt.impl;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.JWTVerifier;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.JWKSet;
@@ -10,9 +11,13 @@ import com.nimbusds.jose.jwk.KeyUse;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
+import gov.cabinetofice.gapuserservice.dto.JwtPayload;
 import gov.cabinetofice.gapuserservice.repository.JwtBlacklistRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.JwtService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tomcat.util.codec.binary.Base64;
+import org.apache.tomcat.util.codec.binary.StringUtils;
+import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -88,5 +93,34 @@ public class CustomJwtServiceImpl implements JwtService {
 
     private boolean isTokenInBlacklist(final String customJwt) {
         return jwtBlacklistRepository.existsByJwtIs(customJwt);
+    }
+
+    public DecodedJWT decodedJwt(String normalisedJWT) {
+        return JWT.decode(normalisedJWT);
+    }
+
+    public String decodeBase64ToJson(final String base64) {
+        return StringUtils.newStringUtf8(Base64.decodeBase64(base64));
+    }
+
+    public JwtPayload decodeTheTokenPayloadInAReadableFormat(DecodedJWT jwt) {
+        final String payloadJson = decodeBase64ToJson(jwt.getPayload());
+        final JSONObject jsonObject = new JSONObject(payloadJson);
+        final String sub = jwt.getSubject();
+        final String roles = jsonObject.getString("roles");
+        final String iss = jsonObject.getString("iss");
+        final String aud = jsonObject.getString("aud");
+        final int exp = jsonObject.getInt("exp");
+        final int iat = jsonObject.getInt("iat");
+        final String email = jsonObject.getString("email");
+        return JwtPayload.builder()
+                .sub(sub)
+                .roles(roles)
+                .iss(iss)
+                .aud(aud)
+                .exp(exp)
+                .iat(iat)
+                .email(email)
+                .build();
     }
 }
