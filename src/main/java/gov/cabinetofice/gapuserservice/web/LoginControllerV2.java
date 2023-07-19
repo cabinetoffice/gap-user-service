@@ -1,5 +1,7 @@
 package gov.cabinetofice.gapuserservice.web;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
@@ -113,11 +115,15 @@ public class LoginControllerV2 {
     }
 
     @PostMapping("/privacy-policy")
-    public ModelAndView showPrivacyPolicyPage(final @Valid @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto, final BindingResult result) {
+    public ModelAndView showPrivacyPolicyPage(final @Valid @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto, final HttpServletRequest request, final BindingResult result) {
+        final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
+        DecodedJWT jwt = JWT.decode(customJWTCookie.getValue());
 
         if (result.hasErrors()) {
             return new ModelAndView(PRIVACY_POLICY_PAGE_VIEW);
         }
+
+        oneLoginService.acceptPrivacyPolicy(jwt.getSubject());
 
         //TODO: GAP-1972 will implement correct redirect
         return new ModelAndView( "redirect:/register/success");
