@@ -129,8 +129,8 @@ public class LoginControllerV2 {
     }
 
     private RedirectView getRedirectView(final User user, final Optional<String> redirectUrl) {
-        if(user.isSuperAdmin()) return new RedirectView(adminBaseUrl + "/super-admin/dashboard");
-        if(user.isAdmin()) return new RedirectView(adminBaseUrl);
+        if(user.isSuperAdmin()) return new RedirectView(adminBaseUrl + "?redirectUrl=/super-admin-dashboard");
+        if(user.isAdmin()) return new RedirectView(adminBaseUrl + "?redirectUrl=/dashboard");
         return new RedirectView((redirectUrl.orElse(configProperties.getDefaultRedirectUrl())));
     }
 

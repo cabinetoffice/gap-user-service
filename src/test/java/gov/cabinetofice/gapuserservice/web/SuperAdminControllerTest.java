@@ -7,6 +7,7 @@ import gov.cabinetofice.gapuserservice.dto.UserDto;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -40,6 +41,7 @@ class SuperAdminControllerTest {
     @Test
     void shouldReturnSuperAdminDashboardDto() {
         Pageable pagination = mock(Pageable.class);
+        HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         List<DepartmentDto> departments = List.of(DepartmentDto.builder().id("1").build(),
                 DepartmentDto.builder().id("2").build());
         List<RoleDto> roles = List.of(RoleDto.builder().id("1").build(), RoleDto.builder().id("2").build());
@@ -48,11 +50,12 @@ class SuperAdminControllerTest {
 
         when(departmentService.getAllDepartments()).thenReturn(departments);
         when(roleService.getAllRoles()).thenReturn(roles);
+        when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(oneLoginUserService.getPaginatedUsers(pagination)).thenReturn(users);
         when(oneLoginUserService.getUserCount()).thenReturn(2L);
 
         ResponseEntity<SuperAdminDashboardPageDto> result =
-                superAdminController.superAdminDashboard(pagination);
+                superAdminController.superAdminDashboard(httpRequest, pagination);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
 
