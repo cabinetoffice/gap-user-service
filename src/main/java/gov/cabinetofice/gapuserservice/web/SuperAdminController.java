@@ -29,7 +29,7 @@ public class SuperAdminController {
 
     @GetMapping("/super-admin-dashboard")
     public ResponseEntity<SuperAdminDashboardPageDto> superAdminDashboard(final HttpServletRequest httpRequest, final Pageable pagination) {
-        if (roleService.isSuperAdmin(httpRequest)) {
+        if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
 

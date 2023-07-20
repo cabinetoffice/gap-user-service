@@ -28,7 +28,7 @@ public class UserController {
 
     @GetMapping("/user/{id}")
     public ResponseEntity<User> getUserById(HttpServletRequest httpRequest, @PathVariable("id") Integer id) {
-        if (roleService.isSuperAdmin(httpRequest)) {
+        if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
 
@@ -38,7 +38,7 @@ public class UserController {
     @PatchMapping("/user/{userId}/department")
     public ResponseEntity<User> updateDepartment(HttpServletRequest httpRequest, @PathVariable("userId") Integer userId,
                                                    @RequestParam(value = "departmentId", required = false) Integer departmentId) {
-        if (roleService.isSuperAdmin(httpRequest)) {
+        if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
 
@@ -49,7 +49,7 @@ public class UserController {
 
     @GetMapping("/page/user/{userId}/change-department")
     public ResponseEntity<ChangeDepartmentPageDto> getChangeDepartmentPage(HttpServletRequest httpRequest, @PathVariable("userId") Integer userId) {
-        if (roleService.isSuperAdmin(httpRequest)) {
+        if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
 
@@ -64,7 +64,7 @@ public class UserController {
     @PatchMapping("/user/{id}/role")
     public ResponseEntity<String> updateRoles(HttpServletRequest httpRequest, @RequestBody() List<Integer> roleIds,
                                               @PathVariable("id") Integer id) {
-        if (roleService.isSuperAdmin(httpRequest)) {
+        if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
 

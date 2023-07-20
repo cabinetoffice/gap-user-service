@@ -35,7 +35,7 @@ public class RoleController {
 
     @GetMapping("/role")
     public ResponseEntity<List<RoleDto>> getAll(final HttpServletRequest httpRequest) {
-        if (roleService.isSuperAdmin(httpRequest)) {
+        if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
 
