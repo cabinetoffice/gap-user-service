@@ -51,10 +51,6 @@ public class OneLoginService {
 
     private static final String UI = "en";
 
-    @Getter
-    @Setter
-    private String redirectUrl;
-
     private static final String GRANT_TYPE = "authorization_code";
 
     private final UserRepository userRepository;
@@ -151,7 +147,7 @@ public class OneLoginService {
         userRepository.save(user);
     }
 
-    public void acceptPrivacyPolicy(final String sub) {
+    public void setPrivacyPolicy(final String sub) {
         final User user = userRepository.findBySub(sub).orElseThrow(() -> new UserNotFoundException("Could not accept privacy policy for user: User with sub '" + sub + "' not found"));
         user.setAcceptedPrivacyPolicy(true);
         userRepository.save(user);

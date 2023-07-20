@@ -28,8 +28,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import static gov.cabinetofice.gapuserservice.web.LoginController.REDIRECT_URL_COOKIE;
-
 @RequiredArgsConstructor
 @Controller
 @RequestMapping("v2")
@@ -44,6 +42,8 @@ public class LoginControllerV2 {
     public static final String PRIVACY_POLICY_PAGE_VIEW = "privacy-policy";
 
     public static final String NOTICE_PAGE_VIEW = "notice-page";
+
+    private static final String REDIRECT_URL_COOKIE = "redirectUrl";
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
@@ -94,19 +94,19 @@ public class LoginControllerV2 {
 
         if (userOptional.isPresent()) {
             final User user = userOptional.get();
-            if (user.hasSub()) return getRedirectView(user, redirectUrl);
+            if (user.hasSub()) return getRedirectView(user, response, redirectUrl);
             if (user.isApplicant()) {
                 // TODO GAP-1922: Create migration page with a yes/no option
                 return new RedirectView("/should-migrate-data");
             } else {
                 // TODO GAP-1932: Migrate cola user data to this admin
                 oneLoginService.addSubToUser(userInfo.getSub(), user.getEmailAddress());
-                return getRedirectView(user, redirectUrl);
+                return getRedirectView(user, response, redirectUrl);
             }
         }
 
         final User user = oneLoginService.createUser(userInfo.getSub(), userInfo.getEmailAddress());
-        return getRedirectView(user, redirectUrl);
+        return getRedirectView(user, response, redirectUrl);
     }
 
     private Cookie generateCustomJwtCookie(final OneLoginUserInfoDto userInfo, final Optional<User> userOptional) {
@@ -132,16 +132,21 @@ public class LoginControllerV2 {
         );
     }
 
-    private RedirectView getRedirectView(final User user, final Optional<String> redirectUrl) {
-        oneLoginService.setRedirectUrl(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
+    private Cookie makeRedirectCookie(String redirectUrl) {
+        return WebUtil.buildCookie(
+                new Cookie(REDIRECT_URL_COOKIE, redirectUrl),
+                Boolean.TRUE,
+                Boolean.TRUE,
+                null
+        );
+    }
 
-        if (user.isSuperAdmin())
-            oneLoginService.setRedirectUrl(adminBaseUrl + "/super-admin/dashboard");
-        if (user.isAdmin())
-            oneLoginService.setRedirectUrl(adminBaseUrl);
+    private RedirectView getRedirectView(final User user, final HttpServletResponse response, final @CookieValue(name = REDIRECT_URL_COOKIE) Optional<String> redirectUrl) {
+        if(user.isAdmin()) response.addCookie(makeRedirectCookie( adminBaseUrl + "?redirectUrl=/dashboard"));
+        if(user.isSuperAdmin()) response.addCookie(makeRedirectCookie( adminBaseUrl + "?redirectUrl=/super-admin-dashboard"));
 
         if (user.getAcceptedPrivacyPolicy()) {
-            return new RedirectView(oneLoginService.getRedirectUrl());
+            return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
         } else {
             return new RedirectView(PRIVACY_POLICY_PAGE_VIEW);
         }
@@ -159,7 +164,7 @@ public class LoginControllerV2 {
     }
 
     @PostMapping("/privacy-policy")
-    public RedirectView showPrivacyPolicyPage(final @Valid @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto, final HttpServletRequest request, final BindingResult result) {
+    public RedirectView showPrivacyPolicyPage( final @Valid @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto, final HttpServletRequest request, final BindingResult result, final @CookieValue(name = REDIRECT_URL_COOKIE) Optional<String> redirectUrl) {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
         DecodedJWT jwt = JWT.decode(customJWTCookie.getValue());
 
@@ -167,8 +172,8 @@ public class LoginControllerV2 {
             return new RedirectView(PRIVACY_POLICY_PAGE_VIEW);
         }
 
-        oneLoginService.acceptPrivacyPolicy(jwt.getSubject());
-        return new RedirectView(oneLoginService.getRedirectUrl());
+        oneLoginService.setPrivacyPolicy(jwt.getSubject());
+        return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
     }
 
 }
