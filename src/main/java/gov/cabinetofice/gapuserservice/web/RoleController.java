@@ -4,7 +4,6 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.dto.JwtPayload;
 import gov.cabinetofice.gapuserservice.dto.RoleDto;
 import gov.cabinetofice.gapuserservice.dto.UserRolesJwtResponse;
-import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -34,11 +33,7 @@ public class RoleController {
     public String userServiceCookieName;
 
     @GetMapping("/role")
-    public ResponseEntity<List<RoleDto>> getAll(final HttpServletRequest httpRequest) {
-        if (roleService.isSuperAdmin(httpRequest)) {
-            throw new ForbiddenException();
-        }
-
+    public ResponseEntity<List<RoleDto>> getAll() {
         return ResponseEntity.ok(roleService.getAllRoles());
     }
 
