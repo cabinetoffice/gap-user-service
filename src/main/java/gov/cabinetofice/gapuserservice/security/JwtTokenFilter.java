@@ -2,9 +2,7 @@ package gov.cabinetofice.gapuserservice.security;
 
 import gov.cabinetofice.gapuserservice.config.DebugProperties;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
-import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
-import gov.cabinetofice.gapuserservice.service.RoleService;
 import gov.cabinetofice.gapuserservice.service.jwt.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -32,8 +30,6 @@ public class JwtTokenFilter extends OncePerRequestFilter {
     private final JwtProperties jwtProperties;
 
     private final JwtService customJwtServiceImpl;
-
-    private final RoleService roleService;
 
     private final String profile;
 
@@ -66,10 +62,6 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 
         if(!customJwtServiceImpl.isTokenValid(userServiceJwt.get().getValue())) {
             throw new UnauthorizedException("Token not valid");
-        }
-
-        if (!roleService.isSuperAdmin(request)) {
-            throw new ForbiddenException();
         }
 
         //TODO set the Security context, so we can access user details in rest of app

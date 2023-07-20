@@ -2,7 +2,6 @@ package gov.cabinetofice.gapuserservice.security;
 
 import gov.cabinetofice.gapuserservice.config.DebugProperties;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
-import gov.cabinetofice.gapuserservice.service.RoleService;
 import gov.cabinetofice.gapuserservice.service.jwt.JwtService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -27,9 +26,8 @@ public class WebSecurityConfig {
     public WebSecurityConfig(final DebugProperties debugProperties,
                              final JwtProperties jwtProperties,
                              final JwtService customJwtServiceImpl,
-                             final RoleService roleService,
                              final @Value("${spring.profiles.active:PROD}") String profile) {
-        this.jwtTokenFilter = new JwtTokenFilter(debugProperties, jwtProperties, customJwtServiceImpl, roleService, profile);
+        this.jwtTokenFilter = new JwtTokenFilter(debugProperties, jwtProperties, customJwtServiceImpl, profile);
     }
 
     /**
