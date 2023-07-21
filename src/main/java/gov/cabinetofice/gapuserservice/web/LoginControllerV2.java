@@ -164,16 +164,16 @@ public class LoginControllerV2 {
     }
 
     @PostMapping("/privacy-policy")
-    public RedirectView showPrivacyPolicyPage( final @Valid @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto, final HttpServletRequest request, final BindingResult result, final @CookieValue(name = REDIRECT_URL_COOKIE) Optional<String> redirectUrl) {
+    public ModelAndView showPrivacyPolicyPage(final @Valid @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto, final BindingResult result, final HttpServletRequest request, final @CookieValue(name = REDIRECT_URL_COOKIE) Optional<String> redirectUrl) {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
         DecodedJWT jwt = JWT.decode(customJWTCookie.getValue());
 
         if (result.hasErrors()) {
-            return new RedirectView(PRIVACY_POLICY_PAGE_VIEW);
+            return new ModelAndView(PRIVACY_POLICY_PAGE_VIEW);
         }
 
         oneLoginService.setPrivacyPolicy(jwt.getSubject());
-        return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
+        return new ModelAndView("redirect:"+redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
     }
 
 }
