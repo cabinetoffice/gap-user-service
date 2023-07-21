@@ -61,7 +61,9 @@ public class User {
     }
 
     public boolean isApplicant() {
-        return !isAdmin() && this.roles.stream().anyMatch((role) -> role.getName().equals(RoleEnum.APPLICANT));
+        return this.roles.stream().anyMatch((role) -> role.getName().equals(RoleEnum.APPLICANT) ||
+                role.getName().equals(RoleEnum.ADMIN) ||
+                role.getName().equals(RoleEnum.SUPER_ADMIN));
     }
 
     public boolean isAdmin() {
@@ -72,11 +74,17 @@ public class User {
         return this.roles.stream().anyMatch((role) -> role.getName().equals(RoleEnum.SUPER_ADMIN));
     }
 
-    public User removeAllRoles() {
+    public Role getRole() {
+        if(isSuperAdmin()) return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.SUPER_ADMIN)).findFirst().get();
+        if(isAdmin()) return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.ADMIN)).findFirst().get();
+        if(isApplicant()) this.roles.stream().filter(role -> role.getName().equals(RoleEnum.APPLICANT)).findFirst().get();
+        return null;
+    }
+
+    public void removeAllRoles() {
         for (Role role : this.roles) {
             role.removeUser(this);
         }
         this.roles.clear();
-        return this;
     }
 }

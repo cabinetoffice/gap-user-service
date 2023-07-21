@@ -27,6 +27,9 @@ public class Role {
     @Enumerated(EnumType.STRING)
     private RoleEnum name;
 
+    @Column(name = "label")
+    private String label;
+
     @Column(name = "description")
     private String description;
 
