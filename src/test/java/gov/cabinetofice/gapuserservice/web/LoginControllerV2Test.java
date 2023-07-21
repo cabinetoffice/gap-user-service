@@ -214,7 +214,8 @@ class LoginControllerV2Test {
                     Role.builder().name(RoleEnum.ADMIN).build(),
                     Role.builder().name(RoleEnum.APPLICANT).build(),
                     Role.builder().name(RoleEnum.FIND).build()
-            )).department(Department.builder().name("department").build()).build();
+            )).department(Department.builder().name("department").build()).
+                    build();
 
             when(oneLoginService.getUser("email", "sub"))
                     .thenReturn(Optional.of(user));
@@ -222,7 +223,14 @@ class LoginControllerV2Test {
             final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrl, response, "a-custom-valid-token");
 
             verify(oneLoginService).addSubToUser("sub", "email");
-            assertThat(methodResponse.getUrl()).isEqualTo("adminBaseUrl?redirectUrl=/dashboard");
+            assertThat(methodResponse.getUrl()).isEqualTo(redirectUrl.get());
+
+            final Cookie redirectUrlCookie = new Cookie(LoginController.REDIRECT_URL_COOKIE, "adminBaseUrl" + "?redirectUrl=/dashboard");
+            redirectUrlCookie.setSecure(true);
+            redirectUrlCookie.setHttpOnly(true);
+            redirectUrlCookie.setPath("/");
+            verify(response).addCookie(redirectUrlCookie);
+
 
             verify(response).addCookie(customJwtCookie);
             final Map<String, String> claims = new HashMap<>();
@@ -250,7 +258,13 @@ class LoginControllerV2Test {
             final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrl, response, "a-custom-valid-token");
 
             verify(oneLoginService).addSubToUser("sub", "email");
-            assertThat(methodResponse.getUrl()).isEqualTo("adminBaseUrl?redirectUrl=/super-admin-dashboard");
+            assertThat(methodResponse.getUrl()).isEqualTo(redirectUrl.get());
+
+            final Cookie redirectUrlCookie = new Cookie(LoginController.REDIRECT_URL_COOKIE, "adminBaseUrl" + "?redirectUrl=/super-admin-dashboard");
+            redirectUrlCookie.setSecure(true);
+            redirectUrlCookie.setHttpOnly(true);
+            redirectUrlCookie.setPath("/");
+            verify(response).addCookie(redirectUrlCookie);
 
             verify(response).addCookie(customJwtCookie);
             final Map<String, String> claims = new HashMap<>();
@@ -283,5 +297,24 @@ class LoginControllerV2Test {
             claims.put("roles", "[APPLICANT, FIND]");
             verify(customJwtService).generateToken(claims);
         }
+
+        @Test
+        void shouldRedirectToPolicyPage_WhenUserHasNotAccepted() {
+            final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+            final Optional<String> redirectUrl = Optional.of("redirectUrl");
+            final User user = User.builder().emailAddress("email").acceptedPrivacyPolicy(false).roles(List.of(
+                            Role.builder().name(RoleEnum.ADMIN).build(),
+                            Role.builder().name(RoleEnum.APPLICANT).build(),
+                            Role.builder().name(RoleEnum.FIND).build()
+                    )).department(Department.builder().name("department").build()).
+                    build();
+
+            when(oneLoginService.getUser("email", "sub"))
+                    .thenReturn(Optional.of(user));
+
+            final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrl, response, "a-custom-valid-token");
+            assertThat(methodResponse.getUrl()).isEqualTo("privacy-policy");
+        }
+
     }
 }
