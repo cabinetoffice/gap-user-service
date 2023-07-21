@@ -251,6 +251,31 @@ public class OneLoginServiceTest {
         }
     }
 
+    @Nested
+    class setPrivacyPolicy{
+
+        @Test
+        void shouldSetPrivacyPolicyToTrueWhenUserExists() {
+            final String email = "test@test.com";
+            final String sub = "sub";
+            final User user = User.builder().gapUserId(1).emailAddress(email).sub(sub).acceptedPrivacyPolicy(false).build();
+
+            when(userRepository.findBySub(sub)).thenReturn(Optional.of(user));
+
+            oneLoginService.setPrivacyPolicy(sub);
+            final ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
+            verify(userRepository).save(userArgumentCaptor.capture());
+            Assertions.assertEquals(true, userArgumentCaptor.getValue().getAcceptedPrivacyPolicy());
+        }
+
+        @Test
+        void shouldThrowExceptionWhenSubDoesNotExist() {
+            when(userRepository.findBySub(anyString())).thenReturn(Optional.empty());
+
+            Assertions.assertThrows(UserNotFoundException.class, () -> oneLoginService.setPrivacyPolicy(""));
+        }
+    }
+
     private Claims getClaims(String jwtToken) throws NoSuchAlgorithmException, InvalidKeySpecException {
 
             byte[] publicKeyBytes = Base64.getDecoder().decode(testKeyPair.get("public"));
