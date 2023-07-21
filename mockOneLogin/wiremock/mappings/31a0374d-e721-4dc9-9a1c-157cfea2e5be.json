@@ -1,0 +1,12 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/authorize"
+  },
+  "response": {
+    "status": 302,
+    "headers": {
+      "Location": "http://localhost:8082/v2/redirect-after-login?code=qwertyuiop"
+    }
+  }
+}
