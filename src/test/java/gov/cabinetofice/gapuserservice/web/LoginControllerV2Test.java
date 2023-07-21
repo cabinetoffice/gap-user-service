@@ -2,6 +2,7 @@ package gov.cabinetofice.gapuserservice.web;
 
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
+import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
 import gov.cabinetofice.gapuserservice.model.Department;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
@@ -19,12 +20,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
 
 import java.util.HashMap;
-import java.sql.Ref;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -282,6 +283,59 @@ class LoginControllerV2Test {
             claims.put("email", "email");
             claims.put("roles", "[APPLICANT, FIND]");
             verify(customJwtService).generateToken(claims);
+        }
+    }
+
+    @Nested
+    class privacyPolicy {
+        @Test
+        void whenPrivacyPolicyPageHasNotBeenAccepted_UserIsSentBackToPrivacyPolicyPage() {
+            final PrivacyPolicyDto privacyPolicyDto = PrivacyPolicyDto.builder().acceptPrivacyPolicy("no").build();
+            final BindingResult result = Mockito.mock(BindingResult.class);
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+            final Optional<String> redirectUrl = Optional.of("redirectUrl");
+
+            String mockJwt ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdWIiLCJlbWFpbCI6ImVtYWlsIiwicm9sZXMiOlsiRklORCIsIkFQUExJQ0FOVCJdfQ.MrlNeug1Wos6UYKgwSBHxFw0XxdgQvcCdO-Xi3RMqBk";
+            mockedStatic.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                    .thenReturn(new Cookie("userServiceCookieName", mockJwt));
+            when(result.hasErrors()).thenReturn(true);
+
+            final ModelAndView methodResponse = loginController.showPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            assertThat(methodResponse.getViewName()).isEqualTo(LoginControllerV2.PRIVACY_POLICY_PAGE_VIEW);
+        }
+
+        @Test
+        void whenPrivacyPolicyPageHasBeenAccepted_UserIsSentToProvidedRedirectUrl() {
+            final PrivacyPolicyDto privacyPolicyDto = PrivacyPolicyDto.builder().acceptPrivacyPolicy("yes").build();
+            final BindingResult result = Mockito.mock(BindingResult.class);
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+            final Optional<String> redirectUrl = Optional.of("redirectUrl");
+
+            String mockJwt ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdWIiLCJlbWFpbCI6ImVtYWlsIiwicm9sZXMiOlsiRklORCIsIkFQUExJQ0FOVCJdfQ.MrlNeug1Wos6UYKgwSBHxFw0XxdgQvcCdO-Xi3RMqBk";
+            mockedStatic.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                    .thenReturn(new Cookie("userServiceCookieName", mockJwt));
+            when(result.hasErrors()).thenReturn(false);
+
+            final ModelAndView methodResponse = loginController.showPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            assertThat(methodResponse.getViewName()).isEqualTo("redirect:"+redirectUrl.get());
+            verify(oneLoginService).setPrivacyPolicy("sub");
+        }
+
+        @Test
+        void whenPrivacyPolicyPageHasBeenAccepted_UserIsSentToDefaultRedirectUrl() {
+            final PrivacyPolicyDto privacyPolicyDto = PrivacyPolicyDto.builder().acceptPrivacyPolicy("yes").build();
+            final BindingResult result = Mockito.mock(BindingResult.class);
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+            final Optional<String> redirectUrl = Optional.empty();
+
+            String mockJwt ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdWIiLCJlbWFpbCI6ImVtYWlsIiwicm9sZXMiOlsiRklORCIsIkFQUExJQ0FOVCJdfQ.MrlNeug1Wos6UYKgwSBHxFw0XxdgQvcCdO-Xi3RMqBk";
+            mockedStatic.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                    .thenReturn(new Cookie("userServiceCookieName", mockJwt));
+            when(result.hasErrors()).thenReturn(false);
+
+            final ModelAndView methodResponse = loginController.showPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            assertThat(methodResponse.getViewName()).isEqualTo("redirect:"+configProperties.getDefaultRedirectUrl());
+            verify(oneLoginService).setPrivacyPolicy("sub");
         }
     }
 }
