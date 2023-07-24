@@ -1,7 +1,10 @@
 package gov.cabinetofice.gapuserservice.web;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
+import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
@@ -10,14 +13,13 @@ import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
@@ -25,8 +27,6 @@ import org.springframework.web.util.WebUtils;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
-import static gov.cabinetofice.gapuserservice.web.LoginController.REDIRECT_URL_COOKIE;
 
 @RequiredArgsConstructor
 @Controller
@@ -39,7 +39,11 @@ public class LoginControllerV2 {
     private final CustomJwtServiceImpl customJwtService;
     private final ApplicationConfigProperties configProperties;
 
+    public static final String PRIVACY_POLICY_PAGE_VIEW = "privacy-policy";
+
     public static final String NOTICE_PAGE_VIEW = "notice-page";
+
+    private static final String REDIRECT_URL_COOKIE = "redirectUrl";
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
@@ -90,19 +94,19 @@ public class LoginControllerV2 {
 
         if (userOptional.isPresent()) {
             final User user = userOptional.get();
-            if (user.hasSub()) return getRedirectView(user, redirectUrl);
+            if (user.hasSub()) return getRedirectView(user, response, redirectUrl);
             if (user.isApplicant()) {
                 // TODO GAP-1922: Create migration page with a yes/no option
                 return new RedirectView("/should-migrate-data");
             } else {
                 // TODO GAP-1932: Migrate cola user data to this admin
                 oneLoginService.addSubToUser(userInfo.getSub(), user.getEmailAddress());
-                return getRedirectView(user, redirectUrl);
+                return getRedirectView(user, response, redirectUrl);
             }
         }
 
         final User user = oneLoginService.createUser(userInfo.getSub(), userInfo.getEmailAddress());
-        return getRedirectView(user, redirectUrl);
+        return getRedirectView(user, response, redirectUrl);
     }
 
     private Cookie generateCustomJwtCookie(final OneLoginUserInfoDto userInfo, final Optional<User> userOptional) {
@@ -128,16 +132,48 @@ public class LoginControllerV2 {
         );
     }
 
-    private RedirectView getRedirectView(final User user, final Optional<String> redirectUrl) {
-        if(user.isSuperAdmin()) return new RedirectView(adminBaseUrl + "?redirectUrl=/super-admin-dashboard");
-        if(user.isAdmin()) return new RedirectView(adminBaseUrl + "?redirectUrl=/dashboard");
-        return new RedirectView((redirectUrl.orElse(configProperties.getDefaultRedirectUrl())));
+    private Cookie makeRedirectCookie(String redirectUrl) {
+        return WebUtil.buildCookie(
+                new Cookie(REDIRECT_URL_COOKIE, redirectUrl),
+                Boolean.TRUE,
+                Boolean.TRUE,
+                null
+        );
+    }
+
+    private RedirectView getRedirectView(final User user, final HttpServletResponse response, final @CookieValue(name = REDIRECT_URL_COOKIE) Optional<String> redirectUrl) {
+        if(user.isAdmin()) response.addCookie(makeRedirectCookie( adminBaseUrl + "?redirectUrl=/dashboard"));
+        if(user.isSuperAdmin()) response.addCookie(makeRedirectCookie( adminBaseUrl + "?redirectUrl=/super-admin-dashboard"));
+
+        if (user.getAcceptedPrivacyPolicy()) {
+            return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
+        } else {
+            return new RedirectView(PRIVACY_POLICY_PAGE_VIEW);
+        }
     }
 
     @GetMapping("/notice-page")
     public ModelAndView showNoticePage() {
         return new ModelAndView(NOTICE_PAGE_VIEW)
                 .addObject("loginUrl", oneLoginService.getOneLoginAuthorizeUrl());
+    }
+
+    @GetMapping("/privacy-policy")
+    public ModelAndView showPrivacyPolicyPage(final @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto) {
+        return new ModelAndView(PRIVACY_POLICY_PAGE_VIEW);
+    }
+
+    @PostMapping("/privacy-policy")
+    public ModelAndView showPrivacyPolicyPage(final @Valid @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto, final BindingResult result, final HttpServletRequest request, final @CookieValue(name = REDIRECT_URL_COOKIE) Optional<String> redirectUrl) {
+        final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
+        DecodedJWT jwt = JWT.decode(customJWTCookie.getValue());
+
+        if (result.hasErrors()) {
+            return new ModelAndView(PRIVACY_POLICY_PAGE_VIEW);
+        }
+
+        oneLoginService.setPrivacyPolicy(jwt.getSubject());
+        return new ModelAndView("redirect:"+redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
     }
 
 }
