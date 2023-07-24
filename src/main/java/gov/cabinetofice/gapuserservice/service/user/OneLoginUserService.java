@@ -2,10 +2,11 @@ package gov.cabinetofice.gapuserservice.service.user;
 
 import gov.cabinetofice.gapuserservice.dto.UserDto;
 import gov.cabinetofice.gapuserservice.exceptions.DepartmentNotFoundException;
+import gov.cabinetofice.gapuserservice.exceptions.RoleNotFoundException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
-import gov.cabinetofice.gapuserservice.mappers.UserMapper;
 import gov.cabinetofice.gapuserservice.model.Department;
 import gov.cabinetofice.gapuserservice.model.Role;
+import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.DepartmentRepository;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
@@ -24,12 +25,11 @@ public class OneLoginUserService {
 
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
-    private final UserMapper userMapper;
     private final RoleRepository roleRepository;
 
     public List<UserDto> getPaginatedUsers(Pageable pageable) {
         return userRepository.findAll(pageable).stream()
-                .map(userMapper::userToUserDto)
+                .map(UserDto::new)
                 .collect(Collectors.toList());
     }
 
@@ -68,6 +68,15 @@ public class OneLoginUserService {
             Role role = roleRepository.findById(roleId).orElseThrow();
             user.addRole(role);
         }
+        if (user.getRoles().stream().noneMatch(role -> role.getName().equals(RoleEnum.APPLICANT))) {
+            Role role = roleRepository.findByName(RoleEnum.APPLICANT).orElseThrow(() -> new RoleNotFoundException("Update Roles failed: Applicant role not found"));
+            user.addRole(role);
+        }
+        if (user.getRoles().stream().noneMatch(role -> role.getName().equals(RoleEnum.FIND))) {
+            Role role = roleRepository.findByName(RoleEnum.FIND).orElseThrow(() -> new RoleNotFoundException("Update Roles failed: Find role not found"));
+            user.addRole(role);
+        }
+
         userRepository.save(user);
         return user;
     }

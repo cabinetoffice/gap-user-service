@@ -4,6 +4,7 @@ import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
 import gov.cabinetofice.gapuserservice.dto.RoleDto;
 import gov.cabinetofice.gapuserservice.dto.SuperAdminDashboardPageDto;
 import gov.cabinetofice.gapuserservice.dto.UserDto;
+import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
@@ -45,8 +46,10 @@ class SuperAdminControllerTest {
         List<DepartmentDto> departments = List.of(DepartmentDto.builder().id("1").build(),
                 DepartmentDto.builder().id("2").build());
         List<RoleDto> roles = List.of(RoleDto.builder().id("1").build(), RoleDto.builder().id("2").build());
-        List<UserDto> users = List.of(UserDto.builder().gapUserId("1").build(),
-                UserDto.builder().gapUserId("2").build());
+        List<UserDto> users = List.of(
+                new UserDto(User.builder().gapUserId(1).build()),
+                new UserDto(User.builder().gapUserId(2).build())
+        );
 
         when(departmentService.getAllDepartments()).thenReturn(departments);
         when(roleService.getAllRoles()).thenReturn(roles);

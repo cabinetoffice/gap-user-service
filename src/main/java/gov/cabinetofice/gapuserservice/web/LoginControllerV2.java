@@ -95,7 +95,7 @@ public class LoginControllerV2 {
         if (userOptional.isPresent()) {
             final User user = userOptional.get();
             if (user.hasSub()) return getRedirectView(user, response, redirectUrl);
-            if (user.isApplicant()) {
+            if (!user.isAdmin()) {
                 // TODO GAP-1922: Create migration page with a yes/no option
                 return new RedirectView("/should-migrate-data");
             } else {
