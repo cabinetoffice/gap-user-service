@@ -29,6 +29,9 @@ public class Department {
     @Column(name = "ggis_id")
     private String ggisID;
 
+    @Column(name = "type")
+    private String type;
+
     @Column(name = "users")
     @OneToMany(mappedBy="gapUserId", cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY)
     @ToString.Exclude
