@@ -14,7 +14,7 @@ public class UserTest {
     @Nested
     class isUserApplicant {
         @Test
-        void shouldReturnFalseWhenUserIsAdmin() {
+        void shouldReturnTrueWhenUserIsAdmin() {
             final List<Role> roles = List.of(
                     Role.builder().name(RoleEnum.ADMIN).build(),
                     Role.builder().name(RoleEnum.APPLICANT).build(),
@@ -24,11 +24,11 @@ public class UserTest {
 
             final boolean response = user.isApplicant();
 
-            Assertions.assertFalse(response);
+            Assertions.assertTrue(response);
         }
 
         @Test
-        void shouldReturnFalseWhenUserIsSuperAdmin() {
+        void shouldReturnTrueWhenUserIsSuperAdmin() {
             final List<Role> roles = List.of(
                     Role.builder().name(RoleEnum.SUPER_ADMIN).build(),
                     Role.builder().name(RoleEnum.ADMIN).build(),
@@ -39,7 +39,7 @@ public class UserTest {
 
             final boolean response = user.isApplicant();
 
-            Assertions.assertFalse(response);
+            Assertions.assertTrue(response);
         }
 
         @Test
