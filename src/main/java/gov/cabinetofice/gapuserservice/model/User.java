@@ -29,6 +29,9 @@ public class User {
     @Column(name = "sub")
     private String sub;
 
+    @Column(name = "accepted_privacy_policy")
+    private Boolean acceptedPrivacyPolicy;
+
     @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY, mappedBy = "users")
     @ToString.Exclude
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
@@ -77,7 +80,7 @@ public class User {
     public Role getRole() {
         if(isSuperAdmin()) return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.SUPER_ADMIN)).findFirst().get();
         if(isAdmin()) return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.ADMIN)).findFirst().get();
-        if(isApplicant()) this.roles.stream().filter(role -> role.getName().equals(RoleEnum.APPLICANT)).findFirst().get();
+        if(isApplicant()) return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.APPLICANT)).findFirst().get();
         return null;
     }
 

@@ -14,7 +14,7 @@ public class UserTest {
     @Nested
     class isUserApplicant {
         @Test
-        void shouldReturnFalseWhenUserIsAdmin() {
+        void shouldReturnTrueWhenUserIsAdmin() {
             final List<Role> roles = List.of(
                     Role.builder().name(RoleEnum.ADMIN).build(),
                     Role.builder().name(RoleEnum.APPLICANT).build(),
@@ -24,11 +24,11 @@ public class UserTest {
 
             final boolean response = user.isApplicant();
 
-            Assertions.assertFalse(response);
+            Assertions.assertTrue(response);
         }
 
         @Test
-        void shouldReturnFalseWhenUserIsSuperAdmin() {
+        void shouldReturnTrueWhenUserIsSuperAdmin() {
             final List<Role> roles = List.of(
                     Role.builder().name(RoleEnum.SUPER_ADMIN).build(),
                     Role.builder().name(RoleEnum.ADMIN).build(),
@@ -39,7 +39,7 @@ public class UserTest {
 
             final boolean response = user.isApplicant();
 
-            Assertions.assertFalse(response);
+            Assertions.assertTrue(response);
         }
 
         @Test
@@ -215,6 +215,57 @@ public class UserTest {
             final boolean response = user.hasDepartment();
 
             Assertions.assertFalse(response);
+        }
+    }
+
+    @Nested
+    class getRole {
+        @Test
+        void shouldReturnSuperAdmin() {
+            final User user = User.builder().roles(List.of(
+                    Role.builder().name(RoleEnum.SUPER_ADMIN).build(),
+                    Role.builder().name(RoleEnum.ADMIN).build(),
+                    Role.builder().name(RoleEnum.APPLICANT).build(),
+                    Role.builder().name(RoleEnum.FIND).build()
+            )).build();
+
+            final Role response = user.getRole();
+
+            Assertions.assertEquals(RoleEnum.SUPER_ADMIN, response.getName());
+        }
+
+        @Test
+        void shouldReturnAdmin() {
+            final User user = User.builder().roles(List.of(
+                    Role.builder().name(RoleEnum.ADMIN).build(),
+                    Role.builder().name(RoleEnum.APPLICANT).build(),
+                    Role.builder().name(RoleEnum.FIND).build()
+            )).build();
+
+            final Role response = user.getRole();
+
+            Assertions.assertEquals(RoleEnum.ADMIN, response.getName());
+        }
+
+        @Test
+        void shouldReturnApplicant() {
+            final User user = User.builder().roles(List.of(
+                    Role.builder().name(RoleEnum.APPLICANT).build(),
+                    Role.builder().name(RoleEnum.FIND).build()
+            )).build();
+
+            final Role response = user.getRole();
+
+            Assertions.assertEquals(RoleEnum.APPLICANT, response.getName());
+        }
+
+        @Test
+        void shouldReturnNull() {
+            final User user = User.builder().roles(List.of()).build();
+
+            final Role response = user.getRole();
+
+            Assertions.assertNull(response);
         }
     }
 }
