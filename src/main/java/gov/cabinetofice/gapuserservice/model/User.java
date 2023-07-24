@@ -77,7 +77,7 @@ public class User {
     public Role getRole() {
         if(isSuperAdmin()) return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.SUPER_ADMIN)).findFirst().get();
         if(isAdmin()) return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.ADMIN)).findFirst().get();
-        if(isApplicant()) this.roles.stream().filter(role -> role.getName().equals(RoleEnum.APPLICANT)).findFirst().get();
+        if(isApplicant()) return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.APPLICANT)).findFirst().get();
         return null;
     }
 

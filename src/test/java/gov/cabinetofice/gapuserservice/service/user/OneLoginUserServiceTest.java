@@ -106,16 +106,15 @@ public class OneLoginUserServiceTest {
 
         when(userRepository.findAll(pageable)).thenReturn(userPage);
 
-//        UserDto userDto1 = UserDto.builder().gapUserId("1").build();
-//        UserDto userDto2 = UserDto.builder().gapUserId("2").build();
-//        when(userMapper.userToUserDto(user1)).thenReturn(userDto1);
-//        when(userMapper.userToUserDto(user2)).thenReturn(userDto2);
+
+        UserDto userDto1 = new UserDto(user1);
+        UserDto userDto2 = new UserDto(user2);
 
         List<UserDto> result = oneLoginUserService.getPaginatedUsers(pageable);
 
         assertEquals(2, result.size());
-//        assertEquals(userDto1, result.get(0));
-//        assertEquals(userDto2, result.get(1));
+        assertEquals(userDto1, result.get(0));
+        assertEquals(userDto2, result.get(1));
     }
 
     @Test
