@@ -224,14 +224,7 @@ class LoginControllerV2Test {
             final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrl, response, "a-custom-valid-token");
 
             verify(oneLoginService).addSubToUser("sub", "email");
-            assertThat(methodResponse.getUrl()).isEqualTo(redirectUrl.get());
-
-            final Cookie redirectUrlCookie = new Cookie(LoginController.REDIRECT_URL_COOKIE, "adminBaseUrl" + "?redirectUrl=/dashboard");
-            redirectUrlCookie.setSecure(true);
-            redirectUrlCookie.setHttpOnly(true);
-            redirectUrlCookie.setPath("/");
-            verify(response).addCookie(redirectUrlCookie);
-
+            assertThat(methodResponse.getUrl()).isEqualTo("adminBaseUrl?redirectUrl=/dashboard");
 
             verify(response).addCookie(customJwtCookie);
             final Map<String, String> claims = new HashMap<>();
@@ -259,13 +252,7 @@ class LoginControllerV2Test {
             final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrl, response, "a-custom-valid-token");
 
             verify(oneLoginService).addSubToUser("sub", "email");
-            assertThat(methodResponse.getUrl()).isEqualTo(redirectUrl.get());
-
-            final Cookie redirectUrlCookie = new Cookie(LoginController.REDIRECT_URL_COOKIE, "adminBaseUrl" + "?redirectUrl=/super-admin-dashboard");
-            redirectUrlCookie.setSecure(true);
-            redirectUrlCookie.setHttpOnly(true);
-            redirectUrlCookie.setPath("/");
-            verify(response).addCookie(redirectUrlCookie);
+            assertThat(methodResponse.getUrl()).isEqualTo("adminBaseUrl?redirectUrl=/super-admin-dashboard");
 
             verify(response).addCookie(customJwtCookie);
             final Map<String, String> claims = new HashMap<>();

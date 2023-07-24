@@ -141,13 +141,14 @@ public class LoginControllerV2 {
         );
     }
 
-    private RedirectView getRedirectView(final User user, final HttpServletResponse response, final @CookieValue(name = REDIRECT_URL_COOKIE) Optional<String> redirectUrl) {
-        if(user.isAdmin()) response.addCookie(makeRedirectCookie( adminBaseUrl + "?redirectUrl=/dashboard"));
-        if(user.isSuperAdmin()) response.addCookie(makeRedirectCookie( adminBaseUrl + "?redirectUrl=/super-admin-dashboard"));
-
+    private RedirectView getRedirectView(final User user, final HttpServletResponse response, final @CookieValue(name = REDIRECT_URL_COOKIE) Optional<String> redirectUrlCookie) {
         if (user.getAcceptedPrivacyPolicy()) {
-            return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
+            if (user.isSuperAdmin()) return new RedirectView(adminBaseUrl + "?redirectUrl=/super-admin-dashboard");
+            if (user.isAdmin()) return new RedirectView(adminBaseUrl + "?redirectUrl=/dashboard");
+            return new RedirectView(redirectUrlCookie.orElse(configProperties.getDefaultRedirectUrl()));
         } else {
+            if (user.isSuperAdmin()) response.addCookie(makeRedirectCookie(adminBaseUrl + "?redirectUrl=/super-admin-dashboard"));
+            else if (user.isAdmin()) response.addCookie(makeRedirectCookie(adminBaseUrl + "?redirectUrl=/dashboard"));
             return new RedirectView(PRIVACY_POLICY_PAGE_VIEW);
         }
     }
