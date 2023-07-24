@@ -29,6 +29,9 @@ public class User {
     @Column(name = "sub")
     private String sub;
 
+    @Column(name = "accepted_privacy_policy")
+    private Boolean acceptedPrivacyPolicy;
+
     @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY, mappedBy = "users")
     @ToString.Exclude
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })

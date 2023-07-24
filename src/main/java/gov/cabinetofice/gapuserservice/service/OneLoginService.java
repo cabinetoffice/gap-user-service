@@ -11,7 +11,9 @@ import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.apache.http.HttpHeaders;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -128,6 +130,7 @@ public class OneLoginService {
         final User user = User.builder()
                 .sub(sub)
                 .emailAddress(email)
+                .acceptedPrivacyPolicy(false)
                 .build();
         final List<RoleEnum> newUserRoles = getNewUserRoles();
         for (RoleEnum roleEnum : newUserRoles) {
@@ -141,6 +144,12 @@ public class OneLoginService {
     public void addSubToUser(final String sub, final String email) {
         final User user = userRepository.findByEmailAddress(email).orElseThrow(() -> new UserNotFoundException("Could not add sub to user: User with email '" + email + "' not found"));
         user.setSub(sub);
+        userRepository.save(user);
+    }
+
+    public void setPrivacyPolicy(final String sub) {
+        final User user = userRepository.findBySub(sub).orElseThrow(() -> new UserNotFoundException("Could not accept privacy policy for user: User with sub '" + sub + "' not found"));
+        user.setAcceptedPrivacyPolicy(true);
         userRepository.save(user);
     }
 
