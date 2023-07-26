@@ -3,6 +3,7 @@ package gov.cabinetofice.gapuserservice.web;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
+import gov.cabinetofice.gapuserservice.config.FindAGrantConfigProperties;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
 import gov.cabinetofice.gapuserservice.model.Role;
@@ -38,6 +39,8 @@ public class LoginControllerV2 {
     private final OneLoginService oneLoginService;
     private final CustomJwtServiceImpl customJwtService;
     private final ApplicationConfigProperties configProperties;
+
+    private final FindAGrantConfigProperties findProperties;
 
     public static final String PRIVACY_POLICY_PAGE_VIEW = "privacy-policy";
 
@@ -156,7 +159,8 @@ public class LoginControllerV2 {
     @GetMapping("/notice-page")
     public ModelAndView showNoticePage() {
         return new ModelAndView(NOTICE_PAGE_VIEW)
-                .addObject("loginUrl", oneLoginService.getOneLoginAuthorizeUrl());
+                .addObject("loginUrl", oneLoginService.getOneLoginAuthorizeUrl())
+                .addObject("homePageUrl", findProperties.getUrl());
     }
 
     @GetMapping("/privacy-policy")
