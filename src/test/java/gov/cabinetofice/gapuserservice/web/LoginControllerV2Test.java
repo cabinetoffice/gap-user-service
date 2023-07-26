@@ -1,6 +1,7 @@
 package gov.cabinetofice.gapuserservice.web;
 
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
+import gov.cabinetofice.gapuserservice.config.FindAGrantConfigProperties;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
 import gov.cabinetofice.gapuserservice.model.Department;
@@ -45,6 +46,9 @@ class LoginControllerV2Test {
     private ApplicationConfigProperties configProperties;
 
     @Mock
+    private FindAGrantConfigProperties findProperties;
+
+    @Mock
     private CustomJwtServiceImpl customJwtService;
 
     private static MockedStatic<WebUtils> mockedStatic;
@@ -57,7 +61,7 @@ class LoginControllerV2Test {
                 .defaultRedirectUrl("https://www.find-government-grants.service.gov.uk/")
                 .build();
 
-        loginController = new LoginControllerV2(oneLoginService, customJwtService, configProperties);
+        loginController = new LoginControllerV2(oneLoginService, customJwtService, configProperties, findProperties);
         ReflectionTestUtils.setField(loginController, "oneLoginBaseUrl", "oneLoginBaseUrl");
         ReflectionTestUtils.setField(loginController, "userServiceCookieName", "userServiceCookieName");
         ReflectionTestUtils.setField(loginController, "adminBaseUrl", "adminBaseUrl");
