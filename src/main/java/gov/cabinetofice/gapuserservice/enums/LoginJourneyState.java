@@ -8,8 +8,17 @@ public enum LoginJourneyState {
     CREATING_NEW_USER {
         @Override
         public LoginJourneyState nextState(final OneLoginService oneLoginService, final User user) {
-            oneLoginService.createNewUser(user.getSub(), user.getEmailAddress());
+            oneLoginService.setUsersLoginJourneyState(user, PRIVACY_POLICY_PENDING);
             return PRIVACY_POLICY_PENDING;
+        }
+    },
+
+    PRIVACY_POLICY_PENDING {
+        @Override
+        public LoginJourneyState nextState(final OneLoginService oneLoginService, final User user) {
+            oneLoginService.setPrivacyPolicy(user);
+            oneLoginService.setUsersLoginJourneyState(user, PRIVACY_POLICY_ACCEPTED);
+            return PRIVACY_POLICY_ACCEPTED.nextState(oneLoginService, user);
         }
 
         @Override
@@ -18,51 +27,31 @@ public enum LoginJourneyState {
         }
     },
 
-    PRIVACY_POLICY_PENDING {
-        @Override
-        public LoginJourneyState nextState(final OneLoginService oneLoginService, final User user) {
-            super.nextState(oneLoginService, user);
-            oneLoginService.setPrivacyPolicy(user);
-            return PRIVACY_POLICY_ACCEPTED.nextState(oneLoginService, user);
-        }
-    },
-
     PRIVACY_POLICY_ACCEPTED {
         @Override
         public LoginJourneyState nextState(final OneLoginService oneLoginService, final User user) {
-            super.nextState(oneLoginService, user);
-            final RoleEnum roleEnum = user.getRole().getName();
-            return switch (roleEnum) {
-                case SUPER_ADMIN, ADMIN -> ADMIN_READY;
-                case APPLICANT, FIND -> APPLICANT_READY;
-            };
+            return USER_READY.nextState(oneLoginService, user);
         }
     },
 
-    ADMIN_READY {
+    USER_READY {
+        @Override
+        public LoginJourneyState nextState(OneLoginService oneLoginService, User user) {
+            oneLoginService.setUsersLoginJourneyState(user, this);
+            return this;
+        }
+
         @Override
         public LoginJourneyRedirect getRedirectUrl(final RoleEnum role) {
             return switch (role) {
                 case SUPER_ADMIN -> LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD;
                 case ADMIN -> LoginJourneyRedirect.ADMIN_DASHBOARD;
-                default -> throw new RuntimeException("Invalid role");
+                case APPLICANT, FIND -> LoginJourneyRedirect.APPLICANT_APP;
             };
-        }
-    },
-
-    APPLICANT_READY {
-        @Override
-        public LoginJourneyRedirect getRedirectUrl(final RoleEnum role) {
-            return LoginJourneyRedirect.APPLICANT_APP;
         }
     };
 
-
-    public LoginJourneyState nextState(final OneLoginService oneLoginService,
-                                       final User user) {
-        oneLoginService.setUsersLoginJourneyState(user, this);
-        return this;
-    }
+    public abstract LoginJourneyState nextState(final OneLoginService oneLoginService, final User user);
 
     public LoginJourneyRedirect getRedirectUrl(final RoleEnum role) {
         return null;

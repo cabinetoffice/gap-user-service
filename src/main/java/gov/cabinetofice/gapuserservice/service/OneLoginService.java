@@ -69,6 +69,7 @@ public class OneLoginService {
                 .sub(sub)
                 .emailAddress(email)
                 .acceptedPrivacyPolicy(false)
+                .loginJourneyState(LoginJourneyState.CREATING_NEW_USER)
                 .build();
         final List<RoleEnum> newUserRoles = getNewUserRoles();
         for (RoleEnum roleEnum : newUserRoles) {
@@ -140,11 +141,7 @@ public class OneLoginService {
 
     public User createOrGetUserFromInfo(OneLoginUserInfoDto userInfo) {
         final Optional<User> userOptional = getUserFromSub(userInfo.getSub());
-        return userOptional.orElseGet(() -> User.builder()
-                .emailAddress(userInfo.getEmailAddress())
-                .sub(userInfo.getSub())
-                .loginJourneyState(LoginJourneyState.CREATING_NEW_USER)
-                .build());
+        return userOptional.orElseGet(() -> createNewUser(userInfo.getSub(), userInfo.getEmailAddress()));
     }
 
     private String createOneLoginJwt() {

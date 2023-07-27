@@ -57,7 +57,7 @@ public class LoginControllerV2 {
 
     @GetMapping("/login")
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    public RedirectView login(final @RequestParam Optional<String> redirectUrlParam,
+    public RedirectView login(final @RequestParam Optional<String> redirectUrl,
                               final HttpServletRequest request,
                               final HttpServletResponse response) {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
@@ -66,14 +66,14 @@ public class LoginControllerV2 {
                 && customJwtService.isTokenValid(customJWTCookie.getValue());
 
         if (!isTokenValid) {
-            final Cookie redirectUrlCookie = WebUtil.buildSecureCookie(REDIRECT_URL_COOKIE, redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl()));
+            final Cookie redirectUrlCookie = WebUtil.buildSecureCookie(REDIRECT_URL_COOKIE, redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
             response.addCookie(redirectUrlCookie);
 
             // TODO Decide on where to set and evaluate nonce and state
             return new RedirectView(NOTICE_PAGE_VIEW);
         }
 
-        return new RedirectView(redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl()));
+        return new RedirectView(redirectUrl.orElse(configProperties.getDefaultRedirectUrl()));
     }
 
     @GetMapping("/redirect-after-login")
