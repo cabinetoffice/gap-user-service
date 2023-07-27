@@ -265,7 +265,7 @@ public class OneLoginServiceTest {
             oneLoginService.setPrivacyPolicy(sub);
             final ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
             verify(userRepository).save(userArgumentCaptor.capture());
-            Assertions.assertEquals(true, userArgumentCaptor.getValue().getAcceptedPrivacyPolicy());
+            Assertions.assertTrue(userArgumentCaptor.getValue().hasAcceptedPrivacyPolicy());
         }
 
         @Test
