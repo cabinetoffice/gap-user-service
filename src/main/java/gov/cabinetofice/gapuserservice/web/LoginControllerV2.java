@@ -125,7 +125,7 @@ public class LoginControllerV2 {
 
     private String runStateMachine(final String redirectUrlCookie, final User user) {
         final LoginJourneyState newLoginJourneyState = user.getLoginJourneyState().nextState(oneLoginService, user);
-        final LoginJourneyRedirect loginJourneyRedirect = newLoginJourneyState.getRedirectUrl(user.getRole().getName());
+        final LoginJourneyRedirect loginJourneyRedirect = newLoginJourneyState.getLoginJourneyRedirect(user.getRole().getName());
         return loginJourneyRedirect.getRedirectUrl(adminBaseUrl, redirectUrlCookie);
     }
 }

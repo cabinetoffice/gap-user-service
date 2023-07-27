@@ -22,7 +22,7 @@ public enum LoginJourneyState {
         }
 
         @Override
-        public LoginJourneyRedirect getRedirectUrl(final RoleEnum role) {
+        public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
             return LoginJourneyRedirect.PRIVACY_POLICY_PAGE;
         }
     },
@@ -42,7 +42,7 @@ public enum LoginJourneyState {
         }
 
         @Override
-        public LoginJourneyRedirect getRedirectUrl(final RoleEnum role) {
+        public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
             return switch (role) {
                 case SUPER_ADMIN -> LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD;
                 case ADMIN -> LoginJourneyRedirect.ADMIN_DASHBOARD;
@@ -53,7 +53,7 @@ public enum LoginJourneyState {
 
     public abstract LoginJourneyState nextState(final OneLoginService oneLoginService, final User user);
 
-    public LoginJourneyRedirect getRedirectUrl(final RoleEnum role) {
+    public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
         throw new UnsupportedOperationException("Error, make sure the enums next state function eventually ends up on a state that has a redirect URL");
     }
 }
