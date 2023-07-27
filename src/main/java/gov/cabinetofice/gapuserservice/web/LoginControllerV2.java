@@ -6,8 +6,6 @@ import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.FindAGrantConfigProperties;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
-import gov.cabinetofice.gapuserservice.enums.LoginJourneyRedirect;
-import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -124,8 +122,8 @@ public class LoginControllerV2 {
     }
 
     private String runStateMachine(final String redirectUrlCookie, final User user) {
-        final LoginJourneyState newLoginJourneyState = user.getLoginJourneyState().nextState(oneLoginService, user);
-        final LoginJourneyRedirect loginJourneyRedirect = newLoginJourneyState.getLoginJourneyRedirect(user.getRole().getName());
-        return loginJourneyRedirect.getRedirectUrl(adminBaseUrl, redirectUrlCookie);
+        return user.getLoginJourneyState().nextState(oneLoginService, user)
+                .getLoginJourneyRedirect(user.getRole().getName())
+                .getRedirectUrl(adminBaseUrl, redirectUrlCookie);
     }
 }
