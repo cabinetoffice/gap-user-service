@@ -9,6 +9,7 @@ import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyRedirect;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
+import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
@@ -121,7 +122,8 @@ public class LoginControllerV2 {
 
         final DecodedJWT decodedJwt = JWT.decode(customJWTCookie.getValue());
         final User user = oneLoginService.getUserFromSub(decodedJwt.getSubject())
-                .orElseThrow(() -> new UnauthorizedException("No user found")); // TODO more appropriate error
+                .orElseThrow(() -> new UserNotFoundException("Privacy policy: Could not fetch user from jwt"));
+
         final LoginJourneyState newLoginJourneyState = user.getLoginJourneyState().nextState(oneLoginService, user);
         final LoginJourneyRedirect loginJourneyRedirect = newLoginJourneyState.getRedirectUrl(user.getRole().getName());
         return new ModelAndView("redirect:" + getRedirectUrlAsString(loginJourneyRedirect, redirectUrlCookie));
