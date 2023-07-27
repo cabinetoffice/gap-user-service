@@ -126,15 +126,6 @@ public class LoginControllerV2 {
     private String runStateMachine(final String redirectUrlCookie, final User user) {
         final LoginJourneyState newLoginJourneyState = user.getLoginJourneyState().nextState(oneLoginService, user);
         final LoginJourneyRedirect loginJourneyRedirect = newLoginJourneyState.getRedirectUrl(user.getRole().getName());
-        return getRedirectUrlAsString(loginJourneyRedirect, redirectUrlCookie);
-    }
-
-    private String getRedirectUrlAsString(final LoginJourneyRedirect loginJourneyRedirect, final String redirectUrlCookie) {
-        return switch (loginJourneyRedirect) {
-            case SUPER_ADMIN_DASHBOARD -> adminBaseUrl + "?redirectUrl=/super-admin-dashboard";
-            case ADMIN_DASHBOARD -> adminBaseUrl + "?redirectUrl=/dashboard";
-            case PRIVACY_POLICY_PAGE -> PRIVACY_POLICY_PAGE_VIEW;
-            case APPLICANT_APP -> redirectUrlCookie;
-        };
+        return loginJourneyRedirect.getRedirectUrl(adminBaseUrl, redirectUrlCookie);
     }
 }
