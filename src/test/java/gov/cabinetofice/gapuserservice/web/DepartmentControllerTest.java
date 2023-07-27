@@ -31,7 +31,7 @@ public class DepartmentControllerTest {
     @Test
     void getAllDepartments_returnsArrayOfDepartments() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        final List<DepartmentDto> departments = List.of(DepartmentDto.builder().name("Cabinet office").id("1").ggisID("a ggid").build());
+        final List<DepartmentDto> departments = List.of(DepartmentDto.builder().name("Cabinet office").id("1").ggisID("ggis").build());
         when(departmentService.getAllDepartments())
                 .thenReturn(departments);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
@@ -42,7 +42,7 @@ public class DepartmentControllerTest {
     @Test
     void getById_returnsTheCorrectDepartment() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        final Department department = Department.builder().name("Cabinet office").id(1).ggisID("a ggid").build();
+        final Department department = Department.builder().name("Cabinet office").id(1).ggisID("ggis").build();
         when(departmentService.getDepartmentById(1))
                 .thenReturn(department);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
@@ -54,11 +54,11 @@ public class DepartmentControllerTest {
     void updateDepartment() {
         final LinkedHashMap body = new LinkedHashMap();
         body.put("departmentName", "Cabinet office");
-        body.put("ggisId", "a ggid");
+        body.put("ggisId", "ggis");
 
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
-        doNothing().when(departmentService).updateDepartment(1, "Cabinet office" ,"a ggid");
+        when(departmentService.updateDepartment(1, "Cabinet office" ,"ggis")).thenReturn(Department.builder().build());
         final ResponseEntity methodResponse = departmentController.updateDepartment(httpRequest, body, 1);
 
         assertThat(methodResponse.getBody()).isSameAs("Department updated");

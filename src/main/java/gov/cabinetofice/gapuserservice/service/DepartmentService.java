@@ -27,11 +27,11 @@ public class DepartmentService {
         return departmentRepository.findById(id).orElseThrow(() -> new DepartmentNotFoundException("Department not found"));
     }
 
-    public Void updateDepartment(int id, String departmentName, String ggisId) throws DepartmentNotFoundException {
+    public Department updateDepartment(int id, String departmentName, String ggisId) throws DepartmentNotFoundException {
         Department department = departmentRepository.findById(id).orElseThrow(() -> new DepartmentNotFoundException("Department not found"));
          department.setName(departmentName);
          department.setGgisID(ggisId);
          departmentRepository.save(department);
-        return null;
+        return department;
     }
 }

@@ -11,7 +11,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
@@ -43,5 +45,24 @@ public class DepartmentServiceTest {
 
         assertEquals(expectedDepartments, result);
     }
+    @Test
+    void testGetDepartmentById() {
+        Department department = Department.builder().id(1).build();
+        when(departmentRepository.findById(1)).thenReturn(Optional.of(department));
+        Department result = departmentService.getDepartmentById(1);
 
+        assertEquals(department, result);
+    }
+    @Test
+    void testUpdateDepartment() {
+        String newDepartmentName = "new department";
+        String newGgisId = "new ggisid";
+        Department expected = Department.builder().id(1).ggisID(newGgisId).name(newDepartmentName).build();
+
+        Department initialDepartment = Department.builder().id(1).name("Cabinet Office").ggisID("1").build();
+        when(departmentRepository.findById(1)).thenReturn(Optional.of(initialDepartment));
+        Department result = departmentService.updateDepartment(initialDepartment.getId(), newDepartmentName, newGgisId);
+
+        assertThat(result).isEqualToComparingFieldByFieldRecursively(expected);
+    }
 }
