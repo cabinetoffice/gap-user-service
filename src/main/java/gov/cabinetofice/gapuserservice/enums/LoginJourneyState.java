@@ -9,7 +9,7 @@ public enum LoginJourneyState {
         @Override
         public LoginJourneyState nextState(final OneLoginService oneLoginService, final User user) {
             super.nextState(oneLoginService, user);
-            // TODO create new user
+            oneLoginService.createUser(user.getEmailAddress(), user.getSub());
             return PRIVACY_POLICY_PENDING;
         }
 
@@ -23,7 +23,7 @@ public enum LoginJourneyState {
         @Override
         public LoginJourneyState nextState(final OneLoginService oneLoginService, final User user) {
             super.nextState(oneLoginService, user);
-            // TODO set acceptedPrivacyPolicy to true
+            oneLoginService.setPrivacyPolicy(user.getSub());
             return PRIVACY_POLICY_ACCEPTED.nextState(oneLoginService, user);
         }
     },
@@ -32,19 +32,22 @@ public enum LoginJourneyState {
         @Override
         public LoginJourneyState nextState(final OneLoginService oneLoginService, final User user) {
             super.nextState(oneLoginService, user);
-            // TODO fetch role
-            // TODO check if user has matching email
-            // TODO return appropriate next state
-            return PRIVACY_POLICY_ACCEPTED.nextState(oneLoginService, user);
+            final RoleEnum roleEnum = user.getRole().getName();
+            return switch (roleEnum) {
+                case SUPER_ADMIN, ADMIN -> ADMIN_READY;
+                case APPLICANT, FIND -> APPLICANT_READY;
+            };
         }
     },
 
     ADMIN_READY {
         @Override
         public LoginJourneyRedirect getRedirectUrl(final RoleEnum role) {
-            if (role == RoleEnum.SUPER_ADMIN) return LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD;
-            if (role == RoleEnum.ADMIN) return LoginJourneyRedirect.ADMIN_DASHBOARD;
-            throw new RuntimeException("Invalid role");
+            return switch (role) {
+                case SUPER_ADMIN -> LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD;
+                case ADMIN -> LoginJourneyRedirect.ADMIN_DASHBOARD;
+                default -> throw new RuntimeException("Invalid role");
+            };
         }
     },
 
@@ -56,7 +59,8 @@ public enum LoginJourneyState {
     };
 
 
-    public LoginJourneyState nextState(final OneLoginService oneLoginService, final User user) {
+    public LoginJourneyState nextState(final OneLoginService oneLoginService,
+                                       final User user) {
         // TODO set state in the database
         return this;
     }

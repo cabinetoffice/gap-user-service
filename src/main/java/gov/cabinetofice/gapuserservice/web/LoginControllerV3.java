@@ -1,10 +1,17 @@
 package gov.cabinetofice.gapuserservice.web;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.FindAGrantConfigProperties;
+import gov.cabinetofice.gapuserservice.dto.JwtPayload;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyRedirect;
+import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
+import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
+import gov.cabinetofice.gapuserservice.model.RoleEnum;
+import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
@@ -45,9 +52,6 @@ public class LoginControllerV3 {
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
 
-    @Value("${onelogin.base-url}")
-    private String oneLoginBaseUrl;
-
     @Value("${admin-base-url}")
     private String adminBaseUrl;
 
@@ -80,14 +84,19 @@ public class LoginControllerV3 {
         final String authToken = oneLoginService.getAuthToken(jwt, code);
         final OneLoginUserInfoDto userInfo = oneLoginService.getUserInfo(authToken);
 
-        // TODO set user-service-token
-        // TODO check if user exists in DB
-        // TODO grab LoginJourneyState from DB
-        // TODO call nextState
-        // TODO grab redirectUrl from state enum
-        // TODO redirect to redirectUrl
+        final Cookie customJwt = oneLoginService.generateCustomJwtCookie(userInfo);
+        response.addCookie(customJwt);
 
-        return null;
+        final Optional<User> userOptional = oneLoginService.getUserFromSub(userInfo.getSub());
+        final User user = userOptional.orElseGet(() -> User.builder()
+                .emailAddress(userInfo.getEmailAddress())
+                .sub(userInfo.getSub())
+                .loginJourneyState(LoginJourneyState.CREATING_NEW_USER)
+                .build());
+
+        final LoginJourneyState newLoginJourneyState = user.getLoginJourneyState().nextState(oneLoginService, user);
+        final LoginJourneyRedirect loginJourneyRedirect = newLoginJourneyState.getRedirectUrl(user.getRole().getName());
+        return new RedirectView(getRedirectUrlAsString(loginJourneyRedirect, redirectUrlCookie));
     }
 
     @GetMapping("/notice-page")
@@ -110,15 +119,17 @@ public class LoginControllerV3 {
                                               final @CookieValue(name = REDIRECT_URL_COOKIE) String redirectUrlCookie) {
         if (result.hasErrors()) return new ModelAndView(PRIVACY_POLICY_PAGE_VIEW);
 
-        // TODO fetch user
-        // TODO call nextState on users LoginJourneyState
-        // TODO grab redirectUrl from state enum
-        // TODO redirect to redirectUrl
+        final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
+        if (customJWTCookie == null) throw new UnauthorizedException("No cookie found");
 
-        return null;
+        final DecodedJWT decodedJwt = JWT.decode(customJWTCookie.getValue());
+        final User user = oneLoginService.getUserFromSub(decodedJwt.getSubject());
+        final LoginJourneyState newLoginJourneyState = user.getLoginJourneyState().nextState(oneLoginService, user);
+        final LoginJourneyRedirect loginJourneyRedirect = newLoginJourneyState.getRedirectUrl(user.getRole().getName());
+        return new ModelAndView("redirect:" + getRedirectUrlAsString(loginJourneyRedirect, redirectUrlCookie));
     }
 
-    private String getRedirectUrl(final LoginJourneyRedirect loginJourneyRedirect, final String redirectUrlCookie) {
+    private String getRedirectUrlAsString(final LoginJourneyRedirect loginJourneyRedirect, final String redirectUrlCookie) {
         return switch (loginJourneyRedirect) {
             case SUPER_ADMIN_DASHBOARD -> adminBaseUrl + "?redirectUrl=/super-admin-dashboard";
             case ADMIN_DASHBOARD -> adminBaseUrl + "?redirectUrl=/dashboard";
