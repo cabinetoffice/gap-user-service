@@ -228,30 +228,6 @@ public class OneLoginServiceTest {
     }
 
     @Nested
-    class addSubToUser {
-        @Test
-        void shouldSaveUserWithSubWhenUserExists() {
-            final String email = "email@test.com";
-            final User user = User.builder().gapUserId(1).emailAddress(email).build();
-
-            when(userRepository.findByEmailAddress(email)).thenReturn(Optional.of(user));
-
-            oneLoginService.addSubToUser("sub", email);
-
-            final ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
-            verify(userRepository).save(userArgumentCaptor.capture());
-            Assertions.assertEquals("sub", userArgumentCaptor.getValue().getSub());
-        }
-
-        @Test
-        void shouldThrowExceptionWhenUserDoesNotExist() {
-            when(userRepository.findByEmailAddress(anyString())).thenReturn(Optional.empty());
-
-            Assertions.assertThrows(UserNotFoundException.class, () -> oneLoginService.addSubToUser("", ""));
-        }
-    }
-
-    @Nested
     class setPrivacyPolicy{
 
         @Test
@@ -262,7 +238,7 @@ public class OneLoginServiceTest {
 
             when(userRepository.findBySub(sub)).thenReturn(Optional.of(user));
 
-            oneLoginService.setPrivacyPolicy(sub);
+            oneLoginService.setPrivacyPolicy(user);
             final ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
             verify(userRepository).save(userArgumentCaptor.capture());
             Assertions.assertTrue(userArgumentCaptor.getValue().hasAcceptedPrivacyPolicy());
@@ -272,7 +248,7 @@ public class OneLoginServiceTest {
         void shouldThrowExceptionWhenSubDoesNotExist() {
             when(userRepository.findBySub(anyString())).thenReturn(Optional.empty());
 
-            Assertions.assertThrows(UserNotFoundException.class, () -> oneLoginService.setPrivacyPolicy(""));
+            Assertions.assertThrows(UserNotFoundException.class, () -> oneLoginService.setPrivacyPolicy(User.builder().build()));
         }
     }
 

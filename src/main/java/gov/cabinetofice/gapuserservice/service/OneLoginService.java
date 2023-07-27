@@ -144,7 +144,7 @@ public class OneLoginService {
         return userOptional.orElseGet(() -> createNewUser(userInfo.getSub(), userInfo.getEmailAddress()));
     }
 
-    private String createOneLoginJwt() {
+    public String createOneLoginJwt() {
         final PrivateKey privateKey = parsePrivateKey();
 
         return Jwts.builder()
@@ -158,7 +158,7 @@ public class OneLoginService {
                 .compact();
     }
 
-    private OneLoginUserInfoDto getUserInfo(final String accessToken) {
+    public OneLoginUserInfoDto getUserInfo(final String accessToken) {
         try {
             Map<String, String> headers = new HashMap<>();
             headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
@@ -173,7 +173,7 @@ public class OneLoginService {
         }
     }
 
-    private String getAuthToken(final String jwt, final String code) {
+    public String getAuthToken(final String jwt, final String code) {
         final String requestBody = "grant_type=" + GRANT_TYPE +
                 "&code=" + code +
                 "&redirect_uri=" + serviceRedirectUrl +
