@@ -165,7 +165,8 @@ public class LoginControllerV2 {
 
     @GetMapping("/privacy-policy")
     public ModelAndView showPrivacyPolicyPage(final @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto) {
-        return new ModelAndView(PRIVACY_POLICY_PAGE_VIEW);
+        return new ModelAndView(PRIVACY_POLICY_PAGE_VIEW)
+                .addObject("homePageUrl", findProperties.getUrl());
     }
 
     @PostMapping("/privacy-policy")
