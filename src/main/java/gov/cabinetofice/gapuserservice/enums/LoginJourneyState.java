@@ -8,8 +8,7 @@ public enum LoginJourneyState {
     CREATING_NEW_USER {
         @Override
         public LoginJourneyState nextState(final OneLoginService oneLoginService, final User user) {
-            super.nextState(oneLoginService, user);
-            oneLoginService.createUser(user.getEmailAddress(), user.getSub());
+            oneLoginService.createNewUser(user.getSub(), user.getEmailAddress());
             return PRIVACY_POLICY_PENDING;
         }
 
@@ -23,7 +22,7 @@ public enum LoginJourneyState {
         @Override
         public LoginJourneyState nextState(final OneLoginService oneLoginService, final User user) {
             super.nextState(oneLoginService, user);
-            oneLoginService.setPrivacyPolicy(user.getSub());
+            oneLoginService.setPrivacyPolicy(user);
             return PRIVACY_POLICY_ACCEPTED.nextState(oneLoginService, user);
         }
     },
@@ -61,7 +60,7 @@ public enum LoginJourneyState {
 
     public LoginJourneyState nextState(final OneLoginService oneLoginService,
                                        final User user) {
-        // TODO set state in the database
+        oneLoginService.setUsersLoginJourneyState(user, this);
         return this;
     }
 

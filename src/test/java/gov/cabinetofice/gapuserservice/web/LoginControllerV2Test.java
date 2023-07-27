@@ -168,14 +168,14 @@ class LoginControllerV2Test {
 
             when(oneLoginService.getUser("email", "sub"))
                     .thenReturn(Optional.empty());
-            when(oneLoginService.createUser("sub", "email"))
+            when(oneLoginService.createNewUser("sub", "email"))
                     .thenReturn(User.builder().acceptedPrivacyPolicy(false).build());
             when(oneLoginService.getNewUserRoles())
                     .thenReturn(List.of(RoleEnum.APPLICANT, RoleEnum.FIND));
 
             final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrl, response, "a-custom-valid-token");
 
-            verify(oneLoginService).createUser("sub", "email");
+            verify(oneLoginService).createNewUser("sub", "email");
             assertThat(methodResponse.getUrl()).isEqualTo(redirectUrl.get());
 
             verify(response).addCookie(customJwtCookie);
@@ -199,7 +199,7 @@ class LoginControllerV2Test {
 
             final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrl, response, "a-custom-valid-token");
 
-            verify(oneLoginService, times(0)).createUser(anyString(), anyString());
+            verify(oneLoginService, times(0)).createNewUser(anyString(), anyString());
             verify(oneLoginService, times(0)).addSubToUser(anyString(), anyString());
             assertThat(methodResponse.getUrl()).isEqualTo(redirectUrl.get());
 

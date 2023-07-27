@@ -201,7 +201,7 @@ public class OneLoginServiceTest {
             when(roleRepository.findByName(any())).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
             when(userRepository.save(any())).thenReturn(User.builder().roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build())).build());
 
-            final User result = oneLoginService.createUser("", "");
+            final User result = oneLoginService.createNewUser("", "");
 
             Assertions.assertEquals(1, result.getRoles().size());
             Assertions.assertEquals(RoleEnum.APPLICANT, result.getRoles().get(0).getName());
@@ -211,7 +211,7 @@ public class OneLoginServiceTest {
         void shouldSaveUserWithSubAndEmailWhenUserIsCreated() {
             when(roleRepository.findByName(any())).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
 
-            oneLoginService.createUser("sub", "test@email.com");
+            oneLoginService.createNewUser("sub", "test@email.com");
 
             final ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
             verify(userRepository).save(userArgumentCaptor.capture());
@@ -223,7 +223,7 @@ public class OneLoginServiceTest {
         void shouldThrowExceptionWhenRoleDoesNotExist() {
             when(roleRepository.findByName(any())).thenReturn(Optional.empty());
 
-            Assertions.assertThrows(RoleNotFoundException.class, () -> oneLoginService.createUser("", ""));
+            Assertions.assertThrows(RoleNotFoundException.class, () -> oneLoginService.createNewUser("", ""));
         }
     }
 
