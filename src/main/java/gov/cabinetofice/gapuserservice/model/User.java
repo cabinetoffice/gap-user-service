@@ -2,6 +2,7 @@ package gov.cabinetofice.gapuserservice.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -32,6 +33,10 @@ public class User {
     @Column(name = "accepted_privacy_policy")
     @Getter(AccessLevel.NONE)
     private Boolean acceptedPrivacyPolicy;
+
+    @Column(name = "login_journey_state")
+    @Enumerated(EnumType.STRING)
+    private LoginJourneyState loginJourneyState;
 
     @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY, mappedBy = "users")
     @ToString.Exclude
