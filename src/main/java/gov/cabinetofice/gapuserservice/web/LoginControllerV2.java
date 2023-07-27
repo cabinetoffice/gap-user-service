@@ -82,12 +82,8 @@ public class LoginControllerV2 {
                                            final @RequestParam String code) {
         final OneLoginUserInfoDto userInfo = oneLoginService.getOneLoginUserInfoDto(code);
         final User user = oneLoginService.createOrGetUserFromInfo(userInfo);
-
         addCustomJwtCookie(response, userInfo);
-
-        final LoginJourneyState newLoginJourneyState = user.getLoginJourneyState().nextState(oneLoginService, user);
-        final LoginJourneyRedirect loginJourneyRedirect = newLoginJourneyState.getRedirectUrl(user.getRole().getName());
-        return new RedirectView(getRedirectUrlAsString(loginJourneyRedirect, redirectUrlCookie));
+        return new RedirectView(runStateMachine(redirectUrlCookie, user));
     }
 
     private void addCustomJwtCookie(HttpServletResponse response, OneLoginUserInfoDto userInfo) {
@@ -123,10 +119,13 @@ public class LoginControllerV2 {
         final DecodedJWT decodedJwt = JWT.decode(customJWTCookie.getValue());
         final User user = oneLoginService.getUserFromSub(decodedJwt.getSubject())
                 .orElseThrow(() -> new UserNotFoundException("Privacy policy: Could not fetch user from jwt"));
+        return new ModelAndView("redirect:" + runStateMachine(redirectUrlCookie, user));
+    }
 
+    private String runStateMachine(final String redirectUrlCookie, final User user) {
         final LoginJourneyState newLoginJourneyState = user.getLoginJourneyState().nextState(oneLoginService, user);
         final LoginJourneyRedirect loginJourneyRedirect = newLoginJourneyState.getRedirectUrl(user.getRole().getName());
-        return new ModelAndView("redirect:" + getRedirectUrlAsString(loginJourneyRedirect, redirectUrlCookie));
+        return getRedirectUrlAsString(loginJourneyRedirect, redirectUrlCookie);
     }
 
     private String getRedirectUrlAsString(final LoginJourneyRedirect loginJourneyRedirect, final String redirectUrlCookie) {
@@ -137,5 +136,4 @@ public class LoginControllerV2 {
             case APPLICANT_APP -> redirectUrlCookie;
         };
     }
-
 }
