@@ -139,7 +139,7 @@ public class OneLoginService {
         return getUserInfo(authToken);
     }
 
-    public User createOrGetUserFromInfo(OneLoginUserInfoDto userInfo) {
+    public User createOrGetUserFromInfo(final OneLoginUserInfoDto userInfo) {
         final Optional<User> userOptional = getUserFromSub(userInfo.getSub());
         return userOptional.orElseGet(() -> createNewUser(userInfo.getSub(), userInfo.getEmailAddress()));
     }
