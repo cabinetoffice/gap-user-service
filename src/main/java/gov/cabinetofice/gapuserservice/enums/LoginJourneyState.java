@@ -54,6 +54,6 @@ public enum LoginJourneyState {
     public abstract LoginJourneyState nextState(final OneLoginService oneLoginService, final User user);
 
     public LoginJourneyRedirect getRedirectUrl(final RoleEnum role) {
-        return null;
+        throw new UnsupportedOperationException("Error, make sure the enums next state function eventually ends up on a state that has a redirect URL");
     }
 }

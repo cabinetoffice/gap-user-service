@@ -104,7 +104,7 @@ public class LoginControllerV2 {
                                               final BindingResult result,
                                               final HttpServletRequest request,
                                               final @CookieValue(name = REDIRECT_URL_NAME) String redirectUrlCookie) {
-        if (result.hasErrors()) return new ModelAndView(PRIVACY_POLICY_PAGE_VIEW);
+        if (result.hasErrors()) return showPrivacyPolicyPage(privacyPolicyDto);
         final User user = getUserFromRequest(request).orElseThrow(() -> new UserNotFoundException("Privacy policy: Could not fetch user from jwt"));
         return new ModelAndView("redirect:" + runStateMachine(redirectUrlCookie, user));
     }
