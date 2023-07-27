@@ -145,7 +145,7 @@ public class LoginControllerV2 {
     }
 
     private RedirectView getRedirectView(final User user, final HttpServletResponse response, final @CookieValue(name = REDIRECT_URL_COOKIE) Optional<String> redirectUrlCookie) {
-        if (user.getAcceptedPrivacyPolicy()) {
+        if (user.hasAcceptedPrivacyPolicy()) {
             if (user.isSuperAdmin()) return new RedirectView(adminBaseUrl + "?redirectUrl=/super-admin-dashboard");
             if (user.isAdmin()) return new RedirectView(adminBaseUrl + "?redirectUrl=/dashboard");
             return new RedirectView(redirectUrlCookie.orElse(configProperties.getDefaultRedirectUrl()));

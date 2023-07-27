@@ -30,6 +30,7 @@ public class User {
     private String sub;
 
     @Column(name = "accepted_privacy_policy")
+    @Getter(AccessLevel.NONE)
     private Boolean acceptedPrivacyPolicy;
 
     @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY, mappedBy = "users")
@@ -61,6 +62,10 @@ public class User {
 
     public boolean hasDepartment() {
         return this.department != null;
+    }
+
+    public boolean hasAcceptedPrivacyPolicy() {
+        return this.acceptedPrivacyPolicy;
     }
 
     public boolean isApplicant() {
