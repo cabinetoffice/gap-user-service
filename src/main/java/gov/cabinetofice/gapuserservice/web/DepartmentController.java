@@ -7,10 +7,7 @@ import gov.cabinetofice.gapuserservice.service.RoleService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -39,4 +36,28 @@ public class DepartmentController {
 
             return ResponseEntity.ok("Department updated");
         }
+
+    @DeleteMapping("/department/{id}")
+    public ResponseEntity<String> deleteDepartment(final HttpServletRequest httpRequest,
+                                                       @PathVariable final int id) {
+            if (!roleService.isSuperAdmin(httpRequest)) {
+                throw new ForbiddenException();
+            }
+
+            departmentService.deleteDepartment(id);
+
+            return ResponseEntity.ok("Department deleted");
+        }
+
+    @PostMapping("/department")
+    public ResponseEntity<String> createDepartment(final HttpServletRequest httpRequest,
+                                                       @RequestBody final DepartmentDto department) {
+            if (!roleService.isSuperAdmin(httpRequest)) {
+                throw new ForbiddenException();
+            }
+
+            departmentService.createDepartment(department.getName(), department.getGgisID());
+            return ResponseEntity.ok("Department created");
+        }
+
     }
