@@ -23,12 +23,15 @@ public class DepartmentService {
                 .collect(Collectors.toList());
     }
 
-    public Void updateDepartment(int id) {
+    public Department getDepartmentById(int id) {
+        return departmentRepository.findById(id).orElseThrow(() -> new DepartmentNotFoundException("Department not found"));
+    }
+
+    public Void updateDepartment(int id, String departmentName, String ggisId) throws DepartmentNotFoundException {
         Department department = departmentRepository.findById(id).orElseThrow(() -> new DepartmentNotFoundException("Department not found"));
-        //FIXME
-        // department.setName("new name");
-        // department.setGgisID("new name2");
-        // departmentRepository.save(department);
+         department.setName(departmentName);
+         department.setGgisID(ggisId);
+         departmentRepository.save(department);
         return null;
     }
 }
