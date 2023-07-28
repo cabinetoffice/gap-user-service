@@ -148,7 +148,7 @@ class LoginControllerV2Test {
         final User.UserBuilder userBuilder = User.builder()
                 .emailAddress("email")
                 .sub("sub")
-                .loginJourneyState(LoginJourneyState.CREATING_NEW_USER)
+                .loginJourneyState(LoginJourneyState.PRIVACY_POLICY_PENDING)
                 .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
                 .acceptedPrivacyPolicy(false);
 

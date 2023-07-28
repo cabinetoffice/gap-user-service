@@ -248,14 +248,14 @@ public class OneLoginServiceTest {
         @Test
         void shouldSetUsersLoginJourneyState() {
             final User user = User.builder()
-                    .loginJourneyState(LoginJourneyState.CREATING_NEW_USER)
+                    .loginJourneyState(LoginJourneyState.PRIVACY_POLICY_PENDING)
                     .build();
 
-            oneLoginService.setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_PENDING);
+            oneLoginService.setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
 
             final ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
             verify(userRepository).save(userArgumentCaptor.capture());
-            assertThat(userArgumentCaptor.getValue().getLoginJourneyState()).isEqualTo(LoginJourneyState.PRIVACY_POLICY_PENDING);
+            assertThat(userArgumentCaptor.getValue().getLoginJourneyState()).isEqualTo(LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
         }
     }
 

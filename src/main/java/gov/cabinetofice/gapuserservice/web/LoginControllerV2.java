@@ -81,7 +81,9 @@ public class LoginControllerV2 {
         final OneLoginUserInfoDto userInfo = oneLoginService.getOneLoginUserInfoDto(code);
         final User user = oneLoginService.createOrGetUserFromInfo(userInfo);
         addCustomJwtCookie(response, userInfo);
-        return new RedirectView(runStateMachine(redirectUrlCookie, user));
+        return new RedirectView(user.getLoginJourneyState()
+                .getLoginJourneyRedirect(user.getRole().getName())
+                .getRedirectUrl(adminBaseUrl, redirectUrlCookie));
     }
 
     @GetMapping("/notice-page")
@@ -123,7 +125,7 @@ public class LoginControllerV2 {
 
     private String runStateMachine(final String redirectUrlCookie, final User user) {
         return user.getLoginJourneyState().nextState(oneLoginService, user)
-                .getLoginJourneyRedirect(user.getRole().getName())
-                .getRedirectUrl(adminBaseUrl, redirectUrlCookie);
+                    .getLoginJourneyRedirect(user.getRole().getName())
+                    .getRedirectUrl(adminBaseUrl, redirectUrlCookie);
     }
 }

@@ -5,14 +5,6 @@ import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
 
 public enum LoginJourneyState {
-    CREATING_NEW_USER {
-        @Override
-        public LoginJourneyState nextState(final OneLoginService oneLoginService, final User user) {
-            oneLoginService.setUsersLoginJourneyState(user, PRIVACY_POLICY_PENDING);
-            return PRIVACY_POLICY_PENDING;
-        }
-    },
-
     PRIVACY_POLICY_PENDING {
         @Override
         public LoginJourneyState nextState(final OneLoginService oneLoginService, final User user) {
