@@ -2,10 +2,7 @@ package gov.cabinetofice.gapuserservice.service;
 
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
-import gov.cabinetofice.gapuserservice.exceptions.AuthenticationException;
-import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
-import gov.cabinetofice.gapuserservice.exceptions.PrivateKeyParsingException;
-import gov.cabinetofice.gapuserservice.exceptions.RoleNotFoundException;
+import gov.cabinetofice.gapuserservice.exceptions.*;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -115,21 +112,13 @@ public class OneLoginService {
     }
 
     public Map<String, String> generateCustomJwtClaims(final OneLoginUserInfoDto userInfo) {
+        final User user = getUserFromSub(userInfo.getSub())
+                .orElseThrow(() -> new UserNotFoundException("User not found when generating custom jwt claims"));
         final Map<String, String> claims = new HashMap<>();
         claims.put("email", userInfo.getEmailAddress());
         claims.put("sub", userInfo.getSub());
-
-        final Optional<User> userOptional = getUserFromSub(userInfo.getSub());
-        if (userOptional.isPresent()) {
-            final User user = userOptional.get();
-            claims.put("roles", user.getRoles().stream().map(Role::getName).toList().toString());
-            if (user.hasDepartment()) {
-                claims.put("department", user.getDepartment().getName());
-            }
-        } else {
-            claims.put("roles", this.getNewUserRoles().toString());
-        }
-
+        claims.put("roles", user.getRoles().stream().map(Role::getName).toList().toString());
+        if (user.hasDepartment()) claims.put("department", user.getDepartment().getName());
         return claims;
     }
 
