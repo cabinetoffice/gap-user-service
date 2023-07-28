@@ -282,12 +282,14 @@ class LoginControllerV2Test {
                     .sub("sub")
                     .loginJourneyState(LoginJourneyState.PRIVACY_POLICY_PENDING)
                     .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
+                    .acceptedPrivacyPolicy(true)
                     .build();
 
             mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
                     .thenReturn(new Cookie("userServiceCookieName", mockJwt));
             when(result.hasErrors()).thenReturn(false);
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
+            when(oneLoginService.setPrivacyPolicy(user)).thenReturn(user);
 
             final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
 
@@ -307,12 +309,14 @@ class LoginControllerV2Test {
                     .sub("sub")
                     .loginJourneyState(LoginJourneyState.PRIVACY_POLICY_PENDING)
                     .roles(List.of(Role.builder().name(RoleEnum.ADMIN).build()))
+                    .acceptedPrivacyPolicy(true)
                     .build();
 
             mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
                     .thenReturn(new Cookie("userServiceCookieName", mockJwt));
             when(result.hasErrors()).thenReturn(false);
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
+            when(oneLoginService.setPrivacyPolicy(user)).thenReturn(user);
 
             final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
 
@@ -332,12 +336,14 @@ class LoginControllerV2Test {
                     .sub("sub")
                     .loginJourneyState(LoginJourneyState.PRIVACY_POLICY_PENDING)
                     .roles(List.of(Role.builder().name(RoleEnum.SUPER_ADMIN).build()))
+                    .acceptedPrivacyPolicy(true)
                     .build();
 
             mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
                     .thenReturn(new Cookie("userServiceCookieName", mockJwt));
             when(result.hasErrors()).thenReturn(false);
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
+            when(oneLoginService.setPrivacyPolicy(user)).thenReturn(user);
 
             final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
 

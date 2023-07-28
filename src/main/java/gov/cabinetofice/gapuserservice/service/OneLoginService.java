@@ -77,9 +77,9 @@ public class OneLoginService {
         return userRepository.save(user);
     }
 
-    public void setPrivacyPolicy(final User user) {
+    public User setPrivacyPolicy(final User user) {
         user.setAcceptedPrivacyPolicy(true);
-        userRepository.save(user);
+        return userRepository.save(user);
     }
 
     public String generateNonce() {
