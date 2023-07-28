@@ -1,7 +1,10 @@
 package gov.cabinetofice.gapuserservice.service;
 
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
-import gov.cabinetofice.gapuserservice.exceptions.*;
+import gov.cabinetofice.gapuserservice.exceptions.AuthenticationException;
+import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
+import gov.cabinetofice.gapuserservice.exceptions.PrivateKeyParsingException;
+import gov.cabinetofice.gapuserservice.exceptions.RoleNotFoundException;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -29,7 +32,6 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 
 import static io.jsonwebtoken.impl.crypto.RsaProvider.generateKeyPair;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -228,27 +230,21 @@ public class OneLoginServiceTest {
     }
 
     @Nested
-    class setPrivacyPolicy{
-
+    class setPrivacyPolicy {
         @Test
         void shouldSetPrivacyPolicyToTrueWhenUserExists() {
-            final String email = "test@test.com";
-            final String sub = "sub";
-            final User user = User.builder().gapUserId(1).emailAddress(email).sub(sub).acceptedPrivacyPolicy(false).build();
-
-            when(userRepository.findBySub(sub)).thenReturn(Optional.of(user));
+            final User user = User.builder()
+                    .gapUserId(1)
+                    .emailAddress("test@test.com")
+                    .sub("sub")
+                    .acceptedPrivacyPolicy(false)
+                    .build();
 
             oneLoginService.setPrivacyPolicy(user);
+
             final ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
             verify(userRepository).save(userArgumentCaptor.capture());
             Assertions.assertTrue(userArgumentCaptor.getValue().hasAcceptedPrivacyPolicy());
-        }
-
-        @Test
-        void shouldThrowExceptionWhenSubDoesNotExist() {
-            when(userRepository.findBySub(anyString())).thenReturn(Optional.empty());
-
-            Assertions.assertThrows(UserNotFoundException.class, () -> oneLoginService.setPrivacyPolicy(User.builder().build()));
         }
     }
 
