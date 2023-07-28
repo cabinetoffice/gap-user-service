@@ -8,6 +8,7 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.Verification;
 import com.nimbusds.jose.JOSEException;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
+import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.JwtBlacklistRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
@@ -84,8 +85,7 @@ public class CustomJwtServiceImplTest {
                     staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
                     staticJwt.when(() -> decode(any())).thenCallRealMethod();
                     when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
-                    when(userRepository.findBySub(any())).thenReturn(Optional.of(User.builder().acceptedPrivacyPolicy(true).build()));
-
+                    when(userRepository.findBySub(any())).thenReturn(Optional.of(User.builder().loginJourneyState(LoginJourneyState.USER_READY).build()));
 
                     final boolean response = serviceUnderTest.isTokenValid(jwt);
                     assertThat(response).isTrue();
@@ -126,7 +126,7 @@ public class CustomJwtServiceImplTest {
                     staticJwt.when(() -> decode(any())).thenCallRealMethod();
                     when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
                     when(jwtBlacklistRepository.existsByJwtIs(jwt)).thenReturn(true);
-                    when(userRepository.findBySub(any())).thenReturn(Optional.of(User.builder().acceptedPrivacyPolicy(true).build()));
+                    when(userRepository.findBySub(any())).thenReturn(Optional.of(User.builder().loginJourneyState(LoginJourneyState.USER_READY).build()));
 
                     final boolean response = serviceUnderTest.isTokenValid(jwt);
 
@@ -148,7 +148,7 @@ public class CustomJwtServiceImplTest {
                     staticJwt.when(() -> decode(any())).thenCallRealMethod();
                     when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
                     staticAlgorithm.when(() -> RSA256(any(), any())).thenReturn(mockAlgorithm);
-                    when(userRepository.findBySub(any())).thenReturn(Optional.of(User.builder().acceptedPrivacyPolicy(true).build()));
+                    when(userRepository.findBySub(any())).thenReturn(Optional.of(User.builder().loginJourneyState(LoginJourneyState.USER_READY).build()));
 
                     serviceUnderTest.isTokenValid(jwt);
 

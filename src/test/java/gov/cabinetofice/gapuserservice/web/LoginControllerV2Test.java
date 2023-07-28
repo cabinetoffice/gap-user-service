@@ -149,8 +149,7 @@ class LoginControllerV2Test {
                 .emailAddress("email")
                 .sub("sub")
                 .loginJourneyState(LoginJourneyState.PRIVACY_POLICY_PENDING)
-                .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
-                .acceptedPrivacyPolicy(false);
+                .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()));
 
         @Test
         void shouldFetchOneLoginUserInfo() {
@@ -268,7 +267,6 @@ class LoginControllerV2Test {
 
             final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
             assertThat(methodResponse.getViewName()).isEqualTo(LoginControllerV2.PRIVACY_POLICY_PAGE_VIEW);
-            verify(oneLoginService, times(0)).setPrivacyPolicy(any());
             verify(oneLoginService,  times(0)).setUsersLoginJourneyState(any(), any());
         }
 
@@ -292,7 +290,6 @@ class LoginControllerV2Test {
             final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:" + redirectUrl);
-            verify(oneLoginService).setPrivacyPolicy(user);
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.USER_READY);
         }
@@ -317,7 +314,6 @@ class LoginControllerV2Test {
             final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/adminBaseUrl?redirectUrl=/dashboard");
-            verify(oneLoginService).setPrivacyPolicy(user);
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.USER_READY);
         }
@@ -342,7 +338,6 @@ class LoginControllerV2Test {
             final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/adminBaseUrl?redirectUrl=/super-admin-dashboard");
-            verify(oneLoginService).setPrivacyPolicy(user);
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.USER_READY);
         }

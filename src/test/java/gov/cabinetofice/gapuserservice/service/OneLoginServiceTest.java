@@ -228,22 +228,6 @@ public class OneLoginServiceTest {
     }
 
     @Nested
-    class setPrivacyPolicy {
-        @Test
-        void shouldSetPrivacyPolicyToTrueWhenUserExists() {
-            final User user = User.builder()
-                    .acceptedPrivacyPolicy(false)
-                    .build();
-
-            oneLoginService.setPrivacyPolicy(user);
-
-            final ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
-            verify(userRepository).save(userArgumentCaptor.capture());
-            Assertions.assertTrue(userArgumentCaptor.getValue().hasAcceptedPrivacyPolicy());
-        }
-    }
-
-    @Nested
     class setUsersLoginJourneyState {
         @Test
         void shouldSetUsersLoginJourneyState() {

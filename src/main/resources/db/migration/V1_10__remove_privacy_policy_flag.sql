@@ -1,0 +1,1 @@
+ALTER TABLE gap_users DROP COLUMN accepted_privacy_policy;
