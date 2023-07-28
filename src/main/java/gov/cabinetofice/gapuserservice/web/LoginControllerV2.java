@@ -92,17 +92,17 @@ public class LoginControllerV2 {
     }
 
     @GetMapping("/privacy-policy")
-    public ModelAndView showPrivacyPolicyPage(final @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto) {
+    public ModelAndView submitToPrivacyPolicyPage(final @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto) {
         return new ModelAndView(PRIVACY_POLICY_PAGE_VIEW)
                 .addObject("homePageUrl", findProperties.getUrl());
     }
 
     @PostMapping("/privacy-policy")
-    public ModelAndView showPrivacyPolicyPage(final @Valid @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto,
-                                              final BindingResult result,
-                                              final HttpServletRequest request,
-                                              final @CookieValue(name = REDIRECT_URL_NAME) String redirectUrlCookie) {
-        if (result.hasErrors()) return showPrivacyPolicyPage(privacyPolicyDto);
+    public ModelAndView submitToPrivacyPolicyPage(final @Valid @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto,
+                                                  final BindingResult result,
+                                                  final HttpServletRequest request,
+                                                  final @CookieValue(name = REDIRECT_URL_NAME) String redirectUrlCookie) {
+        if (result.hasErrors()) return submitToPrivacyPolicyPage(privacyPolicyDto);
         final User user = getUserFromRequest(request).orElseThrow(() -> new UserNotFoundException("Privacy policy: Could not fetch user from jwt"));
         return new ModelAndView("redirect:" + runStateMachine(redirectUrlCookie, user));
     }
