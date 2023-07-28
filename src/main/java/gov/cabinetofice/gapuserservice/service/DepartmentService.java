@@ -31,7 +31,6 @@ public class DepartmentService {
         Department department = departmentRepository.findById(id).orElseThrow(() -> new DepartmentNotFoundException("Department not found"));
          department.setName(departmentName);
          department.setGgisID(ggisId);
-         departmentRepository.save(department);
-        return department;
+        return departmentRepository.save(department);
     }
 }
