@@ -4,15 +4,19 @@ import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.FindAGrantConfigProperties;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
-import gov.cabinetofice.gapuserservice.model.Department;
+import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
@@ -26,7 +30,6 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -51,25 +54,24 @@ class LoginControllerV2Test {
     @Mock
     private CustomJwtServiceImpl customJwtService;
 
-    private static MockedStatic<WebUtils> mockedStatic;
+    private static MockedStatic<WebUtils> mockedWebUtils;
 
     @BeforeEach
     void setUp() {
-        mockedStatic = mockStatic(WebUtils.class);
+        mockedWebUtils = mockStatic(WebUtils.class);
 
         configProperties = ApplicationConfigProperties.builder()
                 .defaultRedirectUrl("https://www.find-government-grants.service.gov.uk/")
                 .build();
 
         loginController = new LoginControllerV2(oneLoginService, customJwtService, configProperties, findProperties);
-        ReflectionTestUtils.setField(loginController, "oneLoginBaseUrl", "oneLoginBaseUrl");
         ReflectionTestUtils.setField(loginController, "userServiceCookieName", "userServiceCookieName");
-        ReflectionTestUtils.setField(loginController, "adminBaseUrl", "adminBaseUrl");
+        ReflectionTestUtils.setField(loginController, "adminBaseUrl", "/adminBaseUrl");
     }
 
     @AfterEach
     public void close() {
-        mockedStatic.close();
+        mockedWebUtils.close();
     }
 
     @Nested
@@ -98,7 +100,7 @@ class LoginControllerV2Test {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final MockHttpServletRequest request = new MockHttpServletRequest();
 
-            mockedStatic.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
                     .thenReturn(new Cookie(LoginController.REDIRECT_URL_COOKIE, customToken));
             when(customJwtService.isTokenValid(customToken))
                     .thenReturn(true);
@@ -116,7 +118,7 @@ class LoginControllerV2Test {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final MockHttpServletRequest request = new MockHttpServletRequest();
 
-            mockedStatic.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
                     .thenReturn(new Cookie(LoginController.REDIRECT_URL_COOKIE, customToken));
             when(customJwtService.isTokenValid(customToken))
                     .thenReturn(true);
@@ -141,225 +143,208 @@ class LoginControllerV2Test {
     @Nested
     class redirectAfterLogin {
 
-        final static Cookie customJwtCookie = new Cookie("userServiceCookieName", "a-custom-valid-token");
+        final String redirectUrlCookie = "redirectUrl";
+        final String code = "code";
+        final User.UserBuilder userBuilder = User.builder()
+                .emailAddress("email")
+                .sub("sub")
+                .loginJourneyState(LoginJourneyState.CREATING_NEW_USER)
+                .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
+                .acceptedPrivacyPolicy(false);
 
-        @BeforeAll
-        static void beforeAll() {
-            customJwtCookie.setSecure(true);
-            customJwtCookie.setHttpOnly(true);
-            customJwtCookie.setPath("/");
-        }
+        @Test
+        void shouldFetchOneLoginUserInfo() {
+            final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
 
-        @BeforeEach
-        void beforeEach() {
-            when(oneLoginService.getUserInfo(null))
-                    .thenReturn(OneLoginUserInfoDto.builder()
-                            .sub("sub")
-                            .emailAddress("email")
-                            .build());
-            when(customJwtService.generateToken(any()))
-                    .thenReturn("a-custom-valid-token");
+            when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(userBuilder.build());
+
+            loginController.redirectAfterLogin(redirectUrlCookie, response, code);
+
+            verify(oneLoginService).getOneLoginUserInfoDto(code);
         }
 
         @Test
-        void shouldCreateNewUser_WhenNoUserFound() {
+        void shouldCreateOrGetUserFromOneLoginInfo() {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
-            final Optional<String> redirectUrl = Optional.of("privacy-policy");
+            final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
+                    .emailAddress("email")
+                    .sub("sub")
+                    .build();
 
-            when(oneLoginService.getUser("email", "sub"))
-                    .thenReturn(Optional.empty());
-            when(oneLoginService.createUser("sub", "email"))
-                    .thenReturn(User.builder().acceptedPrivacyPolicy(false).build());
-            when(oneLoginService.getNewUserRoles())
-                    .thenReturn(List.of(RoleEnum.APPLICANT, RoleEnum.FIND));
+            when(oneLoginService.getOneLoginUserInfoDto(code)).thenReturn(oneLoginUserInfoDto);
+            when(oneLoginService.createOrGetUserFromInfo(oneLoginUserInfoDto)).thenReturn(userBuilder.build());
 
-            final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrl, response, "a-custom-valid-token");
+            loginController.redirectAfterLogin(redirectUrlCookie, response, code);
 
-            verify(oneLoginService).createUser("sub", "email");
-            assertThat(methodResponse.getUrl()).isEqualTo(redirectUrl.get());
-
-            verify(response).addCookie(customJwtCookie);
-            final Map<String, String> claims = new HashMap<>();
-            claims.put("sub", "sub");
-            claims.put("email", "email");
-            claims.put("roles", "[APPLICANT, FIND]");
-            verify(customJwtService).generateToken(claims);
+            verify(oneLoginService).createOrGetUserFromInfo(oneLoginUserInfoDto);
         }
 
         @Test
-        void shouldDoNothing_WhenUserFoundWithSub() {
+        void shouldCreateJwtCookie() {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
-            final Optional<String> redirectUrl = Optional.of("redirectUrl");
-            final User user = User.builder().sub("sub").emailAddress("email").acceptedPrivacyPolicy(true).roles(List.of(
-                    Role.builder().name(RoleEnum.APPLICANT).build()
-            )).build();
+            final Map<String, String> claims = Map.of("claim1", "value1", "claim2", "value2");
+            final Cookie cookie = WebUtil.buildSecureCookie("userServiceCookieName", "jwtToken");
 
-            when(oneLoginService.getUser("email", "sub"))
-                    .thenReturn(Optional.of(user));
+            when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(userBuilder.build());
+            when(oneLoginService.generateCustomJwtClaims(any())).thenReturn(claims);
+            when(customJwtService.generateToken(claims)).thenReturn("jwtToken");
 
-            final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrl, response, "a-custom-valid-token");
+            loginController.redirectAfterLogin(redirectUrlCookie, response, code);
 
-            verify(oneLoginService, times(0)).createUser(anyString(), anyString());
-            verify(oneLoginService, times(0)).addSubToUser(anyString(), anyString());
-            assertThat(methodResponse.getUrl()).isEqualTo(redirectUrl.get());
-
-            verify(response).addCookie(customJwtCookie);
-            final Map<String, String> claims = new HashMap<>();
-            claims.put("sub", "sub");
-            claims.put("email", "email");
-            claims.put("roles", "[APPLICANT]");
-            verify(customJwtService).generateToken(claims);
+            verify(response).addCookie(cookie);
         }
 
         @Test
-        void shouldUpdateUser_WhenUserFoundWithoutSub_AndIsAdmin() {
+        void shouldRedirectToPrivacyPolicyPage_whenItHasNotBeenAccepted() {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
-            final Optional<String> redirectUrl = Optional.of("redirectUrl");
-            final User user = User.builder().emailAddress("email").acceptedPrivacyPolicy(true).roles(List.of(
-                    Role.builder().name(RoleEnum.ADMIN).build(),
-                    Role.builder().name(RoleEnum.APPLICANT).build(),
-                    Role.builder().name(RoleEnum.FIND).build()
-            )).department(Department.builder().name("department").build()).
-                    build();
 
-            when(oneLoginService.getUser("email", "sub"))
-                    .thenReturn(Optional.of(user));
+            when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(userBuilder.build());
 
-            final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrl, response, "a-custom-valid-token");
+            final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrlCookie, response, code);
 
-            verify(oneLoginService).addSubToUser("sub", "email");
-            assertThat(methodResponse.getUrl()).isEqualTo("adminBaseUrl?redirectUrl=/dashboard");
-
-            verify(response).addCookie(customJwtCookie);
-            final Map<String, String> claims = new HashMap<>();
-            claims.put("sub", "sub");
-            claims.put("email", "email");
-            claims.put("roles", "[ADMIN, APPLICANT, FIND]");
-            claims.put("department", "department");
-            verify(customJwtService).generateToken(claims);
-        }
-
-        @Test
-        void shouldUpdateUser_WhenUserFoundWithoutSub_AndIsSuperAdmin() {
-            final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
-            final Optional<String> redirectUrl = Optional.of("redirectUrl");
-            final User user = User.builder().emailAddress("email").acceptedPrivacyPolicy(true).roles(List.of(
-                    Role.builder().name(RoleEnum.SUPER_ADMIN).build(),
-                    Role.builder().name(RoleEnum.ADMIN).build(),
-                    Role.builder().name(RoleEnum.APPLICANT).build(),
-                    Role.builder().name(RoleEnum.FIND).build()
-            )).build();
-
-            when(oneLoginService.getUser("email", "sub"))
-                    .thenReturn(Optional.of(user));
-
-            final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrl, response, "a-custom-valid-token");
-
-            verify(oneLoginService).addSubToUser("sub", "email");
-            assertThat(methodResponse.getUrl()).isEqualTo("adminBaseUrl?redirectUrl=/super-admin-dashboard");
-
-            verify(response).addCookie(customJwtCookie);
-            final Map<String, String> claims = new HashMap<>();
-            claims.put("sub", "sub");
-            claims.put("email", "email");
-            claims.put("roles", "[SUPER_ADMIN, ADMIN, APPLICANT, FIND]");
-            verify(customJwtService).generateToken(claims);
-        }
-
-        @Test
-        void shouldGoToMigrateDataPage_WhenUserFoundWithoutSub_AndIsAnApplicant() {
-            final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
-            final Optional<String> redirectUrl = Optional.of("redirectUrl");
-            final User user = User.builder().emailAddress("email").roles(List.of(
-                    Role.builder().name(RoleEnum.APPLICANT).build(),
-                    Role.builder().name(RoleEnum.FIND).build()
-            )).build();
-
-            when(oneLoginService.getUser("email", "sub"))
-                    .thenReturn(Optional.of(user));
-
-            final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrl, response, "a-custom-valid-token");
-
-            assertThat(methodResponse.getUrl()).isEqualTo("/should-migrate-data");
-
-            verify(response).addCookie(customJwtCookie);
-            final Map<String, String> claims = new HashMap<>();
-            claims.put("sub", "sub");
-            claims.put("email", "email");
-            claims.put("roles", "[APPLICANT, FIND]");
-            verify(customJwtService).generateToken(claims);
-        }
-
-        @Test
-        void shouldRedirectToPolicyPage_WhenUserHasNotAccepted() {
-            final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
-            final Optional<String> redirectUrl = Optional.of("redirectUrl");
-            final User user = User.builder().emailAddress("email").acceptedPrivacyPolicy(false).roles(List.of(
-                            Role.builder().name(RoleEnum.ADMIN).build(),
-                            Role.builder().name(RoleEnum.APPLICANT).build(),
-                            Role.builder().name(RoleEnum.FIND).build()
-                    )).department(Department.builder().name("department").build()).
-                    build();
-
-            when(oneLoginService.getUser("email", "sub"))
-                    .thenReturn(Optional.of(user));
-
-            final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrl, response, "a-custom-valid-token");
             assertThat(methodResponse.getUrl()).isEqualTo("privacy-policy");
         }
 
+        @Test
+        void shouldRedirectToSADashboard_whenUserIsSA() {
+            final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+            final User user = userBuilder
+                    .roles(List.of(Role.builder().name(RoleEnum.SUPER_ADMIN).build()))
+                    .loginJourneyState(LoginJourneyState.USER_READY)
+                    .build();
+
+            when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
+
+            final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrlCookie, response, code);
+
+            assertThat(methodResponse.getUrl()).isEqualTo("/adminBaseUrl?redirectUrl=/super-admin-dashboard");
+        }
+
+        @Test
+        void shouldRedirectToAdminDashboard_whenUserIsAdmin() {
+            final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+            final User user = userBuilder
+                    .roles(List.of(Role.builder().name(RoleEnum.ADMIN).build()))
+                    .loginJourneyState(LoginJourneyState.USER_READY)
+                    .build();
+
+            when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
+
+            final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrlCookie, response, code);
+
+            assertThat(methodResponse.getUrl()).isEqualTo("/adminBaseUrl?redirectUrl=/dashboard");
+        }
+
+        @Test
+        void shouldRedirectToRedirectUrlCookie_whenUserIsApplicant() {
+            final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+            final User user = userBuilder
+                    .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
+                    .loginJourneyState(LoginJourneyState.USER_READY)
+                    .build();
+
+            when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
+
+            final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrlCookie, response, code);
+
+            assertThat(methodResponse.getUrl()).isEqualTo(redirectUrlCookie);
+        }
     }
 
     @Nested
     class privacyPolicy {
+        private final String mockJwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdWIiLCJlbWFpbCI6ImVtYWlsIiwicm9sZXMiOlsiRklORCIsIkFQUExJQ0FOVCJdfQ.MrlNeug1Wos6UYKgwSBHxFw0XxdgQvcCdO-Xi3RMqBk";
+
         @Test
         void whenPrivacyPolicyPageHasNotBeenAccepted_UserIsSentBackToPrivacyPolicyPage() {
             final PrivacyPolicyDto privacyPolicyDto = PrivacyPolicyDto.builder().acceptPrivacyPolicy("no").build();
             final BindingResult result = Mockito.mock(BindingResult.class);
             final MockHttpServletRequest request = new MockHttpServletRequest();
-            final Optional<String> redirectUrl = Optional.of("redirectUrl");
+            final String redirectUrl = "redirectUrl";
 
-            String mockJwt ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdWIiLCJlbWFpbCI6ImVtYWlsIiwicm9sZXMiOlsiRklORCIsIkFQUExJQ0FOVCJdfQ.MrlNeug1Wos6UYKgwSBHxFw0XxdgQvcCdO-Xi3RMqBk";
-            mockedStatic.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
                     .thenReturn(new Cookie("userServiceCookieName", mockJwt));
             when(result.hasErrors()).thenReturn(true);
 
-            final ModelAndView methodResponse = loginController.showPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
             assertThat(methodResponse.getViewName()).isEqualTo(LoginControllerV2.PRIVACY_POLICY_PAGE_VIEW);
+            verify(oneLoginService, times(0)).setPrivacyPolicy(any());
+            verify(oneLoginService,  times(0)).setUsersLoginJourneyState(any(), any());
         }
 
         @Test
-        void whenPrivacyPolicyPageHasBeenAccepted_UserIsSentToProvidedRedirectUrl() {
+        void whenPrivacyPolicyPageHasBeenAccepted_ApplicantIsSentToRedirectCookie() {
             final PrivacyPolicyDto privacyPolicyDto = PrivacyPolicyDto.builder().acceptPrivacyPolicy("yes").build();
             final BindingResult result = Mockito.mock(BindingResult.class);
             final MockHttpServletRequest request = new MockHttpServletRequest();
-            final Optional<String> redirectUrl = Optional.of("redirectUrl");
+            final String redirectUrl = "redirectUrl";
+            final User user = User.builder()
+                    .sub("sub")
+                    .loginJourneyState(LoginJourneyState.PRIVACY_POLICY_PENDING)
+                    .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
+                    .build();
 
-            String mockJwt ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdWIiLCJlbWFpbCI6ImVtYWlsIiwicm9sZXMiOlsiRklORCIsIkFQUExJQ0FOVCJdfQ.MrlNeug1Wos6UYKgwSBHxFw0XxdgQvcCdO-Xi3RMqBk";
-            mockedStatic.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
                     .thenReturn(new Cookie("userServiceCookieName", mockJwt));
             when(result.hasErrors()).thenReturn(false);
+            when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
 
-            final ModelAndView methodResponse = loginController.showPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
-            assertThat(methodResponse.getViewName()).isEqualTo("redirect:"+redirectUrl.get());
-            verify(oneLoginService).setPrivacyPolicy("sub");
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+
+            assertThat(methodResponse.getViewName()).isEqualTo("redirect:" + redirectUrl);
+            verify(oneLoginService).setPrivacyPolicy(user);
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.USER_READY);
         }
 
         @Test
-        void whenPrivacyPolicyPageHasBeenAccepted_UserIsSentToDefaultRedirectUrl() {
+        void whenPrivacyPolicyPageHasBeenAccepted_AdminIsSentToAdminDashboard() {
             final PrivacyPolicyDto privacyPolicyDto = PrivacyPolicyDto.builder().acceptPrivacyPolicy("yes").build();
             final BindingResult result = Mockito.mock(BindingResult.class);
             final MockHttpServletRequest request = new MockHttpServletRequest();
-            final Optional<String> redirectUrl = Optional.empty();
+            final String redirectUrl = "redirectUrl";
+            final User user = User.builder()
+                    .sub("sub")
+                    .loginJourneyState(LoginJourneyState.PRIVACY_POLICY_PENDING)
+                    .roles(List.of(Role.builder().name(RoleEnum.ADMIN).build()))
+                    .build();
 
-            String mockJwt ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdWIiLCJlbWFpbCI6ImVtYWlsIiwicm9sZXMiOlsiRklORCIsIkFQUExJQ0FOVCJdfQ.MrlNeug1Wos6UYKgwSBHxFw0XxdgQvcCdO-Xi3RMqBk";
-            mockedStatic.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
                     .thenReturn(new Cookie("userServiceCookieName", mockJwt));
             when(result.hasErrors()).thenReturn(false);
+            when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
 
-            final ModelAndView methodResponse = loginController.showPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
-            assertThat(methodResponse.getViewName()).isEqualTo("redirect:"+configProperties.getDefaultRedirectUrl());
-            verify(oneLoginService).setPrivacyPolicy("sub");
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+
+            assertThat(methodResponse.getViewName()).isEqualTo("redirect:/adminBaseUrl?redirectUrl=/dashboard");
+            verify(oneLoginService).setPrivacyPolicy(user);
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.USER_READY);
+        }
+
+        @Test
+        void whenPrivacyPolicyPageHasBeenAccepted_SuperAdminIsSentToAdminDashboard() {
+            final PrivacyPolicyDto privacyPolicyDto = PrivacyPolicyDto.builder().acceptPrivacyPolicy("yes").build();
+            final BindingResult result = Mockito.mock(BindingResult.class);
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+            final String redirectUrl = "redirectUrl";
+            final User user = User.builder()
+                    .sub("sub")
+                    .loginJourneyState(LoginJourneyState.PRIVACY_POLICY_PENDING)
+                    .roles(List.of(Role.builder().name(RoleEnum.SUPER_ADMIN).build()))
+                    .build();
+
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                    .thenReturn(new Cookie("userServiceCookieName", mockJwt));
+            when(result.hasErrors()).thenReturn(false);
+            when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
+
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+
+            assertThat(methodResponse.getViewName()).isEqualTo("redirect:/adminBaseUrl?redirectUrl=/super-admin-dashboard");
+            verify(oneLoginService).setPrivacyPolicy(user);
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.USER_READY);
         }
     }
 }

@@ -1,7 +1,9 @@
 package gov.cabinetofice.gapuserservice.service;
 
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
+import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.*;
+import gov.cabinetofice.gapuserservice.model.Department;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -29,7 +31,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 
 import static io.jsonwebtoken.impl.crypto.RsaProvider.generateKeyPair;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -54,7 +56,6 @@ public class OneLoginServiceTest {
 
     @BeforeEach
     void setUp() {
-
         mockedStatic = mockStatic(RestUtils.class);
         testKeyPair = generateTestKeys();
         ReflectionTestUtils.setField(oneLoginService, "privateKey", testKeyPair.get("private"));
@@ -62,7 +63,6 @@ public class OneLoginServiceTest {
         ReflectionTestUtils.setField(oneLoginService, "clientAssertionType", "assertion_type");
         ReflectionTestUtils.setField(oneLoginService, "clientId", DUMMY_CLIENT_ID);
         ReflectionTestUtils.setField(oneLoginService, "serviceRedirectUrl", DUMMY_BASE_URL + "/redirect");
-
     }
 
     @AfterEach
@@ -201,7 +201,7 @@ public class OneLoginServiceTest {
             when(roleRepository.findByName(any())).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
             when(userRepository.save(any())).thenReturn(User.builder().roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build())).build());
 
-            final User result = oneLoginService.createUser("", "");
+            final User result = oneLoginService.createNewUser("", "");
 
             Assertions.assertEquals(1, result.getRoles().size());
             Assertions.assertEquals(RoleEnum.APPLICANT, result.getRoles().get(0).getName());
@@ -211,7 +211,7 @@ public class OneLoginServiceTest {
         void shouldSaveUserWithSubAndEmailWhenUserIsCreated() {
             when(roleRepository.findByName(any())).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
 
-            oneLoginService.createUser("sub", "test@email.com");
+            oneLoginService.createNewUser("sub", "test@email.com");
 
             final ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
             verify(userRepository).save(userArgumentCaptor.capture());
@@ -223,56 +223,138 @@ public class OneLoginServiceTest {
         void shouldThrowExceptionWhenRoleDoesNotExist() {
             when(roleRepository.findByName(any())).thenReturn(Optional.empty());
 
-            Assertions.assertThrows(RoleNotFoundException.class, () -> oneLoginService.createUser("", ""));
+            Assertions.assertThrows(RoleNotFoundException.class, () -> oneLoginService.createNewUser("", ""));
         }
     }
 
     @Nested
-    class addSubToUser {
-        @Test
-        void shouldSaveUserWithSubWhenUserExists() {
-            final String email = "email@test.com";
-            final User user = User.builder().gapUserId(1).emailAddress(email).build();
-
-            when(userRepository.findByEmailAddress(email)).thenReturn(Optional.of(user));
-
-            oneLoginService.addSubToUser("sub", email);
-
-            final ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
-            verify(userRepository).save(userArgumentCaptor.capture());
-            Assertions.assertEquals("sub", userArgumentCaptor.getValue().getSub());
-        }
-
-        @Test
-        void shouldThrowExceptionWhenUserDoesNotExist() {
-            when(userRepository.findByEmailAddress(anyString())).thenReturn(Optional.empty());
-
-            Assertions.assertThrows(UserNotFoundException.class, () -> oneLoginService.addSubToUser("", ""));
-        }
-    }
-
-    @Nested
-    class setPrivacyPolicy{
-
+    class setPrivacyPolicy {
         @Test
         void shouldSetPrivacyPolicyToTrueWhenUserExists() {
-            final String email = "test@test.com";
-            final String sub = "sub";
-            final User user = User.builder().gapUserId(1).emailAddress(email).sub(sub).acceptedPrivacyPolicy(false).build();
+            final User user = User.builder()
+                    .acceptedPrivacyPolicy(false)
+                    .build();
 
-            when(userRepository.findBySub(sub)).thenReturn(Optional.of(user));
+            oneLoginService.setPrivacyPolicy(user);
 
-            oneLoginService.setPrivacyPolicy(sub);
             final ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
             verify(userRepository).save(userArgumentCaptor.capture());
             Assertions.assertTrue(userArgumentCaptor.getValue().hasAcceptedPrivacyPolicy());
         }
+    }
+
+    @Nested
+    class setUsersLoginJourneyState {
+        @Test
+        void shouldSetUsersLoginJourneyState() {
+            final User user = User.builder()
+                    .loginJourneyState(LoginJourneyState.CREATING_NEW_USER)
+                    .build();
+
+            oneLoginService.setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_PENDING);
+
+            final ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
+            verify(userRepository).save(userArgumentCaptor.capture());
+            assertThat(userArgumentCaptor.getValue().getLoginJourneyState()).isEqualTo(LoginJourneyState.PRIVACY_POLICY_PENDING);
+        }
+    }
+
+    @Nested
+    class generateCustomJwtClaims {
+
+        final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
+                .sub("sub")
+                .emailAddress("email")
+                .build();
+        final User.UserBuilder userBuilder = User.builder()
+                .sub("sub")
+                .emailAddress("email")
+                .roles(List.of(
+                        Role.builder().name(RoleEnum.APPLICANT).build(),
+                        Role.builder().name(RoleEnum.FIND).build()
+                ))
+                .department(Department.builder().name("department").build());
 
         @Test
-        void shouldThrowExceptionWhenSubDoesNotExist() {
-            when(userRepository.findBySub(anyString())).thenReturn(Optional.empty());
+        void shouldAddEmailAndSub() {
+            final User user = userBuilder.build();
+            when(userRepository.findBySub(any())).thenReturn(Optional.of(user));
 
-            Assertions.assertThrows(UserNotFoundException.class, () -> oneLoginService.setPrivacyPolicy(""));
+            final Map<String, String> result = oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto);
+
+            Assertions.assertEquals("sub", result.get("sub"));
+            Assertions.assertEquals("email", result.get("email"));
+        }
+
+        @Test
+        void shouldAddRoles() {
+            final User user = userBuilder.build();
+            when(userRepository.findBySub(any())).thenReturn(Optional.of(user));
+
+            final Map<String, String> result = oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto);
+
+            Assertions.assertEquals("[APPLICANT, FIND]", result.get("roles"));
+        }
+
+        @Test
+        void shouldAddDepartment() {
+            final User user = userBuilder.build();
+            when(userRepository.findBySub(any())).thenReturn(Optional.of(user));
+
+            final Map<String, String> result = oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto);
+
+            Assertions.assertEquals("department", result.get("department"));
+        }
+
+        @Test
+        void shouldNotAddDepartment() {
+            final User user = userBuilder.department(null).build();
+            when(userRepository.findBySub(any())).thenReturn(Optional.of(user));
+
+            final Map<String, String> result = oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto);
+
+            Assertions.assertNull(result.get("department"));
+        }
+
+        @Test
+        void shouldThrowUserNotFoundException_whenUserNotFound() {
+            when(userRepository.findBySub(any())).thenReturn(Optional.empty());
+
+            Assertions.assertThrows(UserNotFoundException.class, () -> oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto));
+        }
+    }
+
+    @Nested
+    class createOrGetUserFromInfo {
+        @Test
+        void getExistingUser() {
+            final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
+                    .sub("sub")
+                    .emailAddress("email")
+                    .build();
+            final User existingUser = User.builder().build();
+
+            when(userRepository.findBySub(any())).thenReturn(Optional.of(existingUser));
+
+            final User result = oneLoginService.createOrGetUserFromInfo(oneLoginUserInfoDto);
+
+            Assertions.assertEquals(existingUser, result);
+        }
+
+        @Test
+        void createNewUser() {
+            final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
+                    .sub("sub")
+                    .emailAddress("email")
+                    .build();
+
+            when(userRepository.findBySub(any())).thenReturn(Optional.empty());
+            when(roleRepository.findByName(any())).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
+
+            final User newUser = oneLoginService.createNewUser("sub", "email");
+            final User result = oneLoginService.createOrGetUserFromInfo(oneLoginUserInfoDto);
+
+            Assertions.assertEquals(newUser, result);
         }
     }
 

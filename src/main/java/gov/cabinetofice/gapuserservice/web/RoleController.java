@@ -1,7 +1,6 @@
 package gov.cabinetofice.gapuserservice.web;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
-import gov.cabinetofice.gapuserservice.dto.JwtPayload;
 import gov.cabinetofice.gapuserservice.dto.RoleDto;
 import gov.cabinetofice.gapuserservice.dto.UserRolesJwtResponse;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
@@ -51,9 +50,8 @@ public class RoleController {
 
         final boolean isValid = jwtService.isTokenValid(customJWTCookie.getValue());
         final DecodedJWT decodedJwt = jwtService.decodedJwt(customJWTCookie.getValue());
-        final JwtPayload payload = jwtService.decodeTheTokenPayloadInAReadableFormat(decodedJwt);
 
-        final Optional<User> optionalUser = oneLoginService.getUser(payload.getEmail(), payload.getSub());
+        final Optional<User> optionalUser = oneLoginService.getUserFromSub(decodedJwt.getSubject());
         if (optionalUser.isEmpty()) {
             throw new UserNotFoundException("User not found");
         }
