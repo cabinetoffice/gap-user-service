@@ -66,7 +66,7 @@ public class OneLoginService {
                 .sub(sub)
                 .emailAddress(email)
                 .acceptedPrivacyPolicy(false)
-                .loginJourneyState(LoginJourneyState.CREATING_NEW_USER)
+                .loginJourneyState(LoginJourneyState.PRIVACY_POLICY_PENDING)
                 .build();
         final List<RoleEnum> newUserRoles = getNewUserRoles();
         for (RoleEnum roleEnum : newUserRoles) {
