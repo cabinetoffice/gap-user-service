@@ -74,5 +74,26 @@ public class DepartmentControllerTest {
 
         assertThat(methodResponse.getBody()).isSameAs("Department updated");
     }
+
+    @Test
+    void deleteDepartmentDeletesPassedInId() {
+        final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
+        final ResponseEntity methodResponse = departmentController.deleteDepartment(httpRequest, 1);
+        verify(departmentService).deleteDepartment(1);
+        assertThat(methodResponse.getBody()).isSameAs("Department deleted");
+    }
+
+    @Test
+    void createDepartmentAddsDepartmentToDB() {
+        final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
+        final DepartmentReqDto body = new DepartmentReqDto();
+        body.setDepartmentName("Cabinet office");
+        body.setGgisId("initial ggis id");
+        final ResponseEntity methodResponse = departmentController.createDepartment(httpRequest, body);
+        verify(departmentService).createDepartment("Cabinet office", "initial ggis id");
+        assertThat(methodResponse.getBody()).isSameAs("Department created");
+    }
 }
 

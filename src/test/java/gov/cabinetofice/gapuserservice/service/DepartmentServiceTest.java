@@ -63,4 +63,13 @@ public class DepartmentServiceTest {
 
         assertThat(result).isEqualToComparingFieldByFieldRecursively(expected);
     }
+
+    @Test
+    void testCreateDepartment() {
+        String departmentName = "new department";
+        String ggisId = "new ggisid";
+        Department createdDepartment = departmentService.createDepartment(departmentName, ggisId);
+        assertThat(createdDepartment.getName()).isEqualTo(departmentName);
+        assertThat(createdDepartment.getGgisID()).isEqualTo(ggisId);
+    }
 }

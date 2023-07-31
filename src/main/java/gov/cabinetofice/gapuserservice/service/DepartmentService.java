@@ -35,16 +35,16 @@ public class DepartmentService {
         return department;
     }
 
-    public Void deleteDepartment(int id) {
+    public void deleteDepartment(int id) {
         Department department = departmentRepository.findById(id).orElseThrow(() -> new DepartmentNotFoundException("Department not found"));
         departmentRepository.delete(department);
-        return null;
     }
 
-    public void createDepartment(String name, String ggisIDs) {
+    public Department createDepartment(String departmentName, String ggisIDs) {
         Department department = new Department();
-        department.setName(name);
+        department.setName(departmentName);
         department.setGgisID(ggisIDs);
         departmentRepository.save(department);
+        return department;
     }
 }
