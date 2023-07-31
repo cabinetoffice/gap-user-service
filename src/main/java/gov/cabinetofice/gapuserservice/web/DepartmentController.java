@@ -10,8 +10,9 @@ import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.mapstruct.factory.Mappers;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,6 +23,9 @@ import java.util.Optional;
 public class DepartmentController {
     private final RoleService roleService;
     private final DepartmentService departmentService;
+
+    @Autowired
+    private final DepartmentMapper mapper;
 
     @GetMapping("/department")
         public ResponseEntity<List<DepartmentDto>> getAll(final HttpServletRequest httpRequest) {
@@ -37,28 +41,24 @@ public class DepartmentController {
             throw new ForbiddenException();
         }
         Optional<Department> department = departmentService.getDepartmentById(id);
-        if(department == null){
+
+        if(department.isEmpty()){
             throw new DepartmentNotFoundException("Department not found");
         }
-        DepartmentMapper INSTANCE = Mappers.getMapper(DepartmentMapper.class);
-        return ResponseEntity.ok(INSTANCE.departmentToDepartmentDto(department.get()));
+        return ResponseEntity.ok(mapper.departmentToDepartmentDto(department.get()));
     }
 
     @PatchMapping("/department/{id}")
         public ResponseEntity<String> updateDepartment(final HttpServletRequest httpRequest,
-                                                       @RequestBody final UpdateDepartmentReqDto body,
+                                                     @Validated @RequestBody final UpdateDepartmentReqDto body,
                                                        @PathVariable int id) throws DepartmentNotFoundException, ForbiddenException {
             if (!roleService.isSuperAdmin(httpRequest)) {
                 throw new ForbiddenException();
             }
             Optional<Department> department = departmentService.getDepartmentById(id);
 
-            if(body.getDepartmentName() == null || body.getGgisId() == null){
-                throw new RuntimeException("Department name or ggis id is null");
-            }
-
-            if(department == null){
-                throw new DepartmentNotFoundException("Department not found");
+            if(department.isEmpty()){
+                throw new DepartmentNotFoundException("Could not update department: Department not found");
             }
             departmentService.updateDepartment(department.get(), body.getDepartmentName(), body.getGgisId());
             return ResponseEntity.ok("Department updated");
