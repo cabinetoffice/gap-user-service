@@ -15,6 +15,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -68,8 +69,11 @@ public class DepartmentServiceTest {
     void testCreateDepartment() {
         String departmentName = "new department";
         String ggisId = "new ggisid";
-        Department createdDepartment = departmentService.createDepartment(departmentName, ggisId);
-        assertThat(createdDepartment.getName()).isEqualTo(departmentName);
-        assertThat(createdDepartment.getGgisID()).isEqualTo(ggisId);
+        Department toBeInserted = Department.builder().name(departmentName).ggisID(ggisId).build();
+        when(departmentRepository.save(any())).thenReturn(toBeInserted);
+        Department toBeReturned = departmentService.createDepartment(departmentName, ggisId);
+        assertThat(toBeReturned.getName()).isEqualTo(departmentName);
+        assertThat(toBeReturned.getGgisID()).isEqualTo(ggisId);
     }
+
 }
