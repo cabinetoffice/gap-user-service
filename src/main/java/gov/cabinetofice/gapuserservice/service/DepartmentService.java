@@ -43,7 +43,6 @@ public class DepartmentService {
         Department department = new Department();
         department.setName(departmentName);
         department.setGgisID(ggisIDs);
-        departmentRepository.save(department);
-        return department;
+        return departmentRepository.save(department);
     }
 }
