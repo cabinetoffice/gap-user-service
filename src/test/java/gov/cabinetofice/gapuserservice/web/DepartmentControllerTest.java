@@ -1,7 +1,8 @@
 package gov.cabinetofice.gapuserservice.web;
 
 import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
-import gov.cabinetofice.gapuserservice.dto.UpdateDepartmentReqDto;
+import gov.cabinetofice.gapuserservice.dto.DepartmentReqDto;
+import gov.cabinetofice.gapuserservice.mappers.DepartmentMapper;
 import gov.cabinetofice.gapuserservice.model.Department;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
@@ -30,6 +31,9 @@ public class DepartmentControllerTest {
     @Mock
     private RoleService roleService;
 
+    @Mock
+    private DepartmentMapper mapper;
+
     @Test
     void getAllDepartments_returnsArrayOfDepartments() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
@@ -48,6 +52,7 @@ public class DepartmentControllerTest {
         when(departmentService.getDepartmentById(1))
                 .thenReturn(Optional.of(Department.builder().ggisID("ggis").name("Cabinet office").id(1).build()));
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
+        when(mapper.departmentToDepartmentDto(any(Department.class))).thenReturn(department);
         final ResponseEntity<DepartmentDto> methodResponse = departmentController.getById( 1, httpRequest);
         assertThat(methodResponse.getBody()).isEqualToComparingFieldByFieldRecursively(department);
     }
@@ -55,7 +60,7 @@ public class DepartmentControllerTest {
     @Test
     void updateDepartment() {
         ArgumentCaptor<Department> departmentArgumentCaptor = ArgumentCaptor.forClass(Department.class);
-        final UpdateDepartmentReqDto body = new UpdateDepartmentReqDto();
+        final DepartmentReqDto body = new DepartmentReqDto();
         body.setDepartmentName("Cabinet office");
         body.setGgisId("initial ggis id");
 

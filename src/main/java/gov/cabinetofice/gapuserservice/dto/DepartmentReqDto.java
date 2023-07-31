@@ -10,12 +10,12 @@ import lombok.Setter;
 @Data
 @Getter
 @Setter
-public class UpdateDepartmentReqDto {
+public class DepartmentReqDto {
     @Size(max = 255, message = "Department name cannot exceed 255 characters")
-    @NotBlank(message = "Enter a department name.")
+    @NotBlank(message = "Enter a Department name.")
     private String departmentName;
 
     @Size(max = 255, message = "GGIS ID cannot exceed 255 characters")
-    @NotBlank(message = "Enter a ggis id")
+    @NotBlank(message = "Enter a GGIS ID")
     private String ggisId;
 }

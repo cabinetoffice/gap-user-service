@@ -1,7 +1,7 @@
 package gov.cabinetofice.gapuserservice.web;
 
 import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
-import gov.cabinetofice.gapuserservice.dto.UpdateDepartmentReqDto;
+import gov.cabinetofice.gapuserservice.dto.DepartmentReqDto;
 import gov.cabinetofice.gapuserservice.exceptions.DepartmentNotFoundException;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.mappers.DepartmentMapper;
@@ -48,7 +48,7 @@ public class DepartmentController {
 
     @PatchMapping("/department/{id}")
         public ResponseEntity<String> updateDepartment(final HttpServletRequest httpRequest,
-                                                     @Validated @RequestBody final UpdateDepartmentReqDto body,
+                                                     @Validated @RequestBody final DepartmentReqDto body,
                                                        @PathVariable int id) throws DepartmentNotFoundException, ForbiddenException {
             if (!roleService.isSuperAdmin(httpRequest)) {
                 throw new ForbiddenException();
@@ -76,12 +76,12 @@ public class DepartmentController {
 
     @PostMapping("/department")
     public ResponseEntity<String> createDepartment(final HttpServletRequest httpRequest,
-                                                   @RequestBody final DepartmentDto department) {
+                                                   @Validated @RequestBody final DepartmentReqDto department) {
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
 
-        departmentService.createDepartment(department.getName(), department.getGgisID());
+        departmentService.createDepartment(department.getDepartmentName(), department.getGgisId());
         return ResponseEntity.ok("Department created");
     }
     }
