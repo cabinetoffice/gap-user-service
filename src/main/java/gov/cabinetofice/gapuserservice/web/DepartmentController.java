@@ -41,7 +41,7 @@ public class DepartmentController {
         Optional<Department> department = departmentService.getDepartmentById(id);
 
         if(department.isEmpty()){
-            throw new DepartmentNotFoundException("Department not found");
+            throw new DepartmentNotFoundException("Department with id" + id  + "not found");
         }
         return ResponseEntity.ok(mapper.departmentToDepartmentDto(department.get()));
     }
@@ -56,9 +56,9 @@ public class DepartmentController {
             Optional<Department> department = departmentService.getDepartmentById(id);
 
             if(department.isEmpty()){
-                throw new DepartmentNotFoundException("Could not update department: Department not found");
+                throw new DepartmentNotFoundException("Could not update department with id: " + id + " department not found");
             }
-            departmentService.updateDepartment(department.get(), body.getDepartmentName(), body.getGgisId());
+            departmentService.updateDepartment(department.get(), body.getName(), body.getGgisID());
             return ResponseEntity.ok("Department updated");
         }
 
@@ -81,7 +81,7 @@ public class DepartmentController {
             throw new ForbiddenException();
         }
 
-        departmentService.createDepartment(department.getDepartmentName(), department.getGgisId());
+        departmentService.createDepartment(department.getName(), department.getGgisID());
         return ResponseEntity.ok("Department created");
     }
     }

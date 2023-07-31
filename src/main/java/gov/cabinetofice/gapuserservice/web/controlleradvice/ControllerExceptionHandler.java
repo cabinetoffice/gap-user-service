@@ -1,7 +1,6 @@
 package gov.cabinetofice.gapuserservice.web.controlleradvice;
 
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
-import gov.cabinetofice.gapuserservice.model.ErrorMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;

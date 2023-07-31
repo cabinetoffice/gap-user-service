@@ -31,8 +31,7 @@ public class DepartmentService {
     public Department updateDepartment(Department department, String departmentName, String ggisId) throws DepartmentNotFoundException {
          department.setName(departmentName);
          department.setGgisID(ggisId);
-        departmentRepository.save(department);
-        return department;
+        return departmentRepository.save(department);
     }
 
     public void deleteDepartment(int id) {
