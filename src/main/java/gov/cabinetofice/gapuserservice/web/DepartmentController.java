@@ -61,4 +61,27 @@ public class DepartmentController {
             departmentService.updateDepartment(department.get(), body.getDepartmentName(), body.getGgisId());
             return ResponseEntity.ok("Department updated");
         }
+
+    @DeleteMapping("/department/{id}")
+    public ResponseEntity<String> deleteDepartment(final HttpServletRequest httpRequest,
+                                                   @PathVariable final int id) {
+        if (!roleService.isSuperAdmin(httpRequest)) {
+            throw new ForbiddenException();
+        }
+
+        departmentService.deleteDepartment(id);
+
+        return ResponseEntity.ok("Department deleted");
+    }
+
+    @PostMapping("/department")
+    public ResponseEntity<String> createDepartment(final HttpServletRequest httpRequest,
+                                                   @RequestBody final DepartmentDto department) {
+        if (!roleService.isSuperAdmin(httpRequest)) {
+            throw new ForbiddenException();
+        }
+
+        departmentService.createDepartment(department.getName(), department.getGgisID());
+        return ResponseEntity.ok("Department created");
+    }
     }
