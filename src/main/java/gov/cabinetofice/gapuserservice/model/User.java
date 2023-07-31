@@ -30,10 +30,6 @@ public class User {
     @Column(name = "sub")
     private String sub;
 
-    @Column(name = "accepted_privacy_policy")
-    @Getter(AccessLevel.NONE)
-    private Boolean acceptedPrivacyPolicy;
-
     @Column(name = "login_journey_state")
     @Enumerated(EnumType.STRING)
     private LoginJourneyState loginJourneyState;
@@ -67,10 +63,6 @@ public class User {
 
     public boolean hasDepartment() {
         return this.department != null;
-    }
-
-    public boolean hasAcceptedPrivacyPolicy() {
-        return this.acceptedPrivacyPolicy;
     }
 
     public boolean isApplicant() {
