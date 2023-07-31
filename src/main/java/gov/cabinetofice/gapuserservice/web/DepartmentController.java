@@ -10,7 +10,6 @@ import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -24,7 +23,6 @@ public class DepartmentController {
     private final RoleService roleService;
     private final DepartmentService departmentService;
 
-    @Autowired
     private final DepartmentMapper mapper;
 
     @GetMapping("/department")
