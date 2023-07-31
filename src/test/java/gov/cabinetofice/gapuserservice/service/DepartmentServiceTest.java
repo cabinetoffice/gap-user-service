@@ -59,7 +59,6 @@ public class DepartmentServiceTest {
         Department expected = Department.builder().id(1).ggisID(newGgisId).name(newDepartmentName).build();
 
         Department initialDepartment = Department.builder().id(1).name("Cabinet Office").ggisID("1").build();
-        when(departmentRepository.findById(1)).thenReturn(Optional.of(initialDepartment));
         Department result = departmentService.updateDepartment(initialDepartment, newDepartmentName, newGgisId);
 
         assertThat(result).isEqualToComparingFieldByFieldRecursively(expected);
