@@ -61,8 +61,8 @@ public class DepartmentControllerTest {
     void updateDepartment() {
         ArgumentCaptor<Department> departmentArgumentCaptor = ArgumentCaptor.forClass(Department.class);
         final DepartmentReqDto body = new DepartmentReqDto();
-        body.setDepartmentName("Cabinet office");
-        body.setGgisId("initial ggis id");
+        body.setName("Cabinet office");
+        body.setGgisID("initial ggis id");
 
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
@@ -89,8 +89,8 @@ public class DepartmentControllerTest {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         final DepartmentReqDto body = new DepartmentReqDto();
-        body.setDepartmentName("Cabinet office");
-        body.setGgisId("initial ggis id");
+        body.setName("Cabinet office");
+        body.setGgisID("initial ggis id");
         final ResponseEntity methodResponse = departmentController.createDepartment(httpRequest, body);
         verify(departmentService).createDepartment("Cabinet office", "initial ggis id");
         assertThat(methodResponse.getBody()).isSameAs("Department created");

@@ -15,7 +15,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class DepartmentServiceTest {
@@ -59,6 +59,7 @@ public class DepartmentServiceTest {
         Department expected = Department.builder().id(1).ggisID(newGgisId).name(newDepartmentName).build();
 
         Department initialDepartment = Department.builder().id(1).name("Cabinet Office").ggisID("1").build();
+        when(departmentRepository.save(any(Department.class))).thenReturn(expected);
         Department result = departmentService.updateDepartment(initialDepartment, newDepartmentName, newGgisId);
 
         assertThat(result).isEqualToComparingFieldByFieldRecursively(expected);
@@ -68,6 +69,7 @@ public class DepartmentServiceTest {
     void testCreateDepartment() {
         String departmentName = "new department";
         String ggisId = "new ggisid";
+        when(departmentRepository.save(any(Department.class))).thenReturn(Department.builder().name(departmentName).ggisID(ggisId).build());
         Department createdDepartment = departmentService.createDepartment(departmentName, ggisId);
         assertThat(createdDepartment.getName()).isEqualTo(departmentName);
         assertThat(createdDepartment.getGgisID()).isEqualTo(ggisId);
