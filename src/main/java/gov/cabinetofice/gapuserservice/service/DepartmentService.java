@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,12 +24,11 @@ public class DepartmentService {
                 .collect(Collectors.toList());
     }
 
-    public Department getDepartmentById(int id) {
-        return departmentRepository.findById(id).orElseThrow(() -> new DepartmentNotFoundException("Department not found"));
+    public Optional<Department> getDepartmentById(int id) {
+        return departmentRepository.findById(id);
     }
 
-    public Department updateDepartment(int id, String departmentName, String ggisId) throws DepartmentNotFoundException {
-        Department department = departmentRepository.findById(id).orElseThrow(() -> new DepartmentNotFoundException("Department not found"));
+    public Department updateDepartment(Department department, String departmentName, String ggisId) throws DepartmentNotFoundException {
          department.setName(departmentName);
          department.setGgisID(ggisId);
         return departmentRepository.save(department);

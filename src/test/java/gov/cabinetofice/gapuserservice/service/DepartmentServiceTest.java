@@ -49,7 +49,7 @@ public class DepartmentServiceTest {
     void testGetDepartmentById() {
         Department department = Department.builder().id(1).build();
         when(departmentRepository.findById(1)).thenReturn(Optional.of(department));
-        Department result = departmentService.getDepartmentById(1);
+        Optional<Department> result = departmentService.getDepartmentById(1);
 
         assertEquals(department, result);
     }
@@ -61,7 +61,7 @@ public class DepartmentServiceTest {
 
         Department initialDepartment = Department.builder().id(1).name("Cabinet Office").ggisID("1").build();
         when(departmentRepository.findById(1)).thenReturn(Optional.of(initialDepartment));
-        Department result = departmentService.updateDepartment(initialDepartment.getId(), newDepartmentName, newGgisId);
+        Department result = departmentService.updateDepartment(initialDepartment, newDepartmentName, newGgisId);
 
         assertThat(result).isEqualToComparingFieldByFieldRecursively(expected);
     }
