@@ -1,4 +1,4 @@
-package gov.cabinetofice.gapuserservice.model;
+package gov.cabinetofice.gapuserservice.web.controlleradvice;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
