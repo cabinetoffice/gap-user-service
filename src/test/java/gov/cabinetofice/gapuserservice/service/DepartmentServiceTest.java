@@ -47,10 +47,9 @@ public class DepartmentServiceTest {
     }
     @Test
     void testGetDepartmentById() {
-        Department department = Department.builder().id(1).build();
-        when(departmentRepository.findById(1)).thenReturn(Optional.of(department));
+        Optional<Department> department = Optional.of(Department.builder().id(1).build());
+        when(departmentRepository.findById(1)).thenReturn(department);
         Optional<Department> result = departmentService.getDepartmentById(1);
-
         assertEquals(department, result);
     }
     @Test
