@@ -22,6 +22,7 @@ public enum LoginJourneyState {
     PRIVACY_POLICY_ACCEPTED {
         @Override
         public LoginJourneyState nextState(final OneLoginService oneLoginService, final User user) {
+            oneLoginService.setUsersLoginJourneyState(user, USER_READY);
             return USER_READY.nextState(oneLoginService, user);
         }
     },
@@ -29,7 +30,6 @@ public enum LoginJourneyState {
     USER_READY {
         @Override
         public LoginJourneyState nextState(OneLoginService oneLoginService, User user) {
-            oneLoginService.setUsersLoginJourneyState(user, this);
             return this;
         }
 
