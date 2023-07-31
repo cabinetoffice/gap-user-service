@@ -58,7 +58,7 @@ public class DepartmentController {
             if(department.isEmpty()){
                 throw new DepartmentNotFoundException("Could not update department: Department not found");
             }
-            departmentService.updateDepartment(department.get(), body.getDepartmentName(), body.getGgisId());
+            departmentService.updateDepartment(department.get(), body.getName(), body.getGgisID());
             return ResponseEntity.ok("Department updated");
         }
 
@@ -81,7 +81,7 @@ public class DepartmentController {
             throw new ForbiddenException();
         }
 
-        departmentService.createDepartment(department.getDepartmentName(), department.getGgisId());
+        departmentService.createDepartment(department.getName(), department.getGgisID());
         return ResponseEntity.ok("Department created");
     }
     }
