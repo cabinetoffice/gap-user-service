@@ -6,6 +6,7 @@ on:
       - feature/**
       - bug/**
       - FGP-**
+      - fix/**
   pull_request:
     branches:
       - feature/**

@@ -8,7 +8,6 @@ public enum LoginJourneyState {
     PRIVACY_POLICY_PENDING {
         @Override
         public LoginJourneyState nextState(final OneLoginService oneLoginService, final User user) {
-            oneLoginService.setPrivacyPolicy(user);
             oneLoginService.setUsersLoginJourneyState(user, PRIVACY_POLICY_ACCEPTED);
             return PRIVACY_POLICY_ACCEPTED.nextState(oneLoginService, user);
         }

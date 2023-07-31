@@ -65,7 +65,6 @@ public class OneLoginService {
         final User user = User.builder()
                 .sub(sub)
                 .emailAddress(email)
-                .acceptedPrivacyPolicy(false)
                 .loginJourneyState(LoginJourneyState.PRIVACY_POLICY_PENDING)
                 .build();
         final List<RoleEnum> newUserRoles = getNewUserRoles();
@@ -75,11 +74,6 @@ public class OneLoginService {
             user.addRole(role);
         }
         return userRepository.save(user);
-    }
-
-    public void setPrivacyPolicy(final User user) {
-        user.setAcceptedPrivacyPolicy(true);
-        userRepository.save(user);
     }
 
     public String generateNonce() {

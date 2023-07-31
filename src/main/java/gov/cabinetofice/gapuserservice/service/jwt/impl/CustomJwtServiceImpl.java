@@ -12,6 +12,7 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
 import gov.cabinetofice.gapuserservice.dto.JwtPayload;
+import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.JwtBlacklistRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
@@ -71,7 +72,7 @@ public class CustomJwtServiceImpl implements JwtService {
             Optional<User> user = userRepository.findBySub(jwtPayload.getSub());
             if (user.isEmpty()) user = userRepository.findByEmailAddress(jwtPayload.getEmail());
             if (user.isEmpty()) return false;
-            if (!user.get().hasAcceptedPrivacyPolicy()) return false;
+            if (user.get().getLoginJourneyState().equals(LoginJourneyState.PRIVACY_POLICY_PENDING)) return false;
 
             return !isTokenInBlacklist(customJwt);
         } catch (JWTVerificationException exception) {
