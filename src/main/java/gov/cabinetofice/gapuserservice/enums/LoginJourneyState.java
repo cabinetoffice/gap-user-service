@@ -4,6 +4,8 @@ import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
 
+import static gov.cabinetofice.gapuserservice.enums.LoginJourneyRedirect.MIGRATION_ERROR_PAGE;
+
 public enum LoginJourneyState {
     PRIVACY_POLICY_PENDING {
         @Override
@@ -21,8 +23,35 @@ public enum LoginJourneyState {
     PRIVACY_POLICY_ACCEPTED {
         @Override
         public LoginJourneyState nextState(final OneLoginService oneLoginService, final User user) {
+            final LoginJourneyState nextState = user.hasColaSub() ? MIGRATING_APPLICANT : USER_READY;
+            oneLoginService.setUsersLoginJourneyState(user, nextState);
+            return nextState.nextState(oneLoginService, user);
+        }
+    },
+
+    MIGRATING_APPLICANT {
+        @Override
+        public LoginJourneyState nextState(final OneLoginService oneLoginService, final User user) {
+            try {
+                oneLoginService.migrateApplicant(user);
+            } catch (Exception e) {
+                oneLoginService.setUsersLoginJourneyState(user, MIGRATION_FAILED);
+                return MIGRATION_FAILED.nextState(oneLoginService, user);
+            }
             oneLoginService.setUsersLoginJourneyState(user, USER_READY);
             return USER_READY.nextState(oneLoginService, user);
+        }
+    },
+
+    MIGRATION_FAILED {
+        @Override
+        public LoginJourneyState nextState(final OneLoginService oneLoginService, final User user) {
+            return this;
+        }
+
+        @Override
+        public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
+            return MIGRATION_ERROR_PAGE;
         }
     },
 

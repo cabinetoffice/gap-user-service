@@ -8,6 +8,7 @@ import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -29,6 +30,9 @@ public class User {
 
     @Column(name = "sub")
     private String sub;
+
+    @Column(name = "cola_sub")
+    private UUID colaSub;
 
     @Column(name = "login_journey_state")
     @Enumerated(EnumType.STRING)
@@ -63,6 +67,10 @@ public class User {
 
     public boolean hasDepartment() {
         return this.department != null;
+    }
+
+    public boolean hasColaSub() {
+        return this.colaSub != null;
     }
 
     public boolean isApplicant() {

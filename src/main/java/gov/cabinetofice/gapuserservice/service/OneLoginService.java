@@ -173,4 +173,7 @@ public class OneLoginService {
             throw new AuthenticationException("unable to retrieve access_token");
         }
     }
+
+    public void migrateApplicant(final User user) {
+    }
 }
