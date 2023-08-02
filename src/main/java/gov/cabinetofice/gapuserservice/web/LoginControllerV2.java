@@ -53,22 +53,30 @@ public class LoginControllerV2 {
     @Value("${admin-base-url}")
     private String adminBaseUrl;
 
+    @Value("${feature.onelogin.migration.enabled}")
+    public String migrationEnabled;
+
     @GetMapping("/login")
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public RedirectView login(final @RequestParam(name = REDIRECT_URL_NAME) Optional<String> redirectUrlParam,
-                              final HttpServletRequest request,
-                              final HttpServletResponse response) {
+            final HttpServletRequest request,
+            final HttpServletResponse response) {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
         final boolean isTokenValid = customJWTCookie != null
                 && customJWTCookie.getValue() != null
                 && customJwtService.isTokenValid(customJWTCookie.getValue());
 
         if (!isTokenValid) {
-            final Cookie redirectUrlCookie = WebUtil.buildSecureCookie(REDIRECT_URL_NAME, redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl()));
+            final Cookie redirectUrlCookie = WebUtil.buildSecureCookie(REDIRECT_URL_NAME,
+                    redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl()));
             response.addCookie(redirectUrlCookie);
 
-            // TODO Decide on where to set and evaluate nonce and state
-            return new RedirectView(NOTICE_PAGE_VIEW);
+            if (migrationEnabled.equals("true")) {
+                // TODO Decide on where to set and evaluate nonce and state
+                return new RedirectView(NOTICE_PAGE_VIEW);
+            } else {
+                return new RedirectView(oneLoginService.getOneLoginAuthorizeUrl());
+            }
         }
 
         return new RedirectView(redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl()));
@@ -76,8 +84,8 @@ public class LoginControllerV2 {
 
     @GetMapping("/redirect-after-login")
     public RedirectView redirectAfterLogin(final @CookieValue(name = REDIRECT_URL_NAME) String redirectUrlCookie,
-                                           final HttpServletResponse response,
-                                           final @RequestParam String code) {
+            final HttpServletResponse response,
+            final @RequestParam String code) {
         final OneLoginUserInfoDto userInfo = oneLoginService.getOneLoginUserInfoDto(code);
         final User user = oneLoginService.createOrGetUserFromInfo(userInfo);
         addCustomJwtCookie(response, userInfo);
@@ -94,18 +102,22 @@ public class LoginControllerV2 {
     }
 
     @GetMapping("/privacy-policy")
-    public ModelAndView submitToPrivacyPolicyPage(final @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto) {
+    public ModelAndView submitToPrivacyPolicyPage(
+            final @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto) {
         return new ModelAndView(PRIVACY_POLICY_PAGE_VIEW)
                 .addObject("homePageUrl", findProperties.getUrl());
     }
 
     @PostMapping("/privacy-policy")
-    public ModelAndView submitToPrivacyPolicyPage(final @Valid @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto,
-                                                  final BindingResult result,
-                                                  final HttpServletRequest request,
-                                                  final @CookieValue(name = REDIRECT_URL_NAME) String redirectUrlCookie) {
-        if (result.hasErrors()) return submitToPrivacyPolicyPage(privacyPolicyDto);
-        final User user = getUserFromRequest(request).orElseThrow(() -> new UserNotFoundException("Privacy policy: Could not fetch user from jwt"));
+    public ModelAndView submitToPrivacyPolicyPage(
+            final @Valid @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto,
+            final BindingResult result,
+            final HttpServletRequest request,
+            final @CookieValue(name = REDIRECT_URL_NAME) String redirectUrlCookie) {
+        if (result.hasErrors())
+            return submitToPrivacyPolicyPage(privacyPolicyDto);
+        final User user = getUserFromRequest(request)
+                .orElseThrow(() -> new UserNotFoundException("Privacy policy: Could not fetch user from jwt"));
         return new ModelAndView("redirect:" + runStateMachine(redirectUrlCookie, user));
     }
 
@@ -118,14 +130,15 @@ public class LoginControllerV2 {
 
     private Optional<User> getUserFromRequest(final HttpServletRequest request) {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
-        if (customJWTCookie == null) throw new UnauthorizedException("No " + userServiceCookieName + " cookie found");
+        if (customJWTCookie == null)
+            throw new UnauthorizedException("No " + userServiceCookieName + " cookie found");
         final DecodedJWT decodedJWT = JWT.decode(customJWTCookie.getValue());
         return oneLoginService.getUserFromSub(decodedJWT.getSubject());
     }
 
     private String runStateMachine(final String redirectUrlCookie, final User user) {
         return user.getLoginJourneyState().nextState(oneLoginService, user)
-                    .getLoginJourneyRedirect(user.getRole().getName())
-                    .getRedirectUrl(adminBaseUrl, redirectUrlCookie);
+                .getLoginJourneyRedirect(user.getRole().getName())
+                .getRedirectUrl(adminBaseUrl, redirectUrlCookie);
     }
 }
