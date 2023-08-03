@@ -5,7 +5,6 @@ import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPatch;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
@@ -35,17 +34,7 @@ public class RestUtils {
         HttpResponse response = httpClient.execute(httpGet);
         return convertResponseToJson(response);
     }
-
-    public static JSONObject patchRequestWithBody(String url, String body, String contentType) throws IOException {
-        HttpClient httpClient = HttpClients.createDefault();
-        HttpPatch httpPatch = new HttpPatch(url);
-        httpPatch.setHeader(HttpHeaders.CONTENT_TYPE, contentType);
-
-        httpPatch.setEntity(new StringEntity(body));
-        HttpResponse response = httpClient.execute(httpPatch);
-        return convertResponseToJson(response);
-    }
-
+    
     private static JSONObject convertResponseToJson(HttpResponse response) throws IOException {
         HttpEntity entity = response.getEntity();
 

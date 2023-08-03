@@ -26,13 +26,6 @@ public enum LoginJourneyRedirect {
         public String getRedirectUrl(String adminBaseUrl, String redirectUrlCookie) {
             return redirectUrlCookie;
         }
-    },
-
-    MIGRATION_ERROR_PAGE {
-        @Override
-        public String getRedirectUrl(String adminBaseUrl, String redirectUrlCookie) {
-            return adminBaseUrl + "/migration-error";
-        }
     };
 
     public abstract String getRedirectUrl(String adminBaseUrl, String redirectUrlCookie);
