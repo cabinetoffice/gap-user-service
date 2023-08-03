@@ -81,14 +81,4 @@ public class UserController {
         oneLoginUserService.deleteUser(id);
         return ResponseEntity.ok("success");
     }
-
-    @PatchMapping("/user/{id}")
-    public ResponseEntity<String> blockUser(HttpServletRequest httpRequest, @PathVariable("id") Integer id) {
-        if (!roleService.isSuperAdmin(httpRequest)) {
-            throw new ForbiddenException();
-        }
-
-        oneLoginUserService.blockUser(id);
-        return ResponseEntity.ok("success");
-    }
 }
