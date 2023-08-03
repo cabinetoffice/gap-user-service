@@ -1,5 +1,6 @@
 package gov.cabinetofice.gapuserservice.service;
 
+import gov.cabinetofice.gapuserservice.dto.MigrateUserDto;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.*;
@@ -16,9 +17,15 @@ import org.apache.http.HttpHeaders;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClient.RequestBodySpec;
+import org.springframework.web.reactive.function.client.WebClient.RequestHeadersSpec;
+import org.springframework.web.reactive.function.client.WebClient.UriSpec;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -38,6 +45,11 @@ public class OneLoginService {
     private String serviceRedirectUrl;
     @Value("${onelogin.private-key}")
     public String privateKey;
+    @Value("${admin-base-url}")
+    private String adminBaseUrl;
+
+    @Value("${jwt.cookie-name}")
+    public String userServiceCookieName;
 
     private static final String SCOPE = "openid email";
     private static final String VTR = "[\"Cl.Cm\"]";
@@ -174,6 +186,21 @@ public class OneLoginService {
         }
     }
 
-    public void migrateApplicant(final User user) {
+    public void migrateUser(final User user) {
+        final MigrateUserDto requestBody = MigrateUserDto.builder()
+                .oneLoginSub(user.getSub())
+                .colaSub(user.getColaSub())
+                .build();
+        // TODO convert to a bean? Also check if we need to pass in the user-service-token
+        final WebClient client = WebClient.create();
+        final UriSpec<RequestBodySpec> uriSpec = client.patch();
+        final RequestBodySpec bodySpec = uriSpec.uri(adminBaseUrl + "/api/users/migrate");
+        final RequestHeadersSpec<?> headersSpec = bodySpec.bodyValue(requestBody);
+
+        // TODO check if all of these are needed...
+        headersSpec.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .accept(MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML)
+                .acceptCharset(StandardCharsets.UTF_8)
+                .retrieve();
     }
 }

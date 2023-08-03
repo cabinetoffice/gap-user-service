@@ -4,8 +4,6 @@ import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
 
-import static gov.cabinetofice.gapuserservice.enums.LoginJourneyRedirect.MIGRATION_ERROR_PAGE;
-
 public enum LoginJourneyState {
     PRIVACY_POLICY_PENDING {
         @Override
@@ -23,35 +21,51 @@ public enum LoginJourneyState {
     PRIVACY_POLICY_ACCEPTED {
         @Override
         public LoginJourneyState nextState(final OneLoginService oneLoginService, final User user) {
-            final LoginJourneyState nextState = user.hasColaSub() ? MIGRATING_APPLICANT : USER_READY;
+            final LoginJourneyState nextState = user.hasColaSub() ? MIGRATING_USER : USER_READY;
             oneLoginService.setUsersLoginJourneyState(user, nextState);
             return nextState.nextState(oneLoginService, user);
         }
     },
 
-    MIGRATING_APPLICANT {
+    MIGRATING_USER {
         @Override
         public LoginJourneyState nextState(final OneLoginService oneLoginService, final User user) {
+            LoginJourneyState nextState;
             try {
-                oneLoginService.migrateApplicant(user);
+                oneLoginService.migrateUser(user);
+                nextState = MIGRATION_SUCCEEDED;
             } catch (Exception e) {
-                oneLoginService.setUsersLoginJourneyState(user, MIGRATION_FAILED);
-                return MIGRATION_FAILED.nextState(oneLoginService, user);
+                // TODO log error
+                nextState = MIGRATION_FAILED;
             }
-            oneLoginService.setUsersLoginJourneyState(user, USER_READY);
-            return USER_READY.nextState(oneLoginService, user);
+            oneLoginService.setUsersLoginJourneyState(user, nextState);
+            return nextState.nextState(oneLoginService, user);
         }
     },
 
-    MIGRATION_FAILED {
+    MIGRATION_SUCCEEDED {
         @Override
-        public LoginJourneyState nextState(final OneLoginService oneLoginService, final User user) {
+        public LoginJourneyState nextState(OneLoginService oneLoginService, User user) {
+            oneLoginService.setUsersLoginJourneyState(user, USER_READY);
             return this;
         }
 
         @Override
         public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
-            return MIGRATION_ERROR_PAGE;
+            return redirectToRelevantApp(role);
+        }
+    },
+
+    MIGRATION_FAILED {
+        @Override
+        public LoginJourneyState nextState(OneLoginService oneLoginService, User user) {
+            oneLoginService.setUsersLoginJourneyState(user, USER_READY);
+            return this;
+        }
+
+        @Override
+        public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
+            return redirectToRelevantApp(role);
         }
     },
 
@@ -63,13 +77,17 @@ public enum LoginJourneyState {
 
         @Override
         public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
-            return switch (role) {
-                case SUPER_ADMIN -> LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD;
-                case ADMIN -> LoginJourneyRedirect.ADMIN_DASHBOARD;
-                case APPLICANT, FIND -> LoginJourneyRedirect.APPLICANT_APP;
-            };
+            return redirectToRelevantApp(role);
         }
     };
+
+    private static LoginJourneyRedirect redirectToRelevantApp(final RoleEnum role) {
+        return switch (role) {
+            case SUPER_ADMIN -> LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD;
+            case ADMIN -> LoginJourneyRedirect.ADMIN_DASHBOARD;
+            case APPLICANT, FIND -> LoginJourneyRedirect.APPLICANT_APP;
+        };
+    }
 
     public abstract LoginJourneyState nextState(final OneLoginService oneLoginService, final User user);
 
