@@ -33,6 +33,12 @@ public class OneLoginUserService {
                 .collect(Collectors.toList());
     }
 
+    public List<UserDto> getFilteredPaginatedUsers(Pageable pageable) {
+        return userRepository.findAll().stream()
+                .map(UserDto::new)
+                .collect(Collectors.toList());
+    }
+
     public User getUserById(int id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("user with id: " + id + "not found"));
