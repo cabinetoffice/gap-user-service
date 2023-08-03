@@ -2,6 +2,7 @@ package gov.cabinetofice.gapuserservice.web;
 
 import gov.cabinetofice.gapuserservice.dto.ChangeDepartmentPageDto;
 import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
+import gov.cabinetofice.gapuserservice.dto.FilterUsersDto;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
@@ -14,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.awt.print.Pageable;
 import java.util.List;
 
 
@@ -71,4 +73,19 @@ public class UserController {
         oneLoginUserService.updateRoles(id, roleIds);
         return ResponseEntity.ok("success");
     }
+
+    @PostMapping("/user/filter")
+    public ResponseEntity<String> filterUsers(HttpServletRequest httpRequest,
+                                                    final Pageable pagination,
+                                                    @RequestBody(required = false) FilterUsersDto body ) {
+        System.out.println(body);
+        if (!roleService.isSuperAdmin(httpRequest)) {
+            throw new ForbiddenException();
+        }
+//        Object Res = oneLoginUserService.getFilteredPaginatedUsers(body.getDepartment(), body.getRole(), body.getSearchTerm(), body.isClearAllFilters());
+//
+        return ResponseEntity.ok("It worked");
+//        return ResponseEntity.ok("null");
+    }
+
 }
