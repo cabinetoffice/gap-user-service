@@ -17,6 +17,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Controller;
@@ -33,6 +34,7 @@ import java.util.Optional;
 @Controller
 @RequestMapping("v2")
 @ConditionalOnProperty(value = "feature.onelogin.enabled", havingValue = "true")
+@Log4j2
 public class LoginControllerV2 {
 
     private final OneLoginService oneLoginService;
@@ -105,8 +107,9 @@ public class LoginControllerV2 {
                                                   final HttpServletRequest request,
                                                   final @CookieValue(name = REDIRECT_URL_NAME) String redirectUrlCookie) {
         if (result.hasErrors()) return submitToPrivacyPolicyPage(privacyPolicyDto);
-        final User user = getUserFromRequest(request).orElseThrow(() -> new UserNotFoundException("Privacy policy: Could not fetch user from jwt"));
-        return new ModelAndView("redirect:" + runStateMachine(redirectUrlCookie, user));
+        final Cookie customJWTCookie = getCustomJwtCookieFromRequest(request);
+        final User user = getUserFromCookie(customJWTCookie).orElseThrow(() -> new UserNotFoundException("Privacy policy: Could not fetch user from jwt"));
+        return new ModelAndView("redirect:" + runStateMachine(redirectUrlCookie, user, customJWTCookie.getValue()));
     }
 
     private void addCustomJwtCookie(final HttpServletResponse response, final OneLoginUserInfoDto userInfo) {
@@ -116,16 +119,21 @@ public class LoginControllerV2 {
         response.addCookie(customJwt);
     }
 
-    private Optional<User> getUserFromRequest(final HttpServletRequest request) {
-        final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
-        if (customJWTCookie == null) throw new UnauthorizedException("No " + userServiceCookieName + " cookie found");
+    private Optional<User> getUserFromCookie(final Cookie customJWTCookie) {
         final DecodedJWT decodedJWT = JWT.decode(customJWTCookie.getValue());
         return oneLoginService.getUserFromSub(decodedJWT.getSubject());
     }
 
-    private String runStateMachine(final String redirectUrlCookie, final User user) {
-        return user.getLoginJourneyState().nextState(oneLoginService, user)
-                    .getLoginJourneyRedirect(user.getRole().getName())
-                    .getRedirectUrl(adminBaseUrl, redirectUrlCookie);
+    private Cookie getCustomJwtCookieFromRequest(final HttpServletRequest request) {
+        final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
+        if (customJWTCookie == null) throw new UnauthorizedException("No " + userServiceCookieName + " cookie found");
+        return customJWTCookie;
+    }
+
+    private String runStateMachine(final String redirectUrlCookie, final User user, final String jwt) {
+        return user.getLoginJourneyState()
+                .nextState(oneLoginService, user, jwt, log)
+                .getLoginJourneyRedirect(user.getRole().getName())
+                .getRedirectUrl(adminBaseUrl, redirectUrlCookie);
     }
 }

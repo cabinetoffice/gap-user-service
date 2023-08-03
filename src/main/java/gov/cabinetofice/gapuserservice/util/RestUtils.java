@@ -34,7 +34,7 @@ public class RestUtils {
         HttpResponse response = httpClient.execute(httpGet);
         return convertResponseToJson(response);
     }
-    
+
     private static JSONObject convertResponseToJson(HttpResponse response) throws IOException {
         HttpEntity entity = response.getEntity();
 

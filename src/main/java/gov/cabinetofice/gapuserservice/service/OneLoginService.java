@@ -20,12 +20,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClient.RequestBodySpec;
-import org.springframework.web.reactive.function.client.WebClient.RequestHeadersSpec;
-import org.springframework.web.reactive.function.client.WebClient.UriSpec;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -58,6 +54,7 @@ public class OneLoginService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final WebClient.Builder webClientBuilder;
 
     public PrivateKey parsePrivateKey() {
         try {
@@ -186,21 +183,19 @@ public class OneLoginService {
         }
     }
 
-    public void migrateUser(final User user) {
+    public void migrateUser(final User user, final String jwt) {
         final MigrateUserDto requestBody = MigrateUserDto.builder()
                 .oneLoginSub(user.getSub())
                 .colaSub(user.getColaSub())
                 .build();
-        // TODO convert to a bean? Also check if we need to pass in the user-service-token
-        final WebClient client = WebClient.create();
-        final UriSpec<RequestBodySpec> uriSpec = client.patch();
-        final RequestBodySpec bodySpec = uriSpec.uri(adminBaseUrl + "/api/users/migrate");
-        final RequestHeadersSpec<?> headersSpec = bodySpec.bodyValue(requestBody);
-
-        // TODO check if all of these are needed...
-        headersSpec.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .accept(MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML)
-                .acceptCharset(StandardCharsets.UTF_8)
-                .retrieve();
+        webClientBuilder.build()
+                .patch()
+                .uri("http://localhost:8080/users/migrate")
+                .header("Authorization", "Bearer " + jwt)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(Void.class)
+                .block();
     }
 }
