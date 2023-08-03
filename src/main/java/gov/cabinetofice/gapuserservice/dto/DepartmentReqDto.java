@@ -15,7 +15,7 @@ public class DepartmentReqDto {
     @NotBlank(message = "Enter a Department name.")
     private String name;
 
-    @Size(max = 255, message = "GGIS ID cannot exceed 255 characters")
+    @Size(max = 18, message = "GGIS ID cannot exceed 18 characters")
     @NotBlank(message = "Enter a GGIS ID")
     private String ggisID;
 }
