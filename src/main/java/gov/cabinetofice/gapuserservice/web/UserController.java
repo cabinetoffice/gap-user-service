@@ -71,4 +71,24 @@ public class UserController {
         oneLoginUserService.updateRoles(id, roleIds);
         return ResponseEntity.ok("success");
     }
+
+    @DeleteMapping("/user/{id}")
+    public ResponseEntity<String> deleteUser(HttpServletRequest httpRequest, @PathVariable("id") Integer id) {
+        if (!roleService.isSuperAdmin(httpRequest)) {
+            throw new ForbiddenException();
+        }
+
+        oneLoginUserService.deleteUser(id);
+        return ResponseEntity.ok("success");
+    }
+
+    @PatchMapping("/user/{id}")
+    public ResponseEntity<String> blockUser(HttpServletRequest httpRequest, @PathVariable("id") Integer id) {
+        if (!roleService.isSuperAdmin(httpRequest)) {
+            throw new ForbiddenException();
+        }
+
+        oneLoginUserService.blockUser(id);
+        return ResponseEntity.ok("success");
+    }
 }

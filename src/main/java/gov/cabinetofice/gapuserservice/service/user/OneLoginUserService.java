@@ -80,4 +80,16 @@ public class OneLoginUserService {
         userRepository.save(user);
         return user;
     }
+
+    public User deleteUser(Integer id) {
+        User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User not found"));
+        userRepository.delete(user);
+        return user;
+    }
+
+    public User blockUser(Integer id) {
+        User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User not found"));
+        user.removeAllRoles();
+        return user;
+    }
 }
