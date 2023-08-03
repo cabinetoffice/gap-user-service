@@ -190,7 +190,7 @@ public class OneLoginService {
                 .build();
         webClientBuilder.build()
                 .patch()
-                .uri("http://localhost:8080/users/migrate")
+                .uri(adminBaseUrl + "/api/users/migrate")
                 .header("Authorization", "Bearer " + jwt)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestBody)
