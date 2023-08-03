@@ -157,4 +157,24 @@ public class OneLoginUserServiceTest {
         assertThrows(DepartmentNotFoundException.class, () -> oneLoginUserService.updateDepartment(userId, departmentId));
     }
 
+    @Test
+    void testDeleteUser_UserNotFound(){
+        Integer userId = 1;
+
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class, () -> oneLoginUserService.deleteUser(userId));
+    }
+
+    @Test
+    void testDeleteUser_DeletesUser(){
+        Integer userId = 1;
+        User user = User.builder().gapUserId(userId).build();
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        oneLoginUserService.deleteUser(userId);
+
+        verify(userRepository).delete(user);
+    }
 }
