@@ -12,7 +12,10 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
 import gov.cabinetofice.gapuserservice.dto.JwtPayload;
+import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
+import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.JwtBlacklistRepository;
+import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.JwtService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.codec.binary.Base64;
@@ -24,6 +27,7 @@ import java.time.Clock;
 import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -32,11 +36,15 @@ public class CustomJwtServiceImpl implements JwtService {
 
     private final JwtProperties jwtProperties;
     private final JwtBlacklistRepository jwtBlacklistRepository;
+
+    private final UserRepository userRepository;
     private final Clock clock;
     private final RSAKey rsaKey;
-    public CustomJwtServiceImpl(JwtProperties jwtProperties, JwtBlacklistRepository jwtBlacklistRepository, Clock clock) throws JOSEException {
+
+    public CustomJwtServiceImpl(JwtProperties jwtProperties, JwtBlacklistRepository jwtBlacklistRepository, UserRepository userRepository, Clock clock) throws JOSEException {
         this.jwtProperties = jwtProperties;
         this.jwtBlacklistRepository = jwtBlacklistRepository;
+        this.userRepository = userRepository;
         this.clock = clock;
         // Generate 2048-bit RSA key pair in JWK format, attach some metadata
         RSAKey jwk = new RSAKeyGenerator(2048)
@@ -58,6 +66,14 @@ public class CustomJwtServiceImpl implements JwtService {
                     .build();
 
             verifier.verify(customJwt);
+
+            final DecodedJWT decodedToken = decodedJwt(customJwt);
+            final JwtPayload jwtPayload = decodeTheTokenPayloadInAReadableFormat(decodedToken);
+            Optional<User> user = userRepository.findBySub(jwtPayload.getSub());
+            if (user.isEmpty()) user = userRepository.findByEmailAddress(jwtPayload.getEmail());
+            if (user.isEmpty()) return false;
+            if (user.get().getLoginJourneyState().equals(LoginJourneyState.PRIVACY_POLICY_PENDING)) return false;
+
             return !isTokenInBlacklist(customJwt);
         } catch (JWTVerificationException exception) {
             log.error("JWT verification failed", exception);
