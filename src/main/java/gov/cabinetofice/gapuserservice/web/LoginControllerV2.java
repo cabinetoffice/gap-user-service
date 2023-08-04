@@ -58,22 +58,30 @@ public class LoginControllerV2 {
     @Value("${applicant-base-url}")
     private String applicantBaseUrl;
 
+    @Value("${feature.onelogin.migration.enabled}")
+    public String migrationEnabled;
+
     @GetMapping("/login")
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public RedirectView login(final @RequestParam(name = REDIRECT_URL_NAME) Optional<String> redirectUrlParam,
-                              final HttpServletRequest request,
-                              final HttpServletResponse response) {
+            final HttpServletRequest request,
+            final HttpServletResponse response) {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
         final boolean isTokenValid = customJWTCookie != null
                 && customJWTCookie.getValue() != null
                 && customJwtService.isTokenValid(customJWTCookie.getValue());
 
         if (!isTokenValid) {
-            final Cookie redirectUrlCookie = WebUtil.buildSecureCookie(REDIRECT_URL_NAME, redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl()));
+            final Cookie redirectUrlCookie = WebUtil.buildSecureCookie(REDIRECT_URL_NAME,
+                    redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl()));
             response.addCookie(redirectUrlCookie);
 
-            // TODO Decide on where to set and evaluate nonce and state
-            return new RedirectView(NOTICE_PAGE_VIEW);
+            if (migrationEnabled.equals("true")) {
+                // TODO Decide on where to set and evaluate nonce and state
+                return new RedirectView(NOTICE_PAGE_VIEW);
+            } else {
+                return new RedirectView(oneLoginService.getOneLoginAuthorizeUrl());
+            }
         }
 
         return new RedirectView(redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl()));
@@ -81,8 +89,8 @@ public class LoginControllerV2 {
 
     @GetMapping("/redirect-after-login")
     public RedirectView redirectAfterLogin(final @CookieValue(name = REDIRECT_URL_NAME) String redirectUrlCookie,
-                                           final HttpServletResponse response,
-                                           final @RequestParam String code) {
+            final HttpServletResponse response,
+            final @RequestParam String code) {
         final OneLoginUserInfoDto userInfo = oneLoginService.getOneLoginUserInfoDto(code);
         final User user = oneLoginService.createOrGetUserFromInfo(userInfo);
         addCustomJwtCookie(response, userInfo);
