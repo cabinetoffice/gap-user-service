@@ -33,6 +33,7 @@ import org.springframework.web.util.WebUtils;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.*;
@@ -67,6 +68,7 @@ class LoginControllerV2Test {
         loginController = new LoginControllerV2(oneLoginService, customJwtService, configProperties, findProperties);
         ReflectionTestUtils.setField(loginController, "userServiceCookieName", "userServiceCookieName");
         ReflectionTestUtils.setField(loginController, "adminBaseUrl", "/adminBaseUrl");
+        ReflectionTestUtils.setField(loginController, "applicantBaseUrl", "/applicantBaseUrl");
     }
 
     @AfterEach
@@ -339,6 +341,118 @@ class LoginControllerV2Test {
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/adminBaseUrl?redirectUrl=/super-admin-dashboard");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.USER_READY);
+        }
+
+        @Test
+        void shouldMigrateOldColaAdminSuccess() {
+            final PrivacyPolicyDto privacyPolicyDto = PrivacyPolicyDto.builder().acceptPrivacyPolicy("yes").build();
+            final BindingResult result = Mockito.mock(BindingResult.class);
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+            final String redirectUrl = "redirectUrl";
+            final User user = User.builder()
+                    .sub("sub")
+                    .colaSub(UUID.randomUUID())
+                    .loginJourneyState(LoginJourneyState.PRIVACY_POLICY_PENDING)
+                    .roles(List.of(Role.builder().name(RoleEnum.ADMIN).build()))
+                    .build();
+
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                    .thenReturn(new Cookie("userServiceCookieName", mockJwt));
+            when(result.hasErrors()).thenReturn(false);
+            when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
+            doNothing().when(oneLoginService).migrateUser(user, mockJwt);
+
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+
+            assertThat(methodResponse.getViewName()).isEqualTo("redirect:/adminBaseUrl?redirectUrl=/dashboard?migrationSucceeded=true");
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.MIGRATING_USER);
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.MIGRATION_SUCCEEDED);
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.USER_READY);
+        }
+
+        @Test
+        void shouldMigrateOldColaAdminFail() {
+            final PrivacyPolicyDto privacyPolicyDto = PrivacyPolicyDto.builder().acceptPrivacyPolicy("yes").build();
+            final BindingResult result = Mockito.mock(BindingResult.class);
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+            final String redirectUrl = "redirectUrl";
+            final User user = User.builder()
+                    .sub("sub")
+                    .colaSub(UUID.randomUUID())
+                    .loginJourneyState(LoginJourneyState.PRIVACY_POLICY_PENDING)
+                    .roles(List.of(Role.builder().name(RoleEnum.ADMIN).build()))
+                    .build();
+
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                    .thenReturn(new Cookie("userServiceCookieName", mockJwt));
+            when(result.hasErrors()).thenReturn(false);
+            when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
+            doThrow(new RuntimeException()).when(oneLoginService).migrateUser(user, mockJwt);
+
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+
+            assertThat(methodResponse.getViewName()).isEqualTo("redirect:/adminBaseUrl?redirectUrl=/dashboard?migrationSucceeded=false");
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.MIGRATING_USER);
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.MIGRATION_FAILED);
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.USER_READY);
+        }
+
+        @Test
+        void shouldMigrateOldColaApplicantSuccess() {
+            final PrivacyPolicyDto privacyPolicyDto = PrivacyPolicyDto.builder().acceptPrivacyPolicy("yes").build();
+            final BindingResult result = Mockito.mock(BindingResult.class);
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+            final String redirectUrl = "/redirectUrl";
+            final User user = User.builder()
+                    .sub("sub")
+                    .colaSub(UUID.randomUUID())
+                    .loginJourneyState(LoginJourneyState.PRIVACY_POLICY_PENDING)
+                    .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
+                    .build();
+
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                    .thenReturn(new Cookie("userServiceCookieName", mockJwt));
+            when(result.hasErrors()).thenReturn(false);
+            when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
+            doNothing().when(oneLoginService).migrateUser(user, mockJwt);
+
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+
+            assertThat(methodResponse.getViewName()).isEqualTo("redirect:/redirectUrl?migrationSucceeded=true");
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.MIGRATING_USER);
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.MIGRATION_SUCCEEDED);
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.USER_READY);
+        }
+
+        @Test
+        void shouldMigrateOldColaApplicantFail() {
+            final PrivacyPolicyDto privacyPolicyDto = PrivacyPolicyDto.builder().acceptPrivacyPolicy("yes").build();
+            final BindingResult result = Mockito.mock(BindingResult.class);
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+            final String redirectUrl = "/redirectUrl";
+            final User user = User.builder()
+                    .sub("sub")
+                    .colaSub(UUID.randomUUID())
+                    .loginJourneyState(LoginJourneyState.PRIVACY_POLICY_PENDING)
+                    .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
+                    .build();
+
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                    .thenReturn(new Cookie("userServiceCookieName", mockJwt));
+            when(result.hasErrors()).thenReturn(false);
+            when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
+            doThrow(new RuntimeException()).when(oneLoginService).migrateUser(user, mockJwt);
+
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+
+            assertThat(methodResponse.getViewName()).isEqualTo("redirect:/applicantBaseUrl/dashboard?migrationSucceeded=false");
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.MIGRATING_USER);
+            verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.MIGRATION_FAILED);
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.USER_READY);
         }
     }
