@@ -55,6 +55,9 @@ public class LoginControllerV2 {
     @Value("${admin-base-url}")
     private String adminBaseUrl;
 
+    @Value("${applicant-base-url}")
+    private String applicantBaseUrl;
+
     @GetMapping("/login")
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public RedirectView login(final @RequestParam(name = REDIRECT_URL_NAME) Optional<String> redirectUrlParam,
@@ -85,7 +88,7 @@ public class LoginControllerV2 {
         addCustomJwtCookie(response, userInfo);
         return new RedirectView(user.getLoginJourneyState()
                 .getLoginJourneyRedirect(user.getRole().getName())
-                .getRedirectUrl(adminBaseUrl, redirectUrlCookie));
+                .getRedirectUrl(adminBaseUrl, applicantBaseUrl, redirectUrlCookie));
     }
 
     @GetMapping("/notice-page")
@@ -134,6 +137,6 @@ public class LoginControllerV2 {
         return user.getLoginJourneyState()
                 .nextState(oneLoginService, user, jwt, log)
                 .getLoginJourneyRedirect(user.getRole().getName())
-                .getRedirectUrl(adminBaseUrl, redirectUrlCookie);
+                .getRedirectUrl(adminBaseUrl, applicantBaseUrl, redirectUrlCookie);
     }
 }

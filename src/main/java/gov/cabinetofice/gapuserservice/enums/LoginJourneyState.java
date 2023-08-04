@@ -12,6 +12,7 @@ public enum LoginJourneyState {
                                            final User user,
                                            final String jwt,
                                            final Logger logger) {
+            logger.debug("User: " + user.getSub() + " accepted the privacy policy");
             oneLoginService.setUsersLoginJourneyState(user, PRIVACY_POLICY_ACCEPTED);
             return PRIVACY_POLICY_ACCEPTED.nextState(oneLoginService, user, jwt, logger);
         }
@@ -40,6 +41,7 @@ public enum LoginJourneyState {
                                            final User user,
                                            final String jwt,
                                            final Logger logger) {
+            logger.debug("Migrating user: " + user.getSub());
             LoginJourneyState nextState;
             try {
                 oneLoginService.migrateUser(user, jwt);
@@ -70,7 +72,7 @@ public enum LoginJourneyState {
             return switch (role) {
                 case SUPER_ADMIN -> LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD;
                 case ADMIN -> LoginJourneyRedirect.ADMIN_DASHBOARD_MIGRATION_PASS;
-                case APPLICANT, FIND -> LoginJourneyRedirect.APPLICANT_DASHBOARD_MIGRATION_PASS;
+                case APPLICANT, FIND -> LoginJourneyRedirect.APPLICANT_APP_MIGRATION_PASS;
             };
         }
     },
@@ -90,7 +92,7 @@ public enum LoginJourneyState {
             return switch (role) {
                 case SUPER_ADMIN -> LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD;
                 case ADMIN -> LoginJourneyRedirect.ADMIN_DASHBOARD_MIGRATION_FAIL;
-                case APPLICANT, FIND -> LoginJourneyRedirect.APPLICANT_DASHBOARD_MIGRATION_FAIL;
+                case APPLICANT, FIND -> LoginJourneyRedirect.APPLICANT_APP_MIGRATION_FAIL;
             };
         }
     },
