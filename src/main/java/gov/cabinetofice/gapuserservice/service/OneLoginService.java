@@ -1,5 +1,6 @@
 package gov.cabinetofice.gapuserservice.service;
 
+import gov.cabinetofice.gapuserservice.dto.MigrateUserDto;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.*;
@@ -16,7 +17,9 @@ import org.apache.http.HttpHeaders;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.IOException;
 import java.security.KeyFactory;
@@ -38,6 +41,11 @@ public class OneLoginService {
     private String serviceRedirectUrl;
     @Value("${onelogin.private-key}")
     public String privateKey;
+    @Value("${admin-base-url}")
+    private String adminBaseUrl;
+
+    @Value("${jwt.cookie-name}")
+    public String userServiceCookieName;
 
     private static final String SCOPE = "openid email";
     private static final String VTR = "[\"Cl.Cm\"]";
@@ -46,6 +54,7 @@ public class OneLoginService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final WebClient.Builder webClientBuilder;
 
     public PrivateKey parsePrivateKey() {
         try {
@@ -172,5 +181,21 @@ public class OneLoginService {
         } catch (JSONException e) {
             throw new AuthenticationException("unable to retrieve access_token");
         }
+    }
+
+    public void migrateUser(final User user, final String jwt) {
+        final MigrateUserDto requestBody = MigrateUserDto.builder()
+                .oneLoginSub(user.getSub())
+                .colaSub(user.getColaSub())
+                .build();
+        webClientBuilder.build()
+                .patch()
+                .uri(adminBaseUrl + "/api/users/migrate")
+                .header("Authorization", "Bearer " + jwt)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(Void.class)
+                .block();
     }
 }
