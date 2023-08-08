@@ -18,6 +18,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.util.Arrays;
@@ -110,12 +111,33 @@ public class OneLoginUserServiceTest {
         UserDto userDto1 = new UserDto(user1);
         UserDto userDto2 = new UserDto(user2);
 
-        List<UserDto> result = oneLoginUserService.getPaginatedUsers(pageable);
+        List<UserDto> result = oneLoginUserService.getPaginatedUsers(pageable, "");
 
         assertEquals(2, result.size());
         assertEquals(userDto1, result.get(0));
         assertEquals(userDto2, result.get(1));
     }
+
+    @Test
+    void shouldFuzzySearchAndReturnPaginatedUsers() {
+        User user1 = User.builder().gapUserId(1).build();
+        User user2 = User.builder().gapUserId(2).build();
+        List<User> users = Arrays.asList(user1, user2);
+        String emailAddress = "baz";
+
+        when(userRepository.findAllUsersByFuzzySearchOnEmailAddress(emailAddress)).thenReturn(users);
+
+        Pageable pageable = PageRequest.of(0, 10);
+        UserDto userDto1 = new UserDto(user1);
+        UserDto userDto2 = new UserDto(user2);
+
+        List<UserDto> result = oneLoginUserService.getPaginatedUsers(pageable, emailAddress);
+
+        assertEquals(2, result.size());
+        assertEquals(userDto1, result.get(0));
+        assertEquals(userDto2, result.get(1));
+    }
+
 
     @Test
     void shouldReturnUpdatedUserWhenValidUserAndDepartmentIsGiven() {
@@ -156,5 +178,5 @@ public class OneLoginUserServiceTest {
 
         assertThrows(DepartmentNotFoundException.class, () -> oneLoginUserService.updateDepartment(userId, departmentId));
     }
-
 }
+
