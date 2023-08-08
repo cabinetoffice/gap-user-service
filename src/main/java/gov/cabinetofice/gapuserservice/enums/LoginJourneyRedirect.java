@@ -31,28 +31,28 @@ public enum LoginJourneyRedirect {
     APPLICANT_APP_MIGRATION_PASS {
         @Override
         public String getRedirectUrl(String adminBaseUrl, String applicantBaseUrl, String redirectUrlCookie) {
-            return APPLICANT_APP.getRedirectUrl(adminBaseUrl, applicantBaseUrl, redirectUrlCookie) + "?migrationSucceeded=true";
+            return APPLICANT_APP.getRedirectUrl(adminBaseUrl, applicantBaseUrl, redirectUrlCookie) + "?migrationStatus=success";
         }
     },
 
     APPLICANT_APP_MIGRATION_FAIL {
         @Override
         public String getRedirectUrl(String adminBaseUrl, String applicantBaseUrl, String redirectUrlCookie) {
-            return applicantBaseUrl + "/dashboard?migrationSucceeded=false";
+            return applicantBaseUrl + "/dashboard?migrationStatus=error";
         }
     },
 
     ADMIN_DASHBOARD_MIGRATION_PASS {
         @Override
         public String getRedirectUrl(String adminBaseUrl, String applicantBaseUrl, String redirectUrlCookie) {
-            return ADMIN_DASHBOARD.getRedirectUrl(adminBaseUrl, applicantBaseUrl, redirectUrlCookie) + "?migrationSucceeded=true";
+            return ADMIN_DASHBOARD.getRedirectUrl(adminBaseUrl, applicantBaseUrl, redirectUrlCookie) + "?migrationStatus=success";
         }
     },
 
     ADMIN_DASHBOARD_MIGRATION_FAIL {
         @Override
         public String getRedirectUrl(String adminBaseUrl, String applicantBaseUrl, String redirectUrlCookie) {
-            return ADMIN_DASHBOARD.getRedirectUrl(adminBaseUrl, applicantBaseUrl, redirectUrlCookie) + "?migrationSucceeded=false";
+            return ADMIN_DASHBOARD.getRedirectUrl(adminBaseUrl, applicantBaseUrl, redirectUrlCookie) + "?migrationStatus=error";
         }
     };
 
