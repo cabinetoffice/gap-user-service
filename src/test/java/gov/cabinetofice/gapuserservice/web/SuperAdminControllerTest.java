@@ -4,11 +4,17 @@ import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
 import gov.cabinetofice.gapuserservice.dto.RoleDto;
 import gov.cabinetofice.gapuserservice.dto.SuperAdminDashboardPageDto;
 import gov.cabinetofice.gapuserservice.dto.UserDto;
+import gov.cabinetofice.gapuserservice.model.Department;
+import gov.cabinetofice.gapuserservice.model.Role;
+import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
+import gov.cabinetofice.gapuserservice.web.controlleradvice.Error;
+import gov.cabinetofice.gapuserservice.web.controlleradvice.ErrorResponseBody;
 import jakarta.servlet.http.HttpServletRequest;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -21,7 +27,6 @@ import org.springframework.http.ResponseEntity;
 import java.util.List;
 import java.util.Objects;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -54,13 +59,12 @@ class SuperAdminControllerTest {
         when(departmentService.getAllDepartments()).thenReturn(departments);
         when(roleService.getAllRoles()).thenReturn(roles);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
-        when(oneLoginUserService.getPaginatedUsers(pagination)).thenReturn(users);
+        when(oneLoginUserService.getPaginatedUsers(pagination, "")).thenReturn(users);
         when(oneLoginUserService.getUserCount()).thenReturn(2L);
 
         ResponseEntity<SuperAdminDashboardPageDto> result =
-                superAdminController.superAdminDashboard(httpRequest, pagination);
-
-        assertEquals(HttpStatus.OK, result.getStatusCode());
+                (ResponseEntity<SuperAdminDashboardPageDto>) superAdminController.superAdminDashboard(httpRequest,  pagination, null, null, "", false);
+                Assertions.assertEquals(HttpStatus.OK, result.getStatusCode());
 
         SuperAdminDashboardPageDto responseDto = result.getBody();
         Assertions.assertEquals(departments, Objects.requireNonNull(responseDto).getDepartments());

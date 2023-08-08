@@ -110,7 +110,7 @@ public class OneLoginUserServiceTest {
         UserDto userDto1 = new UserDto(user1);
         UserDto userDto2 = new UserDto(user2);
 
-        List<UserDto> result = oneLoginUserService.getPaginatedUsers(pageable);
+        List<UserDto> result = oneLoginUserService.getPaginatedUsers(pageable, "");
 
         assertEquals(2, result.size());
         assertEquals(userDto1, result.get(0));
