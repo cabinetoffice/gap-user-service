@@ -94,7 +94,7 @@ class SuperAdminControllerTest {
                 (ResponseEntity<SuperAdminDashboardPageDto>) superAdminController.superAdminDashboard(httpRequest,  pagination, "1", "1", "", false);
 
         SuperAdminDashboardPageDto responseDto = result.getBody();
-        Assertions.assertEquals(1, Objects.requireNonNull(responseDto).getUsers().size()); // Only one user matches the filters
+        Assertions.assertEquals(1, Objects.requireNonNull(responseDto).getUsers().size());
         Assertions.assertEquals(1L, responseDto.getUserCount());
     }
 
@@ -102,7 +102,7 @@ class SuperAdminControllerTest {
     void shouldReturnErrorResponseWhenSearchTermIsTooLong() {
         Pageable pagination = mock(Pageable.class);
         HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        String searchTerm = "a".repeat(256); // Create a search term longer than 255 characters
+        String searchTerm = "a".repeat(256);
         List<DepartmentDto> departments = List.of(DepartmentDto.builder().id("1").build(), DepartmentDto.builder().id("2").build());
         List<RoleDto> roles = List.of(RoleDto.builder().id("1").build(), RoleDto.builder().id("2").build());
 
