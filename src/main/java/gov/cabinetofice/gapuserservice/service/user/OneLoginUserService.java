@@ -11,6 +11,7 @@ import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.DepartmentRepository;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
+import gov.cabinetofice.gapuserservice.util.PaginationUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -27,16 +28,15 @@ public class OneLoginUserService {
     private final DepartmentRepository departmentRepository;
     private final RoleRepository roleRepository;
 
-    public List<UserDto> getPaginatedUsers(Pageable pageable) {
-        return userRepository.findAll(pageable).stream()
-                .map(UserDto::new)
-                .collect(Collectors.toList());
-    }
+    public List<UserDto> getPaginatedUsers(Pageable pageable, String emailAddress) {
+        if (emailAddress == null || emailAddress.isBlank()) {
+            return userRepository.findAll(pageable).stream()
+                    .map(UserDto::new)
+                    .collect(Collectors.toList());
+        }
 
-    public List<UserDto> getFilteredPaginatedUsers(Pageable pageable) {
-        return userRepository.findAll().stream()
-                .map(UserDto::new)
-                .collect(Collectors.toList());
+        List<User> users = userRepository.findAllUsersByFuzzySearchOnEmailAddress(emailAddress);
+        return PaginationUtils.paginateList(users, pageable).stream().map(UserDto::new).collect(Collectors.toList());
     }
 
     public User getUserById(int id) {
