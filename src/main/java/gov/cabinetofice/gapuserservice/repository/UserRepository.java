@@ -32,10 +32,11 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     );
 
 
-    @Query(value = "SELECT DISTINCT u.* from gap_users u\n" +
-            "WHERE levenshtein(:emailQuery, u.email) <3\n",
-            nativeQuery = true
-    )
+    @Query(value = "SELECT *, levenshtein(email, :emailQuery) \n" +
+            "FROM gap_users \n" +
+            "ORDER BY levenshtein(email, :emailQuery) ASC \n" +
+            "LIMIT 30",
+            nativeQuery = true)
     List<User> findAllUsersByFuzzySearchOnEmailAddress(
             @Param("emailQuery") String emailQuery
     );
