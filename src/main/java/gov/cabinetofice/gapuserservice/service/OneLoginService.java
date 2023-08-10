@@ -116,7 +116,7 @@ public class OneLoginService {
 
     public Optional<User> getUserFromSubOrEmail(final String sub, final String email) {
         final Optional<User> userOptional = userRepository.findBySub(sub);
-        if(userOptional.isPresent()) return userOptional;
+        if (userOptional.isPresent()) return userOptional;
         return userRepository.findByEmailAddress(email);
     }
 
@@ -139,7 +139,15 @@ public class OneLoginService {
 
     public User createOrGetUserFromInfo(final OneLoginUserInfoDto userInfo) {
         final Optional<User> userOptional = getUserFromSubOrEmail(userInfo.getSub(), userInfo.getEmailAddress());
-        return userOptional.orElseGet(() -> createNewUser(userInfo.getSub(), userInfo.getEmailAddress()));
+        if (userOptional.isPresent()) {
+            final User user = userOptional.get();
+            if (!user.hasSub()) {
+                user.setSub(userInfo.getSub());
+                return userRepository.save(user);
+            }
+            return user;
+        }
+        return createNewUser(userInfo.getSub(), userInfo.getEmailAddress());
     }
 
     public String createOneLoginJwt() {

@@ -323,7 +323,7 @@ public class OneLoginServiceTest {
                     .sub("sub")
                     .emailAddress("email")
                     .build();
-            final User existingUser = User.builder().build();
+            final User existingUser = User.builder().sub("sub").build();
 
             when(userRepository.findBySub(any())).thenReturn(Optional.of(existingUser));
 
