@@ -62,9 +62,9 @@ public class OneLoginUserService {
     }
 
     public User updateRoles(Integer id, List<Integer> newRoles) {
-        User user = userRepository.findById(id).orElseThrow(()-> new RuntimeException("User not found"));
+        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         user.removeAllRoles();
-        if(newRoles == null || newRoles.isEmpty()) {
+        if (newRoles == null || newRoles.isEmpty()) {
             userRepository.save(user);
             return user;
         }
@@ -72,17 +72,18 @@ public class OneLoginUserService {
             Role role = roleRepository.findById(roleId).orElseThrow();
             user.addRole(role);
         }
-        if (user.getRoles().stream().noneMatch(role -> role.getName().equals(RoleEnum.APPLICANT))) {
-            Role role = roleRepository.findByName(RoleEnum.APPLICANT).orElseThrow(() -> new RoleNotFoundException("Update Roles failed: Applicant role not found"));
-            user.addRole(role);
-        }
-        if (user.getRoles().stream().noneMatch(role -> role.getName().equals(RoleEnum.FIND))) {
-            Role role = roleRepository.findByName(RoleEnum.FIND).orElseThrow(() -> new RoleNotFoundException("Update Roles failed: Find role not found"));
-            user.addRole(role);
-        }
-
+        addRoleIfNotPresent(user, RoleEnum.FIND);
+        addRoleIfNotPresent(user, RoleEnum.APPLICANT);
         userRepository.save(user);
         return user;
+    }
+
+    private void addRoleIfNotPresent(User user, RoleEnum roleName) {
+        if (user.getRoles().stream().noneMatch(role -> role.getName().equals(roleName))) {
+            Role role = roleRepository.findByName(roleName).orElseThrow(() -> new RoleNotFoundException(
+                    "Update Roles failed: ".concat(roleName.name()).concat(" role not found")));
+            user.addRole(role);
+        }
     }
 
     public User deleteUser(Integer id) {

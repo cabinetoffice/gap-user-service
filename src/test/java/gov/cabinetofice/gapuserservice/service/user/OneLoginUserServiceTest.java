@@ -177,4 +177,21 @@ public class OneLoginUserServiceTest {
 
         verify(userRepository).delete(user);
     }
+
+    @Test
+    void updateRolesShouldAddApplicantAndFindRolesWhenNoRolesPresent() {
+        Integer userId = 1;
+        User user = User.builder().gapUserId(userId).build();
+        List<Integer> newRoles = List.of(3, 4);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(roleRepository.findById(3)).thenReturn(Optional.of(Role.builder().name(RoleEnum.ADMIN).build()));
+        when(roleRepository.findById(4)).thenReturn(Optional.of(Role.builder().name(RoleEnum.SUPER_ADMIN).build()));
+        when(roleRepository.findByName(RoleEnum.APPLICANT)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
+        when(roleRepository.findByName(RoleEnum.FIND)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).build()));
+        User updatedUser = oneLoginUserService.updateRoles(userId , newRoles);
+
+        assertThat(updatedUser.getRoles().size()).isEqualTo(4);
+        assertThat(updatedUser.getRoles().stream().anyMatch(role -> role.getName().equals(RoleEnum.APPLICANT))).isTrue();
+        assertThat(updatedUser.getRoles().stream().anyMatch(role -> role.getName().equals(RoleEnum.FIND))).isTrue();
+    }
 }
