@@ -64,17 +64,21 @@ public class OneLoginUserService {
     public User updateRoles(Integer id, List<Integer> newRoles) {
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         user.removeAllRoles();
+
         if (newRoles == null || newRoles.isEmpty()) {
             userRepository.save(user);
             return user;
         }
+
         for (Integer roleId : newRoles) {
             Role role = roleRepository.findById(roleId).orElseThrow();
             user.addRole(role);
         }
+
         addRoleIfNotPresent(user, RoleEnum.FIND);
         addRoleIfNotPresent(user, RoleEnum.APPLICANT);
         userRepository.save(user);
+
         return user;
     }
 
