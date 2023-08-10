@@ -114,6 +114,12 @@ public class OneLoginService {
         return userRepository.findBySub(sub);
     }
 
+    public Optional<User> getUserFromSubOrEmail(final String sub, final String email) {
+        final Optional<User> userOptional = userRepository.findBySub(sub);
+        if(userOptional.isPresent()) return userOptional;
+        return userRepository.findByEmailAddress(email);
+    }
+
     public Map<String, String> generateCustomJwtClaims(final OneLoginUserInfoDto userInfo) {
         final User user = getUserFromSub(userInfo.getSub())
                 .orElseThrow(() -> new UserNotFoundException("User not found when generating custom jwt claims"));
@@ -132,7 +138,7 @@ public class OneLoginService {
     }
 
     public User createOrGetUserFromInfo(final OneLoginUserInfoDto userInfo) {
-        final Optional<User> userOptional = getUserFromSub(userInfo.getSub());
+        final Optional<User> userOptional = getUserFromSubOrEmail(userInfo.getSub(), userInfo.getEmailAddress());
         return userOptional.orElseGet(() -> createNewUser(userInfo.getSub(), userInfo.getEmailAddress()));
     }
 
