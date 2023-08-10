@@ -77,4 +77,13 @@ class UserControllerTest {
         verify(departmentService, times(1)).getAllDepartments();
         assertThat(Objects.requireNonNull(result.getBody()).getDepartments().get(0).getId()).isEqualTo("1");
     }
+
+    @Test
+    void shouldDeleteUserWhenValidIdIsGiven() {
+        final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
+        final ResponseEntity<String> methodResponse = controller.deleteUser(httpRequest, 1);
+
+        assertThat(methodResponse).isEqualTo(ResponseEntity.ok("success"));
+    }
 }
