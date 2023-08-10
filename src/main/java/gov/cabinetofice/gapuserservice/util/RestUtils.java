@@ -24,7 +24,6 @@ public class RestUtils {
         httpPost.setEntity(new StringEntity(body));
         HttpResponse response = httpClient.execute(httpPost);
         return convertResponseToJson(response);
-
     }
 
     public static JSONObject getRequestWithHeaders(String url, Map<String, String> headers) throws IOException {
@@ -34,7 +33,6 @@ public class RestUtils {
 
         HttpResponse response = httpClient.execute(httpGet);
         return convertResponseToJson(response);
-
     }
 
     private static JSONObject convertResponseToJson(HttpResponse response) throws IOException {
