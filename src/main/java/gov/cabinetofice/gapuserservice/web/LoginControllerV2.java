@@ -58,6 +58,9 @@ public class LoginControllerV2 {
     @Value("${applicant-base-url}")
     private String applicantBaseUrl;
 
+    @Value("${tech-support-dash-base-url}")
+    private String techSupportAppBaseUrl;
+
     @Value("${feature.onelogin.migration.enabled}")
     public String migrationEnabled;
 
@@ -96,7 +99,7 @@ public class LoginControllerV2 {
         addCustomJwtCookie(response, userInfo);
         return new RedirectView(user.getLoginJourneyState()
                 .getLoginJourneyRedirect(user.getRole().getName())
-                .getRedirectUrl(adminBaseUrl, applicantBaseUrl, redirectUrlCookie));
+                .getRedirectUrl(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl, redirectUrlCookie));
     }
 
     @GetMapping("/notice-page")
@@ -145,6 +148,6 @@ public class LoginControllerV2 {
         return user.getLoginJourneyState()
                 .nextState(oneLoginService, user, jwt, log)
                 .getLoginJourneyRedirect(user.getRole().getName())
-                .getRedirectUrl(adminBaseUrl, applicantBaseUrl, redirectUrlCookie);
+                .getRedirectUrl(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl ,redirectUrlCookie);
     }
 }

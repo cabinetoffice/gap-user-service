@@ -1,0 +1,2 @@
+INSERT INTO roles (name) VALUES
+  ('TECHNICAL_SUPPORT');

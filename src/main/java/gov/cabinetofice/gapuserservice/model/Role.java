@@ -15,7 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "roles")
+@Table(name = "roles") //TODO database table names are usually singular
 public class Role {
 
     @Id
