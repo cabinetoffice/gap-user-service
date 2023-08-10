@@ -41,8 +41,9 @@ public class OneLoginService {
     private String serviceRedirectUrl;
     @Value("${onelogin.private-key}")
     public String privateKey;
-    @Value("${admin-base-url}")
-    private String adminBaseUrl;
+
+    @Value("${admin-backend}")
+    private String adminBackend;
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
@@ -204,7 +205,7 @@ public class OneLoginService {
                 .build();
         webClientBuilder.build()
                 .patch()
-                .uri(adminBaseUrl + "/api/users/migrate")
+                .uri(adminBackend + "/users/migrate")
                 .header("Authorization", "Bearer " + jwt)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestBody)
