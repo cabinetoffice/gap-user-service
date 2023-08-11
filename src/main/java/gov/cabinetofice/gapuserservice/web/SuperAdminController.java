@@ -12,7 +12,6 @@ import gov.cabinetofice.gapuserservice.web.controlleradvice.Error;
 import gov.cabinetofice.gapuserservice.web.controlleradvice.ErrorResponseBody;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -21,7 +20,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -60,12 +58,13 @@ public class SuperAdminController {
         List<UserDto> users = oneLoginUserService.getPaginatedUsers(pagination, searchTerm);
         long userCount = oneLoginUserService.getUserCount();
 
-        if (clearAllFilters || (departments == null && roles == null)){
+        if (clearAllFilters || (departments.isBlank() && roles.isBlank())){
             return ResponseEntity.ok(SuperAdminDashboardPageDto.builder()
                     .departments(allDepartments)
                     .roles(allRoles)
                     .users(users)
-                    .userCount(userCount)
+                    .userCount(searchTerm.isBlank() ? userCount : 30)
+                    .previousFilterData(clearAllFilters ? null : List.of(List.of(), List.of(), List.of(searchTerm)) )
                     .build());
         }
 

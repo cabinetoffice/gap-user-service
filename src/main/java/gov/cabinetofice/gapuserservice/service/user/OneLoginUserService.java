@@ -29,7 +29,7 @@ public class OneLoginUserService {
     private final RoleRepository roleRepository;
 
     public List<UserDto> getPaginatedUsers(Pageable pageable, String emailAddress) {
-        if (emailAddress == null || emailAddress.isBlank()) {
+        if (emailAddress.isBlank()) {
             return userRepository.findAll(pageable).stream()
                     .map(UserDto::new)
                     .collect(Collectors.toList());
