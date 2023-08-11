@@ -1,6 +1,5 @@
 package gov.cabinetofice.gapuserservice.service.user;
 
-import gov.cabinetofice.gapuserservice.dto.UserDto;
 import gov.cabinetofice.gapuserservice.exceptions.DepartmentNotFoundException;
 import gov.cabinetofice.gapuserservice.exceptions.RoleNotFoundException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
@@ -11,14 +10,14 @@ import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.DepartmentRepository;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
-import gov.cabinetofice.gapuserservice.util.PaginationUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -28,24 +27,38 @@ public class OneLoginUserService {
     private final DepartmentRepository departmentRepository;
     private final RoleRepository roleRepository;
 
-    public List<UserDto> getPaginatedUsers(Pageable pageable, String emailAddress) {
-        if (emailAddress.isBlank()) {
-            return userRepository.findAll(pageable).stream()
-                    .map(UserDto::new)
-                    .collect(Collectors.toList());
-        }
+    public Page<User> getPaginatedUsers(Pageable pageable, String emailAddress, List<Integer> departmentIds, List<Integer> roleIds) {
+        final boolean hasEmail = !emailAddress.isBlank();
+        final boolean hasDepartment = !departmentIds.isEmpty();
+        final boolean hasRole = !roleIds.isEmpty();
 
-        List<User> users = userRepository.findAllUsersByFuzzySearchOnEmailAddress(emailAddress);
-        return PaginationUtils.paginateList(users, pageable).stream().map(UserDto::new).collect(Collectors.toList());
+        if (!hasEmail && !hasDepartment && !hasRole)
+            return userRepository.findAll(pageable);
+
+        if (hasEmail && !hasDepartment && !hasRole)
+            return userRepository.findAllUsersByFuzzySearchOnEmailAddress(emailAddress, PageRequest.of(0, 10));
+
+        if (!hasEmail && !hasDepartment)
+            return userRepository.findUsersByRoles(roleIds, pageable);
+
+        if (!hasEmail && !hasRole)
+            return userRepository.findUsersByDepartment(departmentIds, pageable);
+
+        if (!hasEmail)
+            return userRepository.findUsersByDepartmentAndRoles(roleIds, departmentIds, pageable);
+
+        if (!hasDepartment)
+            return userRepository.findUsersByRolesAndFuzzySearchOnEmailAddress(roleIds, emailAddress, pageable);
+
+        if (!hasRole)
+            return userRepository.findUsersByDepartmentAndFuzzySearchOnEmailAddress(departmentIds, emailAddress, pageable);
+
+        return userRepository.findUsersByDepartmentAndRolesAndFuzzySearchOnEmailAddress(roleIds, departmentIds, emailAddress, PageRequest.of(0, 10));
     }
 
     public User getUserById(int id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("user with id: " + id + "not found"));
-    }
-
-    public long getUserCount() {
-        return userRepository.count();
     }
 
     public User updateDepartment(Integer id, Integer departmentId) {
