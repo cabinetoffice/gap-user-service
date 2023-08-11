@@ -8,6 +8,7 @@ import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -29,6 +30,9 @@ public class User {
 
     @Column(name = "sub")
     private String sub;
+
+    @Column(name = "cola_sub")
+    private UUID colaSub;
 
     @Column(name = "login_journey_state")
     @Enumerated(EnumType.STRING)
@@ -65,6 +69,10 @@ public class User {
         return this.department != null;
     }
 
+    public boolean hasColaSub() {
+        return this.colaSub != null;
+    }
+
     public boolean isApplicant() {
         return this.roles.stream().anyMatch((role) -> role.getName().equals(RoleEnum.APPLICANT) ||
                 role.getName().equals(RoleEnum.ADMIN) ||
@@ -79,10 +87,15 @@ public class User {
         return this.roles.stream().anyMatch((role) -> role.getName().equals(RoleEnum.SUPER_ADMIN));
     }
 
-    public Role getRole() {
-        if(isSuperAdmin()) return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.SUPER_ADMIN)).findFirst().get();
-        if(isAdmin()) return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.ADMIN)).findFirst().get();
-        if(isApplicant()) return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.APPLICANT)).findFirst().get();
+    public boolean isTechnicalSupport() {
+        return this.roles.stream().anyMatch(role -> role.getName().equals(RoleEnum.TECHNICAL_SUPPORT));
+    }
+
+    public Role getHighestRole() {
+        if (isSuperAdmin()) return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.SUPER_ADMIN)).findFirst().get();
+        if (isAdmin()) return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.ADMIN)).findFirst().get();
+        if (isTechnicalSupport()) return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.TECHNICAL_SUPPORT)).findFirst().get();
+        if (isApplicant()) return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.APPLICANT)).findFirst().get();
         return null;
     }
 

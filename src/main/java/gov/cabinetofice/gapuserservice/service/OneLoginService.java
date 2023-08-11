@@ -3,6 +3,7 @@ package gov.cabinetofice.gapuserservice.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
+import gov.cabinetofice.gapuserservice.dto.MigrateUserDto;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
@@ -20,7 +21,9 @@ import org.apache.http.HttpHeaders;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.IOException;
 import java.security.KeyFactory;
@@ -43,6 +46,12 @@ public class OneLoginService {
     @Value("${onelogin.private-key}")
     public String privateKey;
 
+    @Value("${admin-backend}")
+    private String adminBackend;
+
+    @Value("${jwt.cookie-name}")
+    public String userServiceCookieName;
+
     private static final String SCOPE = "openid email";
     private static final String VTR = "[\"Cl.Cm\"]";
     private static final String UI = "en";
@@ -50,6 +59,7 @@ public class OneLoginService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final WebClient.Builder webClientBuilder;
 
     public PrivateKey parsePrivateKey() {
         try {
@@ -130,6 +140,12 @@ public class OneLoginService {
         return userRepository.findBySub(sub);
     }
 
+    public Optional<User> getUserFromSubOrEmail(final String sub, final String email) {
+        final Optional<User> userOptional = userRepository.findBySub(sub);
+        if (userOptional.isPresent()) return userOptional;
+        return userRepository.findByEmailAddress(email);
+    }
+
     public Map<String, String> generateCustomJwtClaims(final OneLoginUserInfoDto userInfo) {
         final User user = getUserFromSub(userInfo.getSub())
                 .orElseThrow(() -> new UserNotFoundException("User not found when generating custom jwt claims"));
@@ -151,8 +167,16 @@ public class OneLoginService {
     }
 
     public User createOrGetUserFromInfo(final OneLoginUserInfoDto userInfo) {
-        final Optional<User> userOptional = getUserFromSub(userInfo.getSub());
-        return userOptional.orElseGet(() -> createNewUser(userInfo.getSub(), userInfo.getEmailAddress()));
+        final Optional<User> userOptional = getUserFromSubOrEmail(userInfo.getSub(), userInfo.getEmailAddress());
+        if (userOptional.isPresent()) {
+            final User user = userOptional.get();
+            if (!user.hasSub()) {
+                user.setSub(userInfo.getSub());
+                return userRepository.save(user);
+            }
+            return user;
+        }
+        return createNewUser(userInfo.getSub(), userInfo.getEmailAddress());
     }
 
     public String createOneLoginJwt() {
@@ -197,6 +221,22 @@ public class OneLoginService {
         } catch (IOException e) {
             throw new InvalidRequestException("invalid request");
         }
+    }
+
+    public void migrateUser(final User user, final String jwt) {
+        final MigrateUserDto requestBody = MigrateUserDto.builder()
+                .oneLoginSub(user.getSub())
+                .colaSub(user.getColaSub())
+                .build();
+        webClientBuilder.build()
+                .patch()
+                .uri(adminBackend + "/users/migrate")
+                .header("Authorization", "Bearer " + jwt)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(Void.class)
+                .block();
     }
 
     public IdTokenDto getDecodedIdToken(final JSONObject tokenResponse) {

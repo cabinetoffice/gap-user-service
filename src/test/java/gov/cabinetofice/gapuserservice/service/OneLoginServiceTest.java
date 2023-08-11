@@ -1,5 +1,6 @@
 package gov.cabinetofice.gapuserservice.service;
 
+import gov.cabinetofice.gapuserservice.dto.MigrateUserDto;
 import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
@@ -22,6 +23,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.security.*;
@@ -54,6 +57,9 @@ public class OneLoginServiceTest {
     @Mock
     private RoleRepository roleRepository;
 
+    @Mock
+    private WebClient.Builder webClientBuilder;
+
     @BeforeEach
     void setUp() {
         mockedStatic = mockStatic(RestUtils.class);
@@ -63,6 +69,7 @@ public class OneLoginServiceTest {
         ReflectionTestUtils.setField(oneLoginService, "clientAssertionType", "assertion_type");
         ReflectionTestUtils.setField(oneLoginService, "clientId", DUMMY_CLIENT_ID);
         ReflectionTestUtils.setField(oneLoginService, "serviceRedirectUrl", DUMMY_BASE_URL + "/redirect");
+        ReflectionTestUtils.setField(oneLoginService, "adminBackend", "adminBackend");
     }
 
     @AfterEach
@@ -293,7 +300,7 @@ public class OneLoginServiceTest {
                     .sub("sub")
                     .emailAddress("email")
                     .build();
-            final User existingUser = User.builder().build();
+            final User existingUser = User.builder().sub("sub").build();
 
             when(userRepository.findBySub(any())).thenReturn(Optional.of(existingUser));
 
@@ -316,6 +323,44 @@ public class OneLoginServiceTest {
             final User result = oneLoginService.createOrGetUserFromInfo(oneLoginUserInfoDto);
 
             Assertions.assertEquals(newUser, result);
+        }
+    }
+
+    @Nested
+    class migrateUser {
+        @Test
+        void shouldMigrateUser() {
+            final User user = User.builder()
+                    .colaSub(UUID.randomUUID())
+                    .sub("oneLoginSub")
+                    .build();
+            final MigrateUserDto migrateUserDto = MigrateUserDto.builder()
+                    .oneLoginSub(user.getSub())
+                    .colaSub(user.getColaSub())
+                    .build();
+
+            // TODO not sure how to spy/mock the builder pattern well. If anyone has a better way gimme a shout!
+            final WebClient mockWebClient = mock(WebClient.class);
+            final WebClient.RequestBodyUriSpec mockRequestBodyUriSpec = mock(WebClient.RequestBodyUriSpec.class);
+            final WebClient.RequestBodySpec mockRequestBodySpec = mock(WebClient.RequestBodySpec.class);
+            final WebClient.RequestHeadersSpec mockRequestHeadersSpec = mock(WebClient.RequestHeadersSpec.class);
+            final WebClient.ResponseSpec mockResponseSpec = mock(WebClient.ResponseSpec.class);
+
+            when(webClientBuilder.build()).thenReturn(mockWebClient);
+            when(mockWebClient.patch()).thenReturn(mockRequestBodyUriSpec);
+            when(mockRequestBodyUriSpec.uri(anyString())).thenReturn(mockRequestBodySpec);
+            when(mockRequestBodySpec.header(anyString(), anyString())).thenReturn(mockRequestBodySpec);
+            when(mockRequestBodySpec.contentType(any())).thenReturn(mockRequestBodySpec);
+            when(mockRequestBodySpec.bodyValue(any())).thenReturn(mockRequestHeadersSpec);
+            when(mockRequestHeadersSpec.retrieve()).thenReturn(mockResponseSpec);
+            when(mockResponseSpec.bodyToMono(Void.class)).thenReturn(mock(Mono.class));
+
+            oneLoginService.migrateUser(user, "jwt");
+
+            verify(webClientBuilder).build();
+            verify(mockRequestBodyUriSpec).uri("adminBackend/users/migrate");
+            verify(mockRequestBodySpec).header("Authorization", "Bearer jwt");
+            verify(mockRequestBodySpec).bodyValue(migrateUserDto);
         }
     }
 
