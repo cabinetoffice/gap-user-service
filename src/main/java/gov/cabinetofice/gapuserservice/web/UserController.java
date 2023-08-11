@@ -2,6 +2,7 @@ package gov.cabinetofice.gapuserservice.web;
 
 import gov.cabinetofice.gapuserservice.dto.ChangeDepartmentPageDto;
 import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
+import gov.cabinetofice.gapuserservice.dto.UserDto;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
@@ -27,14 +28,13 @@ public class UserController {
     private final RoleService roleService;
 
     @GetMapping("/user/{id}")
-    public ResponseEntity<User> getUserById(HttpServletRequest httpRequest, @PathVariable("id") Integer id) {
+    public ResponseEntity<UserDto> getUserById(HttpServletRequest httpRequest, @PathVariable("id") Integer id) {
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
 
-       return ResponseEntity.ok(oneLoginUserService.getUserById(id));
-   }
-
+        return ResponseEntity.ok(new UserDto(oneLoginUserService.getUserById(id)));
+    }
     @PatchMapping("/user/{userId}/department")
     public ResponseEntity<User> updateDepartment(HttpServletRequest httpRequest, @PathVariable("userId") Integer userId,
                                                    @RequestParam(value = "departmentId", required = false) Integer departmentId) {
