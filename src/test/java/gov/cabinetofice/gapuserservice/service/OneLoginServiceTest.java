@@ -1,6 +1,8 @@
 package gov.cabinetofice.gapuserservice.service;
 
+import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
+import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.*;
 import gov.cabinetofice.gapuserservice.model.Department;
@@ -17,10 +19,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -38,6 +37,7 @@ import static org.mockito.Mockito.*;
 public class OneLoginServiceTest {
 
     @InjectMocks
+    @Spy
     private OneLoginService oneLoginService;
 
     private static MockedStatic<RestUtils> mockedStatic;
@@ -107,7 +107,7 @@ public class OneLoginServiceTest {
                 .thenReturn(new JSONObject("{\"access_token\":\"dummyToken\"" +
                 ",\"token_type\":\"Bearer\",\"expires_in\":180}"));
 
-        String result = oneLoginService.getAuthToken("dummyJwt", "dummyCode");
+        String result = oneLoginService.getTokenResponse("dummyJwt", "dummyCode").getString("access_token");
 
         Assertions.assertEquals("dummyToken", result);
     }
@@ -145,28 +145,6 @@ public class OneLoginServiceTest {
                 .getUserInfo("accessToken"));
     }
 
-
-    @Test
-    void shouldThrowAuthenticationExceptionWhenAccessTokenIsInvalid() throws IOException, JSONException {
-
-        String expectedResponse = "{\"error_description\":\"Invalid grant\",\"error\":\"invalid_grant\"}";
-
-        String requestBody = "grant_type=" + GRANT_TYPE +
-                "&code=" + "dummyCode" +
-                "&redirect_uri=" + DUMMY_BASE_URL + "/redirect" +
-                "&client_assertion_type=" + "assertion_type" +
-                "&client_assertion=" + "dummyJwt";
-
-        when(RestUtils.postRequestWithBody(DUMMY_BASE_URL + "/token",
-                requestBody, "application/x-www-form-urlencoded"))
-                .thenReturn(new JSONObject(expectedResponse));
-
-
-
-        Assertions.assertThrows(AuthenticationException.class, () -> oneLoginService
-                .getAuthToken("dummyJwt", "dummyCode"));
-    }
-
     @Test
     void shouldThrowInvalidRequestExceptionWhenInvalidUrlIsGiven() throws IOException {
 
@@ -180,9 +158,8 @@ public class OneLoginServiceTest {
                 requestBody, "application/x-www-form-urlencoded"))
                 .thenThrow(new IOException());
 
-
         Assertions.assertThrows(InvalidRequestException.class, () -> oneLoginService
-                .getAuthToken("dummyJwt", "dummyCode"));
+                .getTokenResponse("dummyJwt", "dummyCode"));
     }
 
     @Test
@@ -340,6 +317,36 @@ public class OneLoginServiceTest {
 
             Assertions.assertEquals(newUser, result);
         }
+    }
+
+    @Test
+    void generateStateJson() {
+        final String redirectUrl = "redirectUrl";
+        final String state = "state";
+        final String expected = "eyJyZWRpcmVjdFVybCI6InJlZGlyZWN0VXJsIiwic3RhdGUiOiJzdGF0ZSJ9";
+        final String result = oneLoginService.buildEncodedStateJson(redirectUrl, state);
+        Assertions.assertEquals(result, expected);
+    }
+
+    @Test
+    void decodeStateCookie() {
+        final String encodedStateCookie = "eyJyZWRpcmVjdFVybCI6InJlZGlyZWN0VXJsIiwic3RhdGUiOiJzdGF0ZSJ9";
+        final StateCookieDto.StateCookieDtoBuilder stateCookieDtoBuilder = StateCookieDto.builder()
+                .state("state")
+                .redirectUrl("redirectUrl");
+        final StateCookieDto expected = stateCookieDtoBuilder.build();
+        final StateCookieDto result = oneLoginService.decodeStateCookie(encodedStateCookie);
+        Assertions.assertEquals(result, expected);
+    }
+
+    @Test
+    void getDecodedIdToken() throws JSONException {
+        final IdTokenDto.IdTokenDtoBuilder idTokenDtoBuilder = IdTokenDto.builder().nonce("nonce");
+        final JSONObject tokenResponse = new JSONObject();
+        tokenResponse.put("id_token", "eyJraWQiOiI2NDRhZjU5OGI3ODBmNTQxMDZjYTBmM2MwMTczNDFiYzIzMGM0ZjgzNzNmMzVmMzJlMThlM2U0MGNjN2FjZmY2IiwiYWxnIjoiRVMyNTYifQ.eyJzdWIiOm51bGwsImF0X2hhc2giOm51bGwsImlzcyI6bnVsbCwiYXVkIjpudWxsLCJleHAiOjAsImlhdCI6MCwidm90IjpudWxsLCJ2dG0iOm51bGwsInNpZCI6bnVsbCwibm9uY2UiOiJub25jZSJ9.AvCEdn3oHfwQoMtf8xgYZ0vfeNi1ELuT5Egndb2M1njBgRSuZsOgFPrHLzTkeT_XYjqI06J48MtI9q-inpQ3Ag");
+        final IdTokenDto expected = idTokenDtoBuilder.build();
+        final IdTokenDto result = oneLoginService.getDecodedIdToken(tokenResponse);
+        Assertions.assertEquals(expected, result);
     }
 
     private Claims getClaims(String jwtToken) throws NoSuchAlgorithmException, InvalidKeySpecException {

@@ -2,21 +2,26 @@ package gov.cabinetofice.gapuserservice.web;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.FindAGrantConfigProperties;
-import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
-import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
+import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
+import groovy.util.logging.Log4j;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Controller;
@@ -26,13 +31,17 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
 
+import java.util.Base64;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @RequiredArgsConstructor
 @Controller
 @RequestMapping("v2")
 @ConditionalOnProperty(value = "feature.onelogin.enabled", havingValue = "true")
+@Slf4j
+@Getter
 public class LoginControllerV2 {
 
     private final OneLoginService oneLoginService;
@@ -46,6 +55,10 @@ public class LoginControllerV2 {
     public static final String NOTICE_PAGE_VIEW = "notice-page";
 
     private static final String REDIRECT_URL_NAME = "redirectUrl";
+
+    private final String STATE_COOKIE = "state";
+
+    private final String NONCE_COOKIE = "nonce";
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
@@ -67,15 +80,11 @@ public class LoginControllerV2 {
                 && customJwtService.isTokenValid(customJWTCookie.getValue());
 
         if (!isTokenValid) {
-            final Cookie redirectUrlCookie = WebUtil.buildSecureCookie(REDIRECT_URL_NAME,
-                    redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl()));
-            response.addCookie(redirectUrlCookie);
-
+            StateNonceRedirectCookieDto cookieData = generateAndStoreNonceAndState(response, redirectUrlParam);
             if (migrationEnabled.equals("true")) {
-                // TODO Decide on where to set and evaluate nonce and state
                 return new RedirectView(NOTICE_PAGE_VIEW);
             } else {
-                return new RedirectView(oneLoginService.getOneLoginAuthorizeUrl());
+                return new RedirectView(oneLoginService.getOneLoginAuthorizeUrl(cookieData.getState(), cookieData.getNonce()));
             }
         }
 
@@ -83,21 +92,41 @@ public class LoginControllerV2 {
     }
 
     @GetMapping("/redirect-after-login")
-    public RedirectView redirectAfterLogin(final @CookieValue(name = REDIRECT_URL_NAME) String redirectUrlCookie,
+    public RedirectView redirectAfterLogin(
+            final @CookieValue(name = STATE_COOKIE) String stateCookie,
+            final @CookieValue(name = NONCE_COOKIE) String nonceCookie,
             final HttpServletResponse response,
-            final @RequestParam String code) {
-        final OneLoginUserInfoDto userInfo = oneLoginService.getOneLoginUserInfoDto(code);
-        final User user = oneLoginService.createOrGetUserFromInfo(userInfo);
-        addCustomJwtCookie(response, userInfo);
-        return new RedirectView(user.getLoginJourneyState()
-                .getLoginJourneyRedirect(user.getRole().getName())
-                .getRedirectUrl(adminBaseUrl, redirectUrlCookie));
+            final @RequestParam String code,
+            final @RequestParam String state
+    ) {
+        final JSONObject tokenResponse = oneLoginService.getOneLoginUserTokenResponse(code);
+        IdTokenDto decodedIdToken = oneLoginService.getDecodedIdToken(tokenResponse);
+        final String tokenNonce = decodedIdToken.getNonce();
+        //final String tokenState = decodedIdToken.getState();
+        final StateCookieDto stateCookieDto = oneLoginService.decodeStateCookie(stateCookie);
+        final String redirectUrl = stateCookieDto.getRedirectUrl();
+        final String cookieState = stateCookieDto.getState();
+        final Boolean stateAndNonceVerified = tokenNonce.equals(nonceCookie) && state.equals(cookieState);
+
+        if (stateAndNonceVerified || Objects.equals(this.configProperties.getProfile(), "LOCAL")) {
+            final String authToken = tokenResponse.getString("access_token");
+            final OneLoginUserInfoDto userInfo = oneLoginService.getOneLoginUserInfoDto(authToken);
+            final User user = oneLoginService.createOrGetUserFromInfo(userInfo);
+            addCustomJwtCookie(response, userInfo);
+            return new RedirectView(user.getLoginJourneyState()
+                    .getLoginJourneyRedirect(user.getRole().getName())
+                    .getRedirectUrl(adminBaseUrl, redirectUrl));
+        } else {
+            log.warn("/redirect-after-login unauthorized user, state matching: {}, nonce matching: {}, tokenState {} state {}", state.equals(cookieState), tokenNonce.equals(nonceCookie));
+            throw new UnauthorizedException("User authorization failed");
+        }
     }
 
     @GetMapping("/notice-page")
-    public ModelAndView showNoticePage() {
+    public ModelAndView showNoticePage(final HttpServletResponse response) {
+        StateNonceRedirectCookieDto cookieData = generateAndStoreNonceAndState(response, Optional.ofNullable(configProperties.getDefaultRedirectUrl()));
         return new ModelAndView(NOTICE_PAGE_VIEW)
-                .addObject("loginUrl", oneLoginService.getOneLoginAuthorizeUrl())
+                .addObject("loginUrl", oneLoginService.getOneLoginAuthorizeUrl(cookieData.getState(), cookieData.getNonce()))
                 .addObject("homePageUrl", findProperties.getUrl());
     }
 
@@ -140,5 +169,23 @@ public class LoginControllerV2 {
         return user.getLoginJourneyState().nextState(oneLoginService, user)
                 .getLoginJourneyRedirect(user.getRole().getName())
                 .getRedirectUrl(adminBaseUrl, redirectUrlCookie);
+    }
+
+    private StateNonceRedirectCookieDto generateAndStoreNonceAndState(final HttpServletResponse response, final Optional<String> redirectUrlParam) {
+        final String nonce = oneLoginService.generateNonce();
+        final Cookie nonceCookie = WebUtil.buildSecureCookie(NONCE_COOKIE, nonce, 3600);
+        response.addCookie(nonceCookie);
+
+        final String state = oneLoginService.generateState();
+        final String redirectUrl = redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl());
+        final String encodedStateJsonString = oneLoginService.buildEncodedStateJson(redirectUrl, state);
+        final Cookie stateCookie = WebUtil.buildSecureCookie(STATE_COOKIE, encodedStateJsonString, 3600);
+        response.addCookie(stateCookie);
+
+        final StateNonceRedirectCookieDto cookieData = new StateNonceRedirectCookieDto();
+        cookieData.setNonce(nonce);
+        cookieData.setState(state);
+        cookieData.setRedirectUrl(redirectUrl);
+        return cookieData;
     }
 }

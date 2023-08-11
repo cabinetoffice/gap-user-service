@@ -1,6 +1,10 @@
 package gov.cabinetofice.gapuserservice.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
+import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.*;
 import gov.cabinetofice.gapuserservice.model.Role;
@@ -84,19 +88,40 @@ public class OneLoginService {
         return UUID.randomUUID().toString();
     }
 
+    public String buildEncodedStateJson(final String redirectUrl, final String state) {
+        JSONObject stateJsonObject = new JSONObject();
+        stateJsonObject.put("state", state);
+        stateJsonObject.put("redirectUrl", redirectUrl);
+        final String stateJsonString = stateJsonObject.toString();
+        return Base64.getEncoder().encodeToString(stateJsonString.getBytes());
+    }
+
+    public StateCookieDto decodeStateCookie(final String stateCookie) {
+        final byte[] decodedStateBytes = Base64.getDecoder().decode(stateCookie);
+        final String decodedStateString = new String(decodedStateBytes);
+        final ObjectMapper mapper = new ObjectMapper();
+        StateCookieDto stateCookieDto = new StateCookieDto();
+        try {
+            stateCookieDto = mapper.readValue(decodedStateString, StateCookieDto.class);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        return stateCookieDto;
+    }
+
     public void setUsersLoginJourneyState(final User user, final LoginJourneyState newState) {
         user.setLoginJourneyState(newState);
         userRepository.save(user);
     }
 
-    public String getOneLoginAuthorizeUrl() {
+    public String getOneLoginAuthorizeUrl(final String state, final String nonce) {
         return oneLoginBaseUrl +
                         "/authorize?response_type=code" +
                         "&scope=" + SCOPE +
                         "&client_id=" + clientId +
-                        "&state=" + generateState() +
+                        "&state=" + state +
                         "&redirect_uri=" + serviceRedirectUrl +
-                        "&nonce=" + generateNonce() +
+                        "&nonce=" + nonce +
                         "&vtr=" + VTR +
                         "&ui_locales=" + UI;
     }
@@ -116,10 +141,13 @@ public class OneLoginService {
         return claims;
     }
 
-    public OneLoginUserInfoDto getOneLoginUserInfoDto(final String code) {
+    public JSONObject getOneLoginUserTokenResponse(final String code) {
         final String oneLoginJwt = createOneLoginJwt();
-        final String authToken = getAuthToken(oneLoginJwt, code);
-        return getUserInfo(authToken);
+        return getTokenResponse(oneLoginJwt, code);
+    }
+
+    public OneLoginUserInfoDto getOneLoginUserInfoDto(final String accessToken) {
+        return getUserInfo(accessToken);
     }
 
     public User createOrGetUserFromInfo(final OneLoginUserInfoDto userInfo) {
@@ -156,7 +184,7 @@ public class OneLoginService {
         }
     }
 
-    public String getAuthToken(final String jwt, final String code) {
+    public JSONObject getTokenResponse(final String jwt, final String code) {
         final String requestBody = "grant_type=" + GRANT_TYPE +
                 "&code=" + code +
                 "&redirect_uri=" + serviceRedirectUrl +
@@ -164,13 +192,25 @@ public class OneLoginService {
                 "&client_assertion=" + jwt;
 
         try {
-            final JSONObject response = RestUtils.postRequestWithBody(oneLoginBaseUrl + "/token", requestBody,
+            return RestUtils.postRequestWithBody(oneLoginBaseUrl + "/token", requestBody,
                     "application/x-www-form-urlencoded");
-            return response.getString("access_token");
         } catch (IOException e) {
             throw new InvalidRequestException("invalid request");
-        } catch (JSONException e) {
-            throw new AuthenticationException("unable to retrieve access_token");
         }
+    }
+
+    public IdTokenDto getDecodedIdToken(final JSONObject tokenResponse) {
+        final String idToken = tokenResponse.getString("id_token");
+        String[] chunks = idToken.split("\\.");
+        Base64.Decoder decoder = Base64.getUrlDecoder();
+        String payload = new String(decoder.decode(chunks[1]));
+        ObjectMapper mapper = new ObjectMapper();
+        IdTokenDto decodedIdToken = new IdTokenDto();
+        try {
+            decodedIdToken = mapper.readValue(payload, IdTokenDto.class);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        return decodedIdToken;
     }
 }
