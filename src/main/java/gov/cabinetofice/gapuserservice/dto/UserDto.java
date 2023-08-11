@@ -22,6 +22,6 @@ public class UserDto {
         this.sub = user.getSub();
         this.department = user.getDepartment();
         this.roles = user.getRoles();
-        this.role = user.getRole();
+        this.role = user.getHighestRole();
     }
 }

@@ -98,7 +98,7 @@ public class LoginControllerV2 {
         final User user = oneLoginService.createOrGetUserFromInfo(userInfo);
         addCustomJwtCookie(response, userInfo);
         return new RedirectView(user.getLoginJourneyState()
-                .getLoginJourneyRedirect(user.getRole().getName())
+                .getLoginJourneyRedirect(user.getHighestRole().getName())
                 .getRedirectUrl(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl, redirectUrlCookie));
     }
 
@@ -147,7 +147,7 @@ public class LoginControllerV2 {
     private String runStateMachine(final String redirectUrlCookie, final User user, final String jwt) {
         return user.getLoginJourneyState()
                 .nextState(oneLoginService, user, jwt, log)
-                .getLoginJourneyRedirect(user.getRole().getName())
+                .getLoginJourneyRedirect(user.getHighestRole().getName())
                 .getRedirectUrl(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl ,redirectUrlCookie);
     }
 }

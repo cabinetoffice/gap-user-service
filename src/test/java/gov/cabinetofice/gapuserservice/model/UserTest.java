@@ -229,7 +229,7 @@ public class UserTest {
                     Role.builder().name(RoleEnum.FIND).build()
             )).build();
 
-            final Role response = user.getRole();
+            final Role response = user.getHighestRole();
 
             Assertions.assertEquals(RoleEnum.SUPER_ADMIN, response.getName());
         }
@@ -242,7 +242,7 @@ public class UserTest {
                     Role.builder().name(RoleEnum.FIND).build()
             )).build();
 
-            final Role response = user.getRole();
+            final Role response = user.getHighestRole();
 
             Assertions.assertEquals(RoleEnum.ADMIN, response.getName());
         }
@@ -254,7 +254,7 @@ public class UserTest {
                     Role.builder().name(RoleEnum.FIND).build()
             )).build();
 
-            final Role response = user.getRole();
+            final Role response = user.getHighestRole();
 
             Assertions.assertEquals(RoleEnum.APPLICANT, response.getName());
         }
@@ -263,7 +263,7 @@ public class UserTest {
         void shouldReturnNull() {
             final User user = User.builder().roles(List.of()).build();
 
-            final Role response = user.getRole();
+            final Role response = user.getHighestRole();
 
             Assertions.assertNull(response);
         }
