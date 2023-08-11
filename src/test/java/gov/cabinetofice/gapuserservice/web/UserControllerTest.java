@@ -2,6 +2,7 @@ package gov.cabinetofice.gapuserservice.web;
 
 import gov.cabinetofice.gapuserservice.dto.ChangeDepartmentPageDto;
 import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
+import gov.cabinetofice.gapuserservice.dto.UserDto;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -53,9 +54,9 @@ class UserControllerTest {
                 .emailAddress("test@gov.uk").build();
         when(oneLoginUserService.getUserById(1)).thenReturn(mockUser);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
-        final ResponseEntity<User> methodResponse = controller.getUserById(httpRequest, 1);
+        final ResponseEntity<UserDto> methodResponse = controller.getUserById(httpRequest, 1);
 
-        assertThat(methodResponse.getBody()).isSameAs(mockUser);
+        assertThat(methodResponse.getBody()).isEqualTo(new UserDto(mockUser));
     }
 
     @Test
