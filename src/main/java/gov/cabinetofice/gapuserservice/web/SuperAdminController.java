@@ -55,7 +55,7 @@ public class SuperAdminController {
 
         List<DepartmentDto> allDepartments = departmentService.getAllDepartments();
         List<RoleDto> allRoles = roleService.getAllRoles();
-        List<UserDto> users = oneLoginUserService.getPaginatedUsers(pagination, searchTerm);
+        List<UserDto> users = oneLoginUserService.getPaginatedUsers(pagination, clearAllFilters ? "" : searchTerm);
         long userCount = oneLoginUserService.getUserCount();
 
         if (clearAllFilters || (departments.isBlank() && roles.isBlank())){
@@ -63,7 +63,7 @@ public class SuperAdminController {
                     .departments(allDepartments)
                     .roles(allRoles)
                     .users(users)
-                    .userCount(searchTerm.isBlank() ? userCount : 30)
+                    .userCount(searchTerm.isBlank() || clearAllFilters ? userCount : 30)
                     .previousFilterData(clearAllFilters ? null : List.of(List.of(), List.of(), List.of(searchTerm)) )
                     .build());
         }
