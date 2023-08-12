@@ -46,10 +46,10 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     );
 
     @Query(value = """
-            SELECT u FROM User u INNER JOIN u.roles roles
-            WHERE roles.id IN :roleIds
-            AND u.department.id IN :departmentIds
-            ORDER BY levenshtein(email, :emailQuery) ASC
+                 SELECT * FROM gap_users INNER JOIN roles_users ON gap_users.gap_user_id = roles_users.users_gap_user_id
+                  WHERE roles_users.roles_id IN :roleIds
+                  AND dept_id IN :departmentIds
+                  ORDER BY levenshtein(email, :emailQuery) ASC
             """,
             nativeQuery = true)
     Page<User> findUsersByDepartmentAndRolesAndFuzzySearchOnEmailAddress(
@@ -60,10 +60,10 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     );
 
     @Query(value = """
-            SELECT u FROM User u
-            WHERE u.department.id IN :departmentIds
-            ORDER BY levenshtein(email, :emailQuery) ASC
-            """,
+        SELECT * FROM gap_users
+        WHERE dept_id IN :departmentIds
+        ORDER BY levenshtein(email, :emailQuery) ASC
+        """,
             nativeQuery = true)
     Page<User> findUsersByDepartmentAndFuzzySearchOnEmailAddress(
             @Param("departmentIds") Collection<Integer> departmentIds,
@@ -72,10 +72,10 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     );
 
     @Query(value = """
-            SELECT u FROM User u INNER JOIN u.roles roles
-            WHERE roles.id IN :roleIds
-            ORDER BY levenshtein(email, :emailQuery) ASC
-            """,
+                  SELECT * FROM gap_users INNER JOIN roles_users ON gap_users.gap_user_id = roles_users.users_gap_user_id
+                  WHERE roles_users.roles_id IN :roleIds
+                  ORDER BY levenshtein(email, :emailQuery) ASC
+           """,
             nativeQuery = true)
     Page<User> findUsersByRolesAndFuzzySearchOnEmailAddress(
             @Param("roleIds") Collection<Integer> roleIds,
