@@ -41,8 +41,9 @@ public class OneLoginService {
     private String serviceRedirectUrl;
     @Value("${onelogin.private-key}")
     public String privateKey;
-    @Value("${admin-base-url}")
-    private String adminBaseUrl;
+
+    @Value("${admin-backend}")
+    private String adminBackend;
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
@@ -114,6 +115,12 @@ public class OneLoginService {
         return userRepository.findBySub(sub);
     }
 
+    public Optional<User> getUserFromSubOrEmail(final String sub, final String email) {
+        final Optional<User> userOptional = userRepository.findBySub(sub);
+        if (userOptional.isPresent()) return userOptional;
+        return userRepository.findByEmailAddress(email);
+    }
+
     public Map<String, String> generateCustomJwtClaims(final OneLoginUserInfoDto userInfo) {
         final User user = getUserFromSub(userInfo.getSub())
                 .orElseThrow(() -> new UserNotFoundException("User not found when generating custom jwt claims"));
@@ -132,8 +139,16 @@ public class OneLoginService {
     }
 
     public User createOrGetUserFromInfo(final OneLoginUserInfoDto userInfo) {
-        final Optional<User> userOptional = getUserFromSub(userInfo.getSub());
-        return userOptional.orElseGet(() -> createNewUser(userInfo.getSub(), userInfo.getEmailAddress()));
+        final Optional<User> userOptional = getUserFromSubOrEmail(userInfo.getSub(), userInfo.getEmailAddress());
+        if (userOptional.isPresent()) {
+            final User user = userOptional.get();
+            if (!user.hasSub()) {
+                user.setSub(userInfo.getSub());
+                return userRepository.save(user);
+            }
+            return user;
+        }
+        return createNewUser(userInfo.getSub(), userInfo.getEmailAddress());
     }
 
     public String createOneLoginJwt() {
@@ -190,7 +205,7 @@ public class OneLoginService {
                 .build();
         webClientBuilder.build()
                 .patch()
-                .uri(adminBaseUrl + "/api/users/migrate")
+                .uri(adminBackend + "/users/migrate")
                 .header("Authorization", "Bearer " + jwt)
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(requestBody)

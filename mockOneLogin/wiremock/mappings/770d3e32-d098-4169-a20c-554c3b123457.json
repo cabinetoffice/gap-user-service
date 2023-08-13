@@ -5,7 +5,7 @@
   },
   "response": {
     "status": 200,
-    "bodyFileName": "onelogin-userinfo-response-get.json",
+    "bodyFileName": "onelogin-super-admin-userinfo-response-get.json",
     "headers": {
       "Content-Type": "text/plain"
     }

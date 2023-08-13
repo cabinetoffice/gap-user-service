@@ -69,7 +69,7 @@ public class OneLoginServiceTest {
         ReflectionTestUtils.setField(oneLoginService, "clientAssertionType", "assertion_type");
         ReflectionTestUtils.setField(oneLoginService, "clientId", DUMMY_CLIENT_ID);
         ReflectionTestUtils.setField(oneLoginService, "serviceRedirectUrl", DUMMY_BASE_URL + "/redirect");
-        ReflectionTestUtils.setField(oneLoginService, "adminBaseUrl", "adminBaseUrl");
+        ReflectionTestUtils.setField(oneLoginService, "adminBackend", "adminBackend");
     }
 
     @AfterEach
@@ -323,7 +323,7 @@ public class OneLoginServiceTest {
                     .sub("sub")
                     .emailAddress("email")
                     .build();
-            final User existingUser = User.builder().build();
+            final User existingUser = User.builder().sub("sub").build();
 
             when(userRepository.findBySub(any())).thenReturn(Optional.of(existingUser));
 
@@ -381,7 +381,7 @@ public class OneLoginServiceTest {
             oneLoginService.migrateUser(user, "jwt");
 
             verify(webClientBuilder).build();
-            verify(mockRequestBodyUriSpec).uri("adminBaseUrl/api/users/migrate");
+            verify(mockRequestBodyUriSpec).uri("adminBackend/users/migrate");
             verify(mockRequestBodySpec).header("Authorization", "Bearer jwt");
             verify(mockRequestBodySpec).bodyValue(migrateUserDto);
         }

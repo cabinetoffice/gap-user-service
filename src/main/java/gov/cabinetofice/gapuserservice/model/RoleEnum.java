@@ -5,4 +5,5 @@ public enum RoleEnum {
     ADMIN,
     APPLICANT,
     FIND,
+    TECHNICAL_SUPPORT,
 }
