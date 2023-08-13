@@ -125,7 +125,7 @@ public class OneLoginUserServiceTest {
         List<User> users = Arrays.asList(user1, user2);
         String emailAddress = "baz";
 
-        when(userRepository.findAllUsersByFuzzySearchOnEmailAddress(emailAddress)).thenReturn(users);
+//        when(userRepository.findAllUsersByFuzzySearchOnEmailAddress(emailAddress)).thenReturn(users);
 
         Pageable pageable = PageRequest.of(0, 10);
         UserDto userDto1 = new UserDto(user1);

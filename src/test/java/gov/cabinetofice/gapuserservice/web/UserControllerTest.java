@@ -68,7 +68,7 @@ class UserControllerTest {
                 .emailAddress("test@gov.uk").build();
         when(oneLoginUserService.getUserById(1)).thenReturn(mockUser);
         when(departmentService.getAllDepartments())
-                .thenReturn(List.of(DepartmentDto.builder().id("1").name("dept").build()));
+                .thenReturn(List.of(DepartmentDto.builder().id(1).name("dept").build()));
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
 
         ResponseEntity<ChangeDepartmentPageDto> result = controller.getChangeDepartmentPage(httpRequest, 1);

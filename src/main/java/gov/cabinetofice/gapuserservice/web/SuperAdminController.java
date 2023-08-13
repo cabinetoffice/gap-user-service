@@ -42,6 +42,7 @@ public class SuperAdminController {
             @RequestParam(value = "searchTerm", required = false) String searchTerm,
             @RequestParam(value = "clearAllFilters", required = false) boolean clearAllFilters
     ){
+
         if (!roleService.isSuperAdmin(httpRequest)) throw new ForbiddenException();
 
         // TODO refactor using spring validation
@@ -66,7 +67,7 @@ public class SuperAdminController {
                 .departments(allDepartments)
                 .roles(allRoles)
                 .users(users.stream().map(UserDto::new).toList())
-                .userCount(searchTerm.isBlank() ? users.getTotalElements() : 10)
+                .userCount(users.getTotalElements())
                 .build());
     }
 }

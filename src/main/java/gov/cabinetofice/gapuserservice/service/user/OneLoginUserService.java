@@ -12,10 +12,10 @@ import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,29 +31,33 @@ public class OneLoginUserService {
         final boolean hasEmail = !emailAddress.isBlank();
         final boolean hasDepartment = !departmentIds.isEmpty();
         final boolean hasRole = !roleIds.isEmpty();
+        List<Integer> roleIdsNotInQuery = Collections.emptyList();
+        if (hasRole) {
+            roleIdsNotInQuery = roleRepository.findRoleIdsNotIn(roleIds);
+        }
 
         if (!hasEmail && !hasDepartment && !hasRole)
-            return userRepository.findAll(pageable);
+            return userRepository.findByOrderByEmail(pageable);
 
         if (hasEmail && !hasDepartment && !hasRole)
-            return userRepository.findAllUsersByFuzzySearchOnEmailAddress(emailAddress, PageRequest.of(0, 10));
+            return userRepository.findAllUsersByFuzzySearchOnEmailAddress(emailAddress, pageable);
 
         if (!hasEmail && !hasDepartment)
-            return userRepository.findUsersByRoles(roleIds, pageable);
+            return userRepository.findUsersByRoles(roleIds, roleIdsNotInQuery, pageable);
 
         if (!hasEmail && !hasRole)
             return userRepository.findUsersByDepartment(departmentIds, pageable);
 
         if (!hasEmail)
-            return userRepository.findUsersByDepartmentAndRoles(roleIds, departmentIds, pageable);
+            return userRepository.findUsersByDepartmentAndRoles(roleIds,roleIdsNotInQuery, departmentIds, pageable);
 
         if (!hasDepartment)
-            return userRepository.findUsersByRolesAndFuzzySearchOnEmailAddress(roleIds, emailAddress, pageable);
+            return userRepository.findUsersByRolesAndFuzzySearchOnEmailAddress(roleIds, roleIdsNotInQuery,emailAddress, pageable);
 
         if (!hasRole)
             return userRepository.findUsersByDepartmentAndFuzzySearchOnEmailAddress(departmentIds, emailAddress, pageable);
 
-        return userRepository.findUsersByDepartmentAndRolesAndFuzzySearchOnEmailAddress(roleIds, departmentIds, emailAddress, PageRequest.of(0, 10));
+        return userRepository.findUsersByDepartmentAndRolesAndFuzzySearchOnEmailAddress(roleIds,roleIdsNotInQuery, departmentIds, emailAddress, pageable);
     }
 
     public User getUserById(int id) {

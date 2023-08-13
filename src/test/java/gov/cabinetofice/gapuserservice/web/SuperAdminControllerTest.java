@@ -20,10 +20,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -48,19 +51,18 @@ class SuperAdminControllerTest {
     void shouldReturnSuperAdminDashboardDto() {
         Pageable pagination = mock(Pageable.class);
         HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        List<DepartmentDto> departments = List.of(DepartmentDto.builder().id("1").build(),
-                DepartmentDto.builder().id("2").build());
-        List<RoleDto> roles = List.of(RoleDto.builder().id("1").build(), RoleDto.builder().id("2").build());
-        List<UserDto> users = List.of(
-                new UserDto(User.builder().gapUserId(1).build()),
-                new UserDto(User.builder().gapUserId(2).build())
-        );
+        List<DepartmentDto> departments = List.of(DepartmentDto.builder().id(1).build(),
+                DepartmentDto.builder().id(2).build());
+        List<RoleDto> roles = List.of(RoleDto.builder().id(1).build(), RoleDto.builder().id(2).build());
+
+        List<User> users =List.of(User.builder().gapUserId(1).build(),User.builder().gapUserId(2).build());
+        Page<User> pagedUsers = new PageImpl(users);
 
         when(departmentService.getAllDepartments()).thenReturn(departments);
         when(roleService.getAllRoles()).thenReturn(roles);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
-        when(oneLoginUserService.getPaginatedUsers(pagination, "")).thenReturn(users);
-        when(oneLoginUserService.getUserCount()).thenReturn(2L);
+        when(oneLoginUserService.getPaginatedUsers(pagination, "",  Collections.emptyList(),  Collections.emptyList())).thenReturn(pagedUsers);
+//        when(oneLoginUserService.getUserCount()).thenReturn(2L);
 
         ResponseEntity<SuperAdminDashboardPageDto> result =
                 (ResponseEntity<SuperAdminDashboardPageDto>) superAdminController.superAdminDashboard(httpRequest,  pagination, null, null, "", false);

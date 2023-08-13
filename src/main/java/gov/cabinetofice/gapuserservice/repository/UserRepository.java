@@ -44,16 +44,28 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             @Param("emailQuery") String emailQuery,
             Pageable pageable
     );
-
     @Query(value = """
-                 SELECT * FROM gap_users INNER JOIN roles_users ON gap_users.gap_user_id = roles_users.users_gap_user_id
-                  WHERE roles_users.roles_id IN :roleIds
-                  AND dept_id IN :departmentIds
-                  ORDER BY levenshtein(email, :emailQuery) ASC
+                 SELECT levenshtein(email, :emailQuery), gap_users.* FROM gap_users INNER JOIN roles_users ON gap_users.gap_user_id = roles_users.users_gap_user_id
+                   WHERE EXISTS (
+                                  SELECT 1
+                                  FROM roles_users
+                                  WHERE gap_users.gap_user_id = roles_users.users_gap_user_id
+                                  AND roles_users.roles_id IN :roleIds
+                    )
+                    AND NOT EXISTS (
+                              SELECT 1
+                              FROM roles_users
+                              WHERE gap_users.gap_user_id = roles_users.users_gap_user_id
+                              AND roles_users.roles_id IN :roleIdsNotInQuery
+                    )
+                  AND gap_users.dept_id IN :departmentIds
+                  GROUP BY gap_users.gap_user_id
+                  ORDER BY levenshtein(email, :emailQuery) ASC;
             """,
             nativeQuery = true)
     Page<User> findUsersByDepartmentAndRolesAndFuzzySearchOnEmailAddress(
             @Param("roleIds") Collection<Integer> roleIds,
+            @Param("roleIdsNotInQuery") Collection<Integer> roleIdsNotInQuery,
             @Param("departmentIds") Collection<Integer> departmentIds,
             @Param("emailQuery") String emailQuery,
             Pageable pageable
@@ -61,8 +73,8 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
     @Query(value = """
         SELECT * FROM gap_users
-        WHERE dept_id IN :departmentIds
-        ORDER BY levenshtein(email, :emailQuery) ASC
+        WHERE dept_id IN :departmentIds 
+        ORDER BY levenshtein(email, :emailQuery) ASC;
         """,
             nativeQuery = true)
     Page<User> findUsersByDepartmentAndFuzzySearchOnEmailAddress(
@@ -72,25 +84,51 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     );
 
     @Query(value = """
-                  SELECT * FROM gap_users INNER JOIN roles_users ON gap_users.gap_user_id = roles_users.users_gap_user_id
-                  WHERE roles_users.roles_id IN :roleIds
-                  ORDER BY levenshtein(email, :emailQuery) ASC
-           """,
+                    SELECT levenshtein(email, :emailQuery), gap_users.* FROM gap_users INNER JOIN roles_users ON gap_users.gap_user_id = roles_users.users_gap_user_id
+                    WHERE EXISTS (
+                                  SELECT 1
+                                  FROM roles_users
+                                  WHERE gap_users.gap_user_id = roles_users.users_gap_user_id
+                                  AND roles_users.roles_id IN :roleIds
+                    )
+                    AND NOT EXISTS (
+                              SELECT 1
+                              FROM roles_users
+                              WHERE gap_users.gap_user_id = roles_users.users_gap_user_id
+                              AND roles_users.roles_id IN :roleIdsNotInQuery
+                    )
+            GROUP BY gap_users.gap_user_id
+            ORDER BY levenshtein(email, :emailQuery) ASC
+                 """,
             nativeQuery = true)
     Page<User> findUsersByRolesAndFuzzySearchOnEmailAddress(
             @Param("roleIds") Collection<Integer> roleIds,
+            @Param("roleIdsNotInQuery") Collection<Integer> roleIdsNotInQuery,
             @Param("emailQuery") String emailQuery,
             Pageable pageable
     );
 
-    @Query("""
-            select u from User u inner join u.roles roles
-            where roles.id in :roleIds
-            and u.department.id in :departmentIds
-            order by u.emailAddress
+    @Query( nativeQuery = true, value = """
+        SELECT gap_users.*
+        FROM gap_users
+            WHERE EXISTS (
+            SELECT 1
+            FROM roles_users
+            WHERE gap_users.gap_user_id = roles_users.users_gap_user_id
+            AND roles_users.roles_id IN :roleIds
+        )
+        AND NOT EXISTS (
+            SELECT 1
+            FROM roles_users
+            WHERE gap_users.gap_user_id = roles_users.users_gap_user_id
+            AND roles_users.roles_id IN :roleIdsNotInQuery
+        )
+        AND gap_users.dept_id IN :departmentIds
+        ORDER BY gap_users.email;
             """)
     Page<User> findUsersByDepartmentAndRoles(
             @Param("roleIds") Collection<Integer> roleIds,
+            @Param("roleIdsNotInQuery") Collection<Integer> roleIdsNotInQuery,
             @Param("departmentIds") Collection<Integer> departmentIds,
             Pageable pageable
     );
@@ -105,13 +143,32 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             Pageable pageable
     );
 
-    @Query("""
-            select u from User u inner join u.roles roles
-            where roles.id in :roleIds
-            order by u.emailAddress
+    @Query(nativeQuery = true, value = """
+        SELECT gap_users.*
+        FROM gap_users
+            WHERE EXISTS (
+            SELECT 1
+            FROM roles_users
+            WHERE gap_users.gap_user_id = roles_users.users_gap_user_id
+            AND roles_users.roles_id IN :roleIds
+        )
+        AND NOT EXISTS (
+            SELECT 1
+            FROM roles_users
+            WHERE gap_users.gap_user_id = roles_users.users_gap_user_id
+            AND roles_users.roles_id IN :roleIdsNotInQuery
+        )
+        ORDER BY gap_users.email;
             """)
     Page<User> findUsersByRoles(
             @Param("roleIds") Collection<Integer> roleIds,
+            @Param("roleIdsNotInQuery") Collection<Integer> roleIdsNotInQuery,
             Pageable pageable
     );
+
+    @Query(value = """
+            SELECT * FROM gap_users
+            order by email asc
+            """, nativeQuery = true)
+    Page<User> findByOrderByEmail(Pageable pageable);
 }
