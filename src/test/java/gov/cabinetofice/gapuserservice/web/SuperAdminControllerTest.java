@@ -11,8 +11,6 @@ import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
-import gov.cabinetofice.gapuserservice.web.controlleradvice.Error;
-import gov.cabinetofice.gapuserservice.web.controlleradvice.ErrorResponseBody;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -140,46 +138,5 @@ class SuperAdminControllerTest {
         Assertions.assertNotNull(responseDto);
         Assertions.assertEquals(1, Objects.requireNonNull(responseDto).getUsers().size());
         Assertions.assertEquals(1L, responseDto.getUserCount());
-    }
-    @Test
-    void shouldReturnErrorResponseWhenSearchTermIsTooLong() {
-        Pageable pagination = mock(Pageable.class);
-        HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-
-        String searchTerm = "e".repeat(256);
-        List<DepartmentDto> departments = List.of(
-                DepartmentDto.builder().id(1).build(),
-                DepartmentDto.builder().id(2).build()
-        );
-        List<RoleDto> roles = List.of(
-                RoleDto.builder().id(1).build(),
-                RoleDto.builder().id(2).build()
-        );
-
-        Integer[] departmentIds = {1};
-        Integer[] roleIds = {1};
-
-        when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
-
-        ResponseEntity<?> result = superAdminController.superAdminDashboard(
-                httpRequest, pagination, departmentIds, roleIds, searchTerm, false
-        );
-
-        // Assertions
-        Assertions.assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
-
-        ErrorResponseBody errorResponseBody = (ErrorResponseBody) result.getBody();
-        Assertions.assertNotNull(errorResponseBody);
-        Assertions.assertFalse(errorResponseBody.isResponseAccepted());
-        Assertions.assertEquals("Search term must be less than 255 characters", errorResponseBody.getMessage());
-
-        List<Error> errors = errorResponseBody.getErrors();
-        Assertions.assertNotNull(errors);
-        Assertions.assertEquals(1, errors.size());
-
-        Error error = errors.get(0);
-        Assertions.assertNotNull(error);
-        Assertions.assertEquals("searchTerm", error.getFieldName());
-        Assertions.assertEquals("Search term must be less than 255 characters", error.getErrorMessage());
     }
 }

@@ -10,13 +10,14 @@ import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -27,17 +28,19 @@ import java.util.List;
 @RequiredArgsConstructor
 @Controller
 @ConditionalOnProperty(value = "feature.onelogin.enabled", havingValue = "true")
+@Validated
 public class SuperAdminController {
     private final DepartmentService departmentService;
     private final RoleService roleService;
     private final OneLoginUserService oneLoginUserService;
 
-    @GetMapping("/super-admin-dashboard") ResponseEntity<SuperAdminDashboardPageDto> superAdminDashboard(
+    @GetMapping("/super-admin-dashboard")
+    ResponseEntity<SuperAdminDashboardPageDto> superAdminDashboard(
             final HttpServletRequest httpRequest,
             final Pageable pagination,
             @RequestParam(value = "departments", required = false, name = "departments") Integer[] departmentIds,
             @RequestParam(value = "roles", required = false, name = "roles") Integer[] roleIds,
-            @RequestParam(value = "searchTerm", required = false) @Max(255) String searchTerm,
+            @RequestParam(value = "searchTerm", required = false) @Size(max = 255) String searchTerm,
             @RequestParam(value = "clearAllFilters", required = false) boolean clearAllFilters) {
         if (!roleService.isSuperAdmin(httpRequest)) throw new ForbiddenException();
 
@@ -54,7 +57,7 @@ public class SuperAdminController {
                 .departments(allDepartments)
                 .roles(allRoles)
                 .users(users.stream().map(UserDto::new).toList())
-                .userCount(users.getTotalElements())
+                .userCount(searchTerm.isBlank() ? users.getTotalElements() : 10)
                 .build());
     }
 }

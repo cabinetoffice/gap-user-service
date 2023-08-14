@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 
@@ -39,9 +40,10 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     );
 
     @Query(value = """
-            SELECT u FROM User u INNER JOIN u.roles roles
-            WHERE roles.id IN :roleIds
-            AND u.department.id IN :departmentIds
+            SELECT * FROM gap_users u
+            JOIN roles_users r ON r.users_gap_user_id = u.gap_user_id
+            WHERE r.roles_id IN :roleIds
+            AND u.dept_id IN :departmentIds
             ORDER BY levenshtein(email, :emailQuery) ASC
             """,
             nativeQuery = true)
@@ -53,8 +55,8 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     );
 
     @Query(value = """
-            SELECT u FROM User u
-            WHERE u.department.id IN :departmentIds
+            SELECT * FROM gap_users u
+            WHERE u.dept_id IN :departmentIds
             ORDER BY levenshtein(email, :emailQuery) ASC
             """,
             nativeQuery = true)
@@ -65,8 +67,9 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     );
 
     @Query(value = """
-            SELECT u FROM User u INNER JOIN u.roles roles
-            WHERE roles.id IN :roleIds
+            SELECT * FROM gap_users u
+            JOIN roles_users r ON r.users_gap_user_id = u.gap_user_id
+            WHERE r.roles_id IN :roleIds
             ORDER BY levenshtein(email, :emailQuery) ASC
             """,
             nativeQuery = true)
@@ -97,6 +100,9 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             @Param("departmentIds") Collection<Integer> departmentIds,
             Pageable pageable
     );
+
+    @Query("select u from User u where u.department.id in :ids")
+    List<User> findByDepartment_IdIn(@Param("ids") Collection<Integer> ids);
 
     @Query("""
             select u from User u inner join u.roles roles
