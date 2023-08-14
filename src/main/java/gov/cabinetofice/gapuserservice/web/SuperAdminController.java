@@ -34,7 +34,7 @@ public class SuperAdminController {
     private final RoleService roleService;
     private final OneLoginUserService oneLoginUserService;
 
-    @GetMapping("/super-admin-dashboard") ResponseEntity<?> superAdminDashboard(
+    @GetMapping("/super-admin-dashboard") ResponseEntity<SuperAdminDashboardPageDto> superAdminDashboard(
             final HttpServletRequest httpRequest,
             final Pageable pagination,
             @RequestParam(value = "departments", required = false, name = "departments") Integer[] departmentIds,
@@ -46,7 +46,7 @@ public class SuperAdminController {
         if (!roleService.isSuperAdmin(httpRequest)) throw new ForbiddenException();
 
         // TODO refactor using spring validation
-        if (searchTerm.isBlank()){
+        if (!searchTerm.isBlank()){
             if (searchTerm.length() > 255){
                 Error errorResponse = Error.builder().errorMessage("Search term must be less than 255 characters").fieldName("searchTerm").build();
                 ErrorResponseBody errorResponseBody = ErrorResponseBody.builder().responseAccepted(false).message("Search term must be less than 255 characters").errors(List.of(errorResponse)).build();

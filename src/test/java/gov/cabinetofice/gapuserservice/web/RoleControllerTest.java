@@ -26,7 +26,7 @@ class RoleControllerTest {
     @Test
     void getAllRoles_returnsArrayOfRoles() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        final List<RoleDto> roles = List.of(RoleDto.builder().name("FIND").id("1").description("a desc").build());
+        final List<RoleDto> roles = List.of(RoleDto.builder().name("FIND").id(1).description("a desc").build());
         when(roleService.getAllRoles())
                 .thenReturn(roles);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);

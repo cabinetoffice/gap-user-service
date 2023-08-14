@@ -26,10 +26,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -51,68 +53,119 @@ class SuperAdminControllerTest {
     void shouldReturnSuperAdminDashboardDto() {
         Pageable pagination = mock(Pageable.class);
         HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        List<DepartmentDto> departments = List.of(DepartmentDto.builder().id(1).build(),
-                DepartmentDto.builder().id(2).build());
-        List<RoleDto> roles = List.of(RoleDto.builder().id(1).build(), RoleDto.builder().id(2).build());
+        List<DepartmentDto> departments = List.of(
+                DepartmentDto.builder().id(1).build(),
+                DepartmentDto.builder().id(2).build()
+        );
+        List<RoleDto> roles = List.of(
+                RoleDto.builder().id(1).build(),
+                RoleDto.builder().id(2).build()
+        );
 
-        List<User> users =List.of(User.builder().gapUserId(1).build(),User.builder().gapUserId(2).build());
-        Page<User> pagedUsers = new PageImpl(users);
+        List<User> users = List.of(
+                User.builder().gapUserId(1).build(),
+                User.builder().gapUserId(2).build()
+        );
+        Page<User> pagedUsers = new PageImpl<>(users);
+
+        Integer[] departmentIds = {1};
+        Integer[] roleIds = {1};
 
         when(departmentService.getAllDepartments()).thenReturn(departments);
         when(roleService.getAllRoles()).thenReturn(roles);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
-        when(oneLoginUserService.getPaginatedUsers(pagination, "",  Collections.emptyList(),  Collections.emptyList())).thenReturn(pagedUsers);
-//        when(oneLoginUserService.getUserCount()).thenReturn(2L);
+        when(oneLoginUserService.getPaginatedUsers(eq(pagination), eq(""), eq(Arrays.asList(departmentIds)), eq(Arrays.asList(roleIds)))).thenReturn(pagedUsers);
 
-        ResponseEntity<SuperAdminDashboardPageDto> result =
-                (ResponseEntity<SuperAdminDashboardPageDto>) superAdminController.superAdminDashboard(httpRequest,  pagination, null, null, "", false);
-                Assertions.assertEquals(HttpStatus.OK, result.getStatusCode());
+        List<UserDto> dtoUsers = users.stream().map(UserDto::new).collect(Collectors.toList());
+
+        SuperAdminDashboardPageDto expectedResponseDto = SuperAdminDashboardPageDto.builder().departments(departments).roles(roles).users(dtoUsers).build();
+
+        ResponseEntity<SuperAdminDashboardPageDto> result = superAdminController.superAdminDashboard(
+                httpRequest, pagination, departmentIds, roleIds, "", false
+        );
+
+        Assertions.assertEquals(HttpStatus.OK, result.getStatusCode());
 
         SuperAdminDashboardPageDto responseDto = result.getBody();
-        Assertions.assertEquals(departments, Objects.requireNonNull(responseDto).getDepartments());
-        Assertions.assertEquals(roles, responseDto.getRoles());
-        Assertions.assertEquals(users, responseDto.getUsers());
-        Assertions.assertEquals(2L, responseDto.getUserCount());
+        Assertions.assertNotNull(responseDto);
+        Assertions.assertEquals(expectedResponseDto.getDepartments(), responseDto.getDepartments());
+        Assertions.assertEquals(expectedResponseDto.getRoles(), responseDto.getRoles());
+        Assertions.assertEquals(expectedResponseDto.getUsers(), responseDto.getUsers());
     }
-
 
     @Test
     void shouldReturnFilteredSuperAdminDashboardDto() {
         Pageable pagination = mock(Pageable.class);
         HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        List<DepartmentDto> departments = List.of(DepartmentDto.builder().id("1").build(), DepartmentDto.builder().id("2").build());
-        List<RoleDto> roles = List.of(RoleDto.builder().id("1").build(), RoleDto.builder().id("2").build());
-        List<UserDto> users = List.of(
-                new UserDto(User.builder().gapUserId(1).department(Department.builder().id(1).build()).roles(List.of(Role.builder().id(1).name(RoleEnum.SUPER_ADMIN).build())).build()),
-                new UserDto(User.builder().gapUserId(2).department(Department.builder().id(2).build()).roles(List.of(Role.builder().id(2).name(RoleEnum.APPLICANT).build())).build())
+
+        List<DepartmentDto> departments = List.of(
+                DepartmentDto.builder().id(1).build(),
+                DepartmentDto.builder().id(2).build()
         );
+        List<RoleDto> roles = List.of(
+                RoleDto.builder().id(1).build(),
+                RoleDto.builder().id(2).build()
+        );
+        List<User> users = List.of(
+                User.builder()
+                        .gapUserId(1)
+                        .department(Department.builder().id(1).build())
+                        .roles(List.of(Role.builder().id(1).name(RoleEnum.SUPER_ADMIN).build()))
+                        .build(),
+                User.builder()
+                        .gapUserId(2)
+                        .department(Department.builder().id(2).build())
+                        .roles(List.of(Role.builder().id(2).name(RoleEnum.APPLICANT).build()))
+                        .build()
+        );
+        Page<User> pageUsers = new PageImpl<>(List.of(users.get(0)));
+
+        Integer[] departmentIds = {1};
+        Integer[] roleIds = {1};
 
         when(departmentService.getAllDepartments()).thenReturn(departments);
         when(roleService.getAllRoles()).thenReturn(roles);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
-        when(oneLoginUserService.getPaginatedUsers(pagination, "")).thenReturn(users);
-        when(oneLoginUserService.getUserCount()).thenReturn(2L);
+        when(oneLoginUserService.getPaginatedUsers(
+                eq(pagination), eq(""), eq(Arrays.asList(departmentIds)), eq(Arrays.asList(roleIds))
+        )).thenReturn(pageUsers);
+
 
         ResponseEntity<SuperAdminDashboardPageDto> result =
-                (ResponseEntity<SuperAdminDashboardPageDto>) superAdminController.superAdminDashboard(httpRequest,  pagination, "1", "1", "", false);
+                superAdminController.superAdminDashboard(
+                        httpRequest, pagination, departmentIds, roleIds, "", false
+                );
 
         SuperAdminDashboardPageDto responseDto = result.getBody();
+        Assertions.assertNotNull(responseDto);
         Assertions.assertEquals(1, Objects.requireNonNull(responseDto).getUsers().size());
         Assertions.assertEquals(1L, responseDto.getUserCount());
     }
-
     @Test
     void shouldReturnErrorResponseWhenSearchTermIsTooLong() {
         Pageable pagination = mock(Pageable.class);
         HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        String searchTerm = "a".repeat(256);
-        List<DepartmentDto> departments = List.of(DepartmentDto.builder().id("1").build(), DepartmentDto.builder().id("2").build());
-        List<RoleDto> roles = List.of(RoleDto.builder().id("1").build(), RoleDto.builder().id("2").build());
+
+        String searchTerm = "e".repeat(256);
+        List<DepartmentDto> departments = List.of(
+                DepartmentDto.builder().id(1).build(),
+                DepartmentDto.builder().id(2).build()
+        );
+        List<RoleDto> roles = List.of(
+                RoleDto.builder().id(1).build(),
+                RoleDto.builder().id(2).build()
+        );
+
+        Integer[] departmentIds = {1};
+        Integer[] roleIds = {1};
 
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
 
-        ResponseEntity<?> result = superAdminController.superAdminDashboard(httpRequest, pagination, null, null, searchTerm, false);
+        ResponseEntity<?> result = superAdminController.superAdminDashboard(
+                httpRequest, pagination, departmentIds, roleIds, searchTerm, false
+        );
 
+        // Assertions
         Assertions.assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
 
         ErrorResponseBody errorResponseBody = (ErrorResponseBody) result.getBody();

@@ -1,1 +1,0 @@
-CREATE EXTENSION fuzzystrmatch SCHEMA public;

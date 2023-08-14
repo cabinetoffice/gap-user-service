@@ -76,7 +76,7 @@ class UserControllerTest {
 
         verify(oneLoginUserService, times(1)).getUserById(1);
         verify(departmentService, times(1)).getAllDepartments();
-        assertThat(Objects.requireNonNull(result.getBody()).getDepartments().get(0).getId()).isEqualTo("1");
+        assertThat(Objects.requireNonNull(result.getBody()).getDepartments().get(0).getId()).isEqualTo(1);
     }
 
     @Test
