@@ -30,11 +30,7 @@ public class OneLoginUserService {
     public Page<User> getPaginatedUsers(Pageable pageable, String emailAddress, List<Integer> departmentIds, List<Integer> roleIds) {
         final boolean hasEmail = !emailAddress.isBlank();
         final boolean hasDepartment = !departmentIds.isEmpty();
-        final boolean hasRole = !roleIds.isEmpty();
-        List<Integer> roleIdsNotInQuery = Collections.emptyList();
-        if (hasRole) {
-            roleIdsNotInQuery = roleRepository.findRoleIdsNotIn(roleIds);
-        }
+        final boolean hasRole = !roleIds.isEmpty(); 
 
         if (!hasEmail && !hasDepartment && !hasRole)
             return userRepository.findByOrderByEmail(pageable);
@@ -43,21 +39,21 @@ public class OneLoginUserService {
             return userRepository.findAllUsersByFuzzySearchOnEmailAddress(emailAddress, pageable);
 
         if (!hasEmail && !hasDepartment)
-            return userRepository.findUsersByRoles(roleIds, roleIdsNotInQuery, pageable);
+            return userRepository.findUsersByRoles(roleIds, pageable);
 
         if (!hasEmail && !hasRole)
             return userRepository.findUsersByDepartment(departmentIds, pageable);
 
         if (!hasEmail)
-            return userRepository.findUsersByDepartmentAndRoles(roleIds,roleIdsNotInQuery, departmentIds, pageable);
+            return userRepository.findUsersByDepartmentAndRoles(roleIds, departmentIds, pageable);
 
         if (!hasDepartment)
-            return userRepository.findUsersByRolesAndFuzzySearchOnEmailAddress(roleIds, roleIdsNotInQuery,emailAddress, pageable);
+            return userRepository.findUsersByRolesAndFuzzySearchOnEmailAddress(roleIds,emailAddress, pageable);
 
         if (!hasRole)
             return userRepository.findUsersByDepartmentAndFuzzySearchOnEmailAddress(departmentIds, emailAddress, pageable);
 
-        return userRepository.findUsersByDepartmentAndRolesAndFuzzySearchOnEmailAddress(roleIds,roleIdsNotInQuery, departmentIds, emailAddress, pageable);
+        return userRepository.findUsersByDepartmentAndRolesAndFuzzySearchOnEmailAddress(roleIds, departmentIds, emailAddress, pageable);
     }
 
     public User getUserById(int id) {
