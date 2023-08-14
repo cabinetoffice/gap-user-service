@@ -150,13 +150,11 @@ public class OneLoginUserServiceTest {
             Page<User> userPage = new PageImpl<>(users, pageable, users.size());
             when(userRepository.findUsersByDepartmentAndRoles(
                             eq(roleIds),
-                            eq(roleIdsNotInQuery),
                     eq(departmentIds),
                             eq(pageable)
                     )
             ).thenReturn(userPage);
 
-            when(roleRepository.findRoleIdsNotIn(eq(roleIds))).thenReturn(roleIdsNotInQuery);
 
             // Call the method
             Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, "", departmentIds, roleIds);
@@ -183,14 +181,12 @@ public class OneLoginUserServiceTest {
             Page<User> userPage = new PageImpl<>(users, pageable, users.size());
             when(userRepository.findUsersByDepartmentAndRolesAndFuzzySearchOnEmailAddress(
                             eq(roleIds),
-                            eq(roleIdsNotInQuery),
                             eq(departmentIds),
                             eq(emailAddress),
                             eq(pageable)
                     )
             ).thenReturn(userPage);
 
-            when(roleRepository.findRoleIdsNotIn(eq(roleIds))).thenReturn(roleIdsNotInQuery);
 
             // Call the method
             Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, emailAddress, departmentIds, roleIds);
