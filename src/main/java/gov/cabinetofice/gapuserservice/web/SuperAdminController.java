@@ -21,7 +21,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.Collections;
 import java.util.List;
 
 
@@ -38,20 +37,14 @@ public class SuperAdminController {
     ResponseEntity<SuperAdminDashboardPageDto> superAdminDashboard(
             final HttpServletRequest httpRequest,
             final Pageable pagination,
-            @RequestParam(value = "departments", required = false, name = "departments") Integer[] departmentIds,
-            @RequestParam(value = "roles", required = false, name = "roles") Integer[] roleIds,
-            @RequestParam(value = "searchTerm", required = false) @Size(max = 255) String searchTerm,
-            @RequestParam(value = "clearAllFilters", required = false) boolean clearAllFilters) {
+            @RequestParam(value = "departments", name = "departments") Integer[] departmentIds,
+            @RequestParam(value = "roles", name = "roles") Integer[] roleIds,
+            @RequestParam(value = "searchTerm") @Size(max = 255) String searchTerm) {
         if (!roleService.isSuperAdmin(httpRequest)) throw new ForbiddenException();
 
         final List<DepartmentDto> allDepartments = departmentService.getAllDepartments();
         final List<RoleDto> allRoles = roleService.getAllRoles();
-        final Page<User> users;
-        if (clearAllFilters) {
-            users = oneLoginUserService.getPaginatedUsers(pagination, "", Collections.emptyList(),  Collections.emptyList());
-        } else {
-            users = oneLoginUserService.getPaginatedUsers(pagination, searchTerm, List.of(departmentIds), List.of(roleIds));
-        }
+        final Page<User> users = oneLoginUserService.getPaginatedUsers(pagination, searchTerm, List.of(departmentIds), List.of(roleIds));
 
         return ResponseEntity.ok(SuperAdminDashboardPageDto.builder()
                 .departments(allDepartments)

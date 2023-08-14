@@ -10,7 +10,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 
 
@@ -100,9 +99,6 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             @Param("departmentIds") Collection<Integer> departmentIds,
             Pageable pageable
     );
-
-    @Query("select u from User u where u.department.id in :ids")
-    List<User> findByDepartment_IdIn(@Param("ids") Collection<Integer> ids);
 
     @Query("""
             select u from User u inner join u.roles roles

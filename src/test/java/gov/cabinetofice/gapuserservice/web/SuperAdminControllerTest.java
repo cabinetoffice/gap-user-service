@@ -79,7 +79,7 @@ class SuperAdminControllerTest {
         SuperAdminDashboardPageDto expectedResponseDto = SuperAdminDashboardPageDto.builder().departments(departments).roles(roles).users(dtoUsers).build();
 
         ResponseEntity<SuperAdminDashboardPageDto> result = superAdminController.superAdminDashboard(
-                httpRequest, pagination, departmentIds, roleIds, "", false
+                httpRequest, pagination, departmentIds, roleIds, ""
         );
 
         Assertions.assertEquals(HttpStatus.OK, result.getStatusCode());
@@ -131,7 +131,7 @@ class SuperAdminControllerTest {
 
         ResponseEntity<SuperAdminDashboardPageDto> result =
                 superAdminController.superAdminDashboard(
-                        httpRequest, pagination, departmentIds, roleIds, "", false
+                        httpRequest, pagination, departmentIds, roleIds, ""
                 );
 
         SuperAdminDashboardPageDto responseDto = result.getBody();

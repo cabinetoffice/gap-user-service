@@ -12,7 +12,6 @@ import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -36,7 +35,7 @@ public class OneLoginUserService {
             return userRepository.findByOrderByEmail(pageable);
 
         if (hasEmail && !hasDepartment && !hasRole)
-            return userRepository.findAllUsersByFuzzySearchOnEmailAddress(emailAddress, PageRequest.of(0, 10));
+            return userRepository.findAllUsersByFuzzySearchOnEmailAddress(emailAddress, pageable);
 
         if (!hasEmail && !hasDepartment)
             return userRepository.findUsersByRoles(roleIds, pageable);
@@ -48,12 +47,12 @@ public class OneLoginUserService {
             return userRepository.findUsersByDepartmentAndRoles(roleIds, departmentIds, pageable);
 
         if (!hasDepartment)
-            return userRepository.findUsersByRolesAndFuzzySearchOnEmailAddress(roleIds, emailAddress, PageRequest.of(0, 10));
+            return userRepository.findUsersByRolesAndFuzzySearchOnEmailAddress(roleIds, emailAddress, pageable);
 
         if (!hasRole)
-            return userRepository.findUsersByDepartmentAndFuzzySearchOnEmailAddress(departmentIds, emailAddress, PageRequest.of(0, 10));
+            return userRepository.findUsersByDepartmentAndFuzzySearchOnEmailAddress(departmentIds, emailAddress, pageable);
 
-        return userRepository.findUsersByDepartmentAndRolesAndFuzzySearchOnEmailAddress(roleIds, departmentIds, emailAddress, PageRequest.of(0, 10));
+        return userRepository.findUsersByDepartmentAndRolesAndFuzzySearchOnEmailAddress(roleIds, departmentIds, emailAddress, pageable);
     }
 
     public User getUserById(int id) {
