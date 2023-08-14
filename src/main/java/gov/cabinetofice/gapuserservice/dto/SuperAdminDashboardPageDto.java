@@ -12,7 +12,6 @@ public class SuperAdminDashboardPageDto {
     private List<DepartmentDto> departments;
     private List<UserDto> users;
     private long userCount;
-    private List<List<Integer>> previousFilterData;
 }
 
 
