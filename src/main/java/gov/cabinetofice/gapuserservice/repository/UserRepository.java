@@ -39,11 +39,20 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     );
 
     @Query(value = """
-            SELECT * FROM gap_users u
-            JOIN roles_users r ON r.users_gap_user_id = u.gap_user_id
-            WHERE r.roles_id IN :roleIds
-            AND u.dept_id IN :departmentIds
-            ORDER BY levenshtein(email, :emailQuery) ASC
+            SELECT DISTINCT ON (gap_user_id, distance) *
+            	FROM (
+            	   select *,
+            			  levenshtein(email, :emailQuery) as distance
+            	   FROM gap_users
+            	) u
+            	JOIN
+                    roles_users r
+                        ON r.users_gap_user_id = u.gap_user_id
+                WHERE
+                    r.roles_id IN :roleIds
+                    AND u.dept_id IN :departmentIds
+            	ORDER BY
+            		distance ASC;
             """,
             nativeQuery = true)
     Page<User> findUsersByDepartmentAndRolesAndFuzzySearchOnEmailAddress(
@@ -66,10 +75,19 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     );
 
     @Query(value = """
-            SELECT * FROM gap_users u
-            JOIN roles_users r ON r.users_gap_user_id = u.gap_user_id
-            WHERE r.roles_id IN :roleIds
-            ORDER BY levenshtein(email, :emailQuery) ASC
+            SELECT DISTINCT ON (gap_user_id, distance) *
+            	FROM (
+            	   select *,
+            			  levenshtein(email, :emailQuery) as distance
+            	   FROM gap_users
+            	) u
+            	JOIN
+                    roles_users r
+                        ON r.users_gap_user_id = u.gap_user_id
+                WHERE
+                    r.roles_id IN :roleIds
+            	ORDER BY
+            		distance ASC;
             """,
             nativeQuery = true)
     Page<User> findUsersByRolesAndFuzzySearchOnEmailAddress(
@@ -78,12 +96,13 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             Pageable pageable
     );
 
-    @Query("""
-            select u from User u inner join u.roles roles
-            where roles.id in :roleIds
-            and u.department.id in :departmentIds
-            order by u.emailAddress
-            """)
+    @Query(value = """
+            SELECT DISTINCT ON(gap_user_id, email) * FROM gap_users u
+            JOIN roles_users r ON r.users_gap_user_id = u.gap_user_id
+            WHERE r.roles_id IN :roleIds
+            AND u.dept_id in :departmentIds
+            order by u.email
+            """, nativeQuery = true)
     Page<User> findUsersByDepartmentAndRoles(
             @Param("roleIds") Collection<Integer> roleIds,
             @Param("departmentIds") Collection<Integer> departmentIds,
@@ -100,11 +119,12 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             Pageable pageable
     );
 
-    @Query("""
-            select u from User u inner join u.roles roles
-            where roles.id in :roleIds
-            order by u.emailAddress
-            """)
+    @Query(value = """
+            SELECT DISTINCT ON(gap_user_id, email) * FROM gap_users u
+            JOIN roles_users r ON r.users_gap_user_id = u.gap_user_id
+            WHERE r.roles_id IN :roleIds
+            order by u.email
+            """, nativeQuery = true)
     Page<User> findUsersByRoles(
             @Param("roleIds") Collection<Integer> roleIds,
             Pageable pageable

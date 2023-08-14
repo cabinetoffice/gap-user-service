@@ -50,7 +50,7 @@ public class SuperAdminController {
                 .departments(allDepartments)
                 .roles(allRoles)
                 .users(users.stream().map(UserDto::new).toList())
-                .userCount(searchTerm.isBlank() ? users.getTotalElements() : 10)
+                .userCount(users.getTotalElements())
                 .build());
     }
 }
