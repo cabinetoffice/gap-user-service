@@ -131,7 +131,7 @@ public class LoginControllerV2 {
     private Cookie getCustomJwtCookieFromRequest(final HttpServletRequest request) {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
         if (customJWTCookie == null)
-            throw new UnauthorizedException("No " + userServiceCookieName + " cookie found");
+            throw new UnauthorizedException(userServiceCookieName + " cookie not found");
         return customJWTCookie;
     }
 
