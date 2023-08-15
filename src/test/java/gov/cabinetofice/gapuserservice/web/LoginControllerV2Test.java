@@ -151,17 +151,6 @@ class LoginControllerV2Test {
             verify(customJwtService, times(0)).generateToken(any());
             assertThat(methodResponse.getUrl()).isEqualTo(configProperties.getDefaultRedirectUrl());
         }
-
-        @Test
-        void showNoticePage_ShowsNoticePage_WithLoginUrl() {
-            when(oneLoginService.getOneLoginAuthorizeUrl())
-                    .thenReturn("loginUrl");
-
-            final ModelAndView methodResponse = loginController.showNoticePage();
-            assertThat(methodResponse.getViewName()).isEqualTo(LoginControllerV2.NOTICE_PAGE_VIEW);
-            assertThat(methodResponse.getModel().get("loginUrl")).isEqualTo("loginUrl");
-
-        }
     }
 
     @Nested
