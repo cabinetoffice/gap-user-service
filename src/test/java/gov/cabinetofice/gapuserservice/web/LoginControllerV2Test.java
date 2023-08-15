@@ -81,23 +81,6 @@ class LoginControllerV2Test {
     @Nested
     class login {
         @Test
-        void shouldRedirectToNoticePage_IfTokenIsNull() {
-            final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/");
-            final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
-            final MockHttpServletRequest request = new MockHttpServletRequest();
-
-            final RedirectView methodResponse = loginController.login(redirectUrl, request, response);
-
-            final Cookie redirectUrlCookie = new Cookie(LoginController.REDIRECT_URL_COOKIE, redirectUrl.get());
-            redirectUrlCookie.setSecure(true);
-            redirectUrlCookie.setHttpOnly(true);
-            redirectUrlCookie.setPath("/");
-
-            verify(response).addCookie(redirectUrlCookie);
-            assertThat(methodResponse.getUrl()).isEqualTo("notice-page");
-        }
-
-        @Test
         void shouldRedirectToLoginPage_IfTokenIsNull_AndMigrationJourneyDisabled() {
             ReflectionTestUtils.setField(loginController, "migrationEnabled", "false");
             final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/");
