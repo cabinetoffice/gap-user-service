@@ -27,6 +27,14 @@ public class UserController {
     private final DepartmentService departmentService;
     private final RoleService roleService;
 
+    @GetMapping("user")
+    public ResponseEntity<String> isSuperAdmin(HttpServletRequest httpRequest) {
+        if (!roleService.isSuperAdmin(httpRequest)) {
+            throw new ForbiddenException();
+        }
+        return ResponseEntity.ok("Success");
+    }
+
     @GetMapping("/user/{id}")
     public ResponseEntity<UserDto> getUserById(HttpServletRequest httpRequest, @PathVariable("id") Integer id) {
         if (!roleService.isSuperAdmin(httpRequest)) {
