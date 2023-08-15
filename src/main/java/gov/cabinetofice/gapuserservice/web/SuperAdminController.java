@@ -1,9 +1,6 @@
 package gov.cabinetofice.gapuserservice.web;
 
-import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
-import gov.cabinetofice.gapuserservice.dto.RoleDto;
-import gov.cabinetofice.gapuserservice.dto.SuperAdminDashboardPageDto;
-import gov.cabinetofice.gapuserservice.dto.UserDto;
+import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
@@ -42,9 +39,12 @@ public class SuperAdminController {
             @RequestParam(value = "searchTerm") @Size(max = 255) String searchTerm) {
         if (!roleService.isSuperAdmin(httpRequest)) throw new ForbiddenException();
 
+        UserQueryDto userRequestDto = UserQueryDto.builder()
+                .email(searchTerm).departmentIds(List.of(departmentIds)).roleIds(List.of(roleIds)).build();
+
         final List<DepartmentDto> allDepartments = departmentService.getAllDepartments();
         final List<RoleDto> allRoles = roleService.getAllRoles();
-        final Page<User> users = oneLoginUserService.getPaginatedUsers(pagination, searchTerm, List.of(departmentIds), List.of(roleIds));
+        final Page<User> users = oneLoginUserService.getPaginatedUsers(pagination, userRequestDto);
 
         return ResponseEntity.ok(SuperAdminDashboardPageDto.builder()
                 .departments(allDepartments)

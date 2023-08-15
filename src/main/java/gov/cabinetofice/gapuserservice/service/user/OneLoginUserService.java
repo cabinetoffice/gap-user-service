@@ -1,5 +1,6 @@
 package gov.cabinetofice.gapuserservice.service.user;
 
+import gov.cabinetofice.gapuserservice.dto.UserQueryDto;
 import gov.cabinetofice.gapuserservice.exceptions.DepartmentNotFoundException;
 import gov.cabinetofice.gapuserservice.exceptions.RoleNotFoundException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
@@ -10,13 +11,17 @@ import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.DepartmentRepository;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
+import gov.cabinetofice.gapuserservice.util.UserQueryCondition;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiFunction;
 
 @RequiredArgsConstructor
 @Service
@@ -26,33 +31,44 @@ public class OneLoginUserService {
     private final DepartmentRepository departmentRepository;
     private final RoleRepository roleRepository;
 
-    public Page<User> getPaginatedUsers(Pageable pageable, String emailAddress, List<Integer> departmentIds, List<Integer> roleIds) {
-        final boolean hasEmail = !emailAddress.isBlank();
-        final boolean hasDepartment = !departmentIds.isEmpty();
-        final boolean hasRole = !roleIds.isEmpty(); 
 
-        if (!hasEmail && !hasDepartment && !hasRole)
-            return userRepository.findByOrderByEmail(pageable);
+    public Page<User> getPaginatedUsers(Pageable pageable, UserQueryDto userQueryDto) {
+        // Create a map with all possible conditions and their corresponding repository calls
+        Map<UserQueryCondition, BiFunction<UserQueryDto, Pageable, Page<User>>> conditionMap
+                = createUserQueryConditionMap();
 
-        if (hasEmail && !hasDepartment && !hasRole)
-            return userRepository.findAllUsersByFuzzySearchOnEmailAddress(emailAddress, pageable);
+        // Evaluate the condition based on the user query dto
+        UserQueryCondition condition = getCondition(userQueryDto);
 
-        if (!hasEmail && !hasDepartment)
-            return userRepository.findUsersByRoles(roleIds, pageable);
+        // Pass current condition into Map to get the corresponding repository call from the BiFunction
+        BiFunction<UserQueryDto, Pageable, Page<User>> action = conditionMap.get(condition);
 
-        if (!hasEmail && !hasRole)
-            return userRepository.findUsersByDepartment(departmentIds, pageable);
+        if (action != null) {
+            // Call the repository method
+            return action.apply(userQueryDto, pageable);
+        }
 
-        if (!hasEmail)
-            return userRepository.findUsersByDepartmentAndRoles(roleIds, departmentIds, pageable);
+        // Run a default query or throw an exception
+        throw new RuntimeException();
+    }
 
-        if (!hasDepartment)
-            return userRepository.findUsersByRolesAndFuzzySearchOnEmailAddress(roleIds, emailAddress, pageable);
+    private Map<UserQueryCondition, BiFunction<UserQueryDto, Pageable, Page<User>>> createUserQueryConditionMap() {
+        Map<UserQueryCondition, BiFunction<UserQueryDto, Pageable, Page<User>>> conditionMap = new HashMap<>();
+        conditionMap.put(new UserQueryCondition(false, false, false), (dto, pageable) -> userRepository.findByOrderByEmail(pageable));
+        conditionMap.put(new UserQueryCondition(true, false, false), (dto, pageable) -> userRepository.findUsersByDepartment(dto.getDepartmentIds(), pageable));
+        conditionMap.put(new UserQueryCondition(false, true, false), (dto, pageable) -> userRepository.findUsersByDepartmentAndRoles(dto.getDepartmentIds(), dto.getRoleIds(), pageable));
+        conditionMap.put(new UserQueryCondition(false, false, true), (dto, pageable) -> userRepository.findAllUsersByFuzzySearchOnEmailAddress(dto.getEmail(), pageable));
+        conditionMap.put(new UserQueryCondition(false, true, true), (dto, pageable) -> userRepository.findUsersByRolesAndFuzzySearchOnEmailAddress(dto.getRoleIds(), dto.getEmail(), pageable));
+        conditionMap.put(new UserQueryCondition(true, true, true), (dto, pageable) -> userRepository.findUsersByDepartmentAndRolesAndFuzzySearchOnEmailAddress
+                (dto.getRoleIds(), dto.getDepartmentIds(), dto.getEmail(), pageable));
+        return conditionMap;
+    }
 
-        if (!hasRole)
-            return userRepository.findUsersByDepartmentAndFuzzySearchOnEmailAddress(departmentIds, emailAddress, pageable);
-
-        return userRepository.findUsersByDepartmentAndRolesAndFuzzySearchOnEmailAddress(roleIds, departmentIds, emailAddress, pageable);
+    private UserQueryCondition getCondition(UserQueryDto dto) {
+        boolean hasDepartment = !dto.getDepartmentIds().isEmpty();
+        boolean hasRole = !dto.getRoleIds().isEmpty();
+        boolean hasEmail = dto.getEmail() != null && !dto.getEmail().isBlank();
+        return new UserQueryCondition(hasDepartment, hasRole, hasEmail);
     }
 
     public User getUserById(int id) {
