@@ -27,7 +27,7 @@ public class UserController {
     private final DepartmentService departmentService;
     private final RoleService roleService;
 
-    @GetMapping("user")
+    @GetMapping("/isSuperAdmin")
     public ResponseEntity<String> isSuperAdmin(HttpServletRequest httpRequest) {
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
