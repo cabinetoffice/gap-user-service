@@ -1,5 +1,6 @@
 package gov.cabinetofice.gapuserservice.service.user;
 
+import gov.cabinetofice.gapuserservice.dto.UserQueryDto;
 import gov.cabinetofice.gapuserservice.exceptions.DepartmentNotFoundException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.model.Department;
@@ -100,10 +101,11 @@ public class OneLoginUserServiceTest {
             List<User> users = Arrays.asList(user1, user2);
             Pageable pageable = mock(Pageable.class);
             Page<User> userPage = new PageImpl<>(users, pageable, users.size());
+            UserQueryDto userQueryDto = new UserQueryDto(Collections.emptyList(), Collections.emptyList(), "");
 
             when(userRepository.findByOrderByEmail(pageable)).thenReturn(userPage);
 
-            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, "", Collections.emptyList(), Collections.emptyList());
+            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
 
             List<User> resultContent = pageResult.getContent();
             assertEquals(users.size(), resultContent.size());
@@ -120,17 +122,18 @@ public class OneLoginUserServiceTest {
             String emailAddress = "baz";
             Pageable pageable = PageRequest.of(0, 10);
             Page<User> userPage = new PageImpl<>(users, pageable, users.size());
+            UserQueryDto userQueryDto = new UserQueryDto(Collections.emptyList(), Collections.emptyList(), emailAddress);
 
-            when(userRepository.findAllUsersByFuzzySearchOnEmailAddress(eq(emailAddress), eq(pageable)))
+            when(userRepository.findUsersByFuzzyEmail(eq(emailAddress), eq(pageable)))
                     .thenReturn(userPage);
 
-            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, emailAddress, Collections.emptyList(), Collections.emptyList());
+            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
 
             List<User> result = pageResult.getContent();
             assertEquals(2, result.size());
             assertEquals(user1, result.get(0));
             assertEquals(user2, result.get(1));
-            verify(userRepository, times(1)).findAllUsersByFuzzySearchOnEmailAddress(emailAddress, pageable);
+            verify(userRepository, times(1)).findUsersByFuzzyEmail(emailAddress, pageable);
         }
 
         @Test
@@ -141,11 +144,12 @@ public class OneLoginUserServiceTest {
             List<Integer> departmentIds = Arrays.asList(1, 2);
             Pageable pageable = PageRequest.of(0, 10);
             Page<User> userPage = new PageImpl<>(users, pageable, users.size());
+            UserQueryDto userQueryDto = new UserQueryDto(departmentIds, Collections.emptyList(), "");
 
             when(userRepository.findUsersByDepartment(eq(departmentIds), eq(pageable)))
                     .thenReturn(userPage);
 
-            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, "", departmentIds, Collections.emptyList());
+            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
 
             List<User> result = pageResult.getContent();
             assertEquals(2, result.size());
@@ -162,11 +166,12 @@ public class OneLoginUserServiceTest {
             List<Integer> roleIds = Arrays.asList(1, 2);
             Pageable pageable = PageRequest.of(0, 10);
             Page<User> userPage = new PageImpl<>(users, pageable, users.size());
+            UserQueryDto userQueryDto = new UserQueryDto(Collections.emptyList(), roleIds, "");
 
             when(userRepository.findUsersByRoles(eq(roleIds), eq(pageable)))
                     .thenReturn(userPage);
 
-            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, "", Collections.emptyList(), roleIds);
+            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
 
             List<User> result = pageResult.getContent();
             assertEquals(2, result.size());
@@ -184,17 +189,18 @@ public class OneLoginUserServiceTest {
             String emailAddress = "example";
             Pageable pageable = PageRequest.of(0, 10);
             Page<User> userPage = new PageImpl<>(users, pageable, users.size());
+            UserQueryDto userQueryDto = new UserQueryDto(departmentIds, Collections.emptyList(), emailAddress);
 
-            when(userRepository.findUsersByDepartmentAndFuzzySearchOnEmailAddress(eq(departmentIds), eq(emailAddress), eq(pageable)))
+            when(userRepository.findUsersByDepartmentAndFuzzyEmail(eq(departmentIds), eq(emailAddress), eq(pageable)))
                     .thenReturn(userPage);
 
-            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, emailAddress, departmentIds, Collections.emptyList());
+            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
 
             List<User> result = pageResult.getContent();
             assertEquals(2, result.size());
             assertEquals(user1, result.get(0));
             assertEquals(user2, result.get(1));
-            verify(userRepository, times(1)).findUsersByDepartmentAndFuzzySearchOnEmailAddress(departmentIds, emailAddress, pageable);
+            verify(userRepository, times(1)).findUsersByDepartmentAndFuzzyEmail(departmentIds, emailAddress, pageable);
         }
 
         @Test
@@ -206,17 +212,18 @@ public class OneLoginUserServiceTest {
             String emailAddress = "example";
             Pageable pageable = PageRequest.of(0, 10);
             Page<User> userPage = new PageImpl<>(users, pageable, users.size());
+            UserQueryDto userQueryDto = new UserQueryDto(Collections.emptyList(), roleIds, emailAddress);
 
-            when(userRepository.findUsersByRolesAndFuzzySearchOnEmailAddress(eq(roleIds), eq(emailAddress), eq(pageable)))
+            when(userRepository.findUsersByRolesAndFuzzyEmail(eq(roleIds), eq(emailAddress), eq(pageable)))
                     .thenReturn(userPage);
 
-            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, emailAddress, Collections.emptyList(), roleIds);
+            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
 
             List<User> result = pageResult.getContent();
             assertEquals(2, result.size());
             assertEquals(user1, result.get(0));
             assertEquals(user2, result.get(1));
-            verify(userRepository, times(1)).findUsersByRolesAndFuzzySearchOnEmailAddress(roleIds, emailAddress, pageable);
+            verify(userRepository, times(1)).findUsersByRolesAndFuzzyEmail(roleIds, emailAddress, pageable);
         }
 
         @Test
@@ -228,11 +235,12 @@ public class OneLoginUserServiceTest {
             List<Integer> roleIds = Arrays.asList(3, 4);
             Pageable pageable = PageRequest.of(0, 10);
             Page<User> userPage = new PageImpl<>(users, pageable, users.size());
+            UserQueryDto userQueryDto = new UserQueryDto(departmentIds, roleIds, "");
 
             when(userRepository.findUsersByDepartmentAndRoles(eq(roleIds), eq(departmentIds), eq(pageable)))
                     .thenReturn(userPage);
 
-            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, "", departmentIds, roleIds);
+            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
 
             List<User> result = pageResult.getContent();
             assertEquals(2, result.size());
@@ -251,17 +259,18 @@ public class OneLoginUserServiceTest {
             String emailAddress = "example";
             Pageable pageable = PageRequest.of(0, 10);
             Page<User> userPage = new PageImpl<>(users, pageable, users.size());
+            UserQueryDto userQueryDto = new UserQueryDto(departmentIds, roleIds, emailAddress);
 
-            when(userRepository.findUsersByDepartmentAndRolesAndFuzzySearchOnEmailAddress(eq(roleIds), eq(departmentIds) ,eq(emailAddress), eq(pageable)))
+            when(userRepository.findUsersByDepartmentAndRolesAndFuzzyEmail(eq(roleIds), eq(departmentIds) ,eq(emailAddress), eq(pageable)))
                     .thenReturn(userPage);
 
-            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, emailAddress, departmentIds, roleIds);
+            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
 
             List<User> result = pageResult.getContent();
             assertEquals(2, result.size());
             assertEquals(user1, result.get(0));
             assertEquals(user2, result.get(1));
-            verify(userRepository, times(1)).findUsersByDepartmentAndRolesAndFuzzySearchOnEmailAddress(roleIds, departmentIds, emailAddress, pageable);
+            verify(userRepository, times(1)).findUsersByDepartmentAndRolesAndFuzzyEmail(roleIds, departmentIds, emailAddress, pageable);
         }
     }
 

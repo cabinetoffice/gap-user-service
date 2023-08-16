@@ -1,9 +1,6 @@
 package gov.cabinetofice.gapuserservice.web;
 
-import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
-import gov.cabinetofice.gapuserservice.dto.RoleDto;
-import gov.cabinetofice.gapuserservice.dto.SuperAdminDashboardPageDto;
-import gov.cabinetofice.gapuserservice.dto.UserDto;
+import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.model.Department;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
@@ -24,7 +21,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -68,11 +64,12 @@ class SuperAdminControllerTest {
 
         Integer[] departmentIds = {1};
         Integer[] roleIds = {1};
+        UserQueryDto userQueryDto = new UserQueryDto(List.of(departmentIds), List.of(roleIds), "");
 
         when(departmentService.getAllDepartments()).thenReturn(departments);
         when(roleService.getAllRoles()).thenReturn(roles);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
-        when(oneLoginUserService.getPaginatedUsers(eq(pagination), eq(""), eq(Arrays.asList(departmentIds)), eq(Arrays.asList(roleIds)))).thenReturn(pagedUsers);
+        when(oneLoginUserService.getPaginatedUsers(eq(pagination), eq(userQueryDto))).thenReturn(pagedUsers);
 
         List<UserDto> dtoUsers = users.stream().map(UserDto::new).collect(Collectors.toList());
 
@@ -120,12 +117,13 @@ class SuperAdminControllerTest {
 
         Integer[] departmentIds = {1};
         Integer[] roleIds = {1};
+        UserQueryDto userQueryDto = new UserQueryDto(List.of(departmentIds), List.of(roleIds), "");
 
         when(departmentService.getAllDepartments()).thenReturn(departments);
         when(roleService.getAllRoles()).thenReturn(roles);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(oneLoginUserService.getPaginatedUsers(
-                eq(pagination), eq(""), eq(Arrays.asList(departmentIds)), eq(Arrays.asList(roleIds))
+                eq(pagination), eq(userQueryDto)
         )).thenReturn(pageUsers);
 
 

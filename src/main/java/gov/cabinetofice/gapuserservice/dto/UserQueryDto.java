@@ -1,22 +1,15 @@
 package gov.cabinetofice.gapuserservice.dto;
 
-import lombok.*;
+import gov.cabinetofice.gapuserservice.util.UserQueryCondition;
 
 import java.util.List;
 
-@Getter
-@Setter
-@Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class UserQueryDto {
-    private List<Integer> departmentIds;
-    private List<Integer> roleIds;
-    private String email;
-
-    // Constructors, getters, and setters
-
-    // You can also add convenience methods if needed
+public record UserQueryDto (List<Integer> departmentIds, List<Integer> roleIds, String email) {
+    public UserQueryCondition getCondition() {
+        final boolean hasDepartment = !departmentIds.isEmpty();
+        final boolean hasRole = !roleIds.isEmpty();
+        final boolean hasEmail = email != null && !email.isBlank();
+        return new UserQueryCondition(hasDepartment, hasRole, hasEmail);
+    }
 }
 

@@ -13,5 +13,3 @@ public class SuperAdminDashboardPageDto {
     private List<UserDto> users;
     private long userCount;
 }
-
-

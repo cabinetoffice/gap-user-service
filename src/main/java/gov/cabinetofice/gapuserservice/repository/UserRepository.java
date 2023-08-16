@@ -33,7 +33,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             ORDER BY levenshtein(email, :emailQuery) ASC
             """,
             nativeQuery = true)
-    Page<User> findAllUsersByFuzzySearchOnEmailAddress(
+    Page<User> findUsersByFuzzyEmail(
             @Param("emailQuery") String emailQuery,
             Pageable pageable
     );
@@ -55,7 +55,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             		distance ASC;
             """,
             nativeQuery = true)
-    Page<User> findUsersByDepartmentAndRolesAndFuzzySearchOnEmailAddress(
+    Page<User> findUsersByDepartmentAndRolesAndFuzzyEmail(
             @Param("roleIds") Collection<Integer> roleIds,
             @Param("departmentIds") Collection<Integer> departmentIds,
             @Param("emailQuery") String emailQuery,
@@ -68,7 +68,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             ORDER BY levenshtein(email, :emailQuery) ASC
             """,
             nativeQuery = true)
-    Page<User> findUsersByDepartmentAndFuzzySearchOnEmailAddress(
+    Page<User> findUsersByDepartmentAndFuzzyEmail(
             @Param("departmentIds") Collection<Integer> departmentIds,
             @Param("emailQuery") String emailQuery,
             Pageable pageable
@@ -90,7 +90,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             		distance ASC;
             """,
             nativeQuery = true)
-    Page<User> findUsersByRolesAndFuzzySearchOnEmailAddress(
+    Page<User> findUsersByRolesAndFuzzyEmail(
             @Param("roleIds") Collection<Integer> roleIds,
             @Param("emailQuery") String emailQuery,
             Pageable pageable

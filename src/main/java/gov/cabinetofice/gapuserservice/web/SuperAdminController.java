@@ -39,8 +39,7 @@ public class SuperAdminController {
             @RequestParam(value = "searchTerm") @Size(max = 255) String searchTerm) {
         if (!roleService.isSuperAdmin(httpRequest)) throw new ForbiddenException();
 
-        UserQueryDto userRequestDto = UserQueryDto.builder()
-                .email(searchTerm).departmentIds(List.of(departmentIds)).roleIds(List.of(roleIds)).build();
+        final UserQueryDto userRequestDto = new UserQueryDto(List.of(departmentIds), List.of(roleIds), searchTerm);
 
         final List<DepartmentDto> allDepartments = departmentService.getAllDepartments();
         final List<RoleDto> allRoles = roleService.getAllRoles();
