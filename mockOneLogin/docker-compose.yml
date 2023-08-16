@@ -6,3 +6,5 @@ services:
       - '8888:8080'
     volumes:
       - ./wiremock:/home/wiremock
+    command:
+      - "--global-response-templating"
