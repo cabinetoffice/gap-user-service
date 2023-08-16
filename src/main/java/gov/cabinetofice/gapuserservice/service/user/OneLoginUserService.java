@@ -1,6 +1,6 @@
 package gov.cabinetofice.gapuserservice.service.user;
 
-import gov.cabinetofice.gapuserservice.dto.UserDto;
+import gov.cabinetofice.gapuserservice.dto.UserQueryDto;
 import gov.cabinetofice.gapuserservice.exceptions.DepartmentNotFoundException;
 import gov.cabinetofice.gapuserservice.exceptions.RoleNotFoundException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
@@ -11,13 +11,14 @@ import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.DepartmentRepository;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
+import gov.cabinetofice.gapuserservice.util.UserQueryCondition;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.*;
+import java.util.function.BiFunction;
 
 @RequiredArgsConstructor
 @Service
@@ -27,19 +28,29 @@ public class OneLoginUserService {
     private final DepartmentRepository departmentRepository;
     private final RoleRepository roleRepository;
 
-    public List<UserDto> getPaginatedUsers(Pageable pageable) {
-        return userRepository.findAll(pageable).stream()
-                .map(UserDto::new)
-                .collect(Collectors.toList());
+    public Page<User> getPaginatedUsers(Pageable pageable, UserQueryDto userQueryDto) {
+        final Map<UserQueryCondition, BiFunction<UserQueryDto, Pageable, Page<User>>> conditionMap = createUserQueryConditionMap();
+        final UserQueryCondition condition = userQueryDto.getCondition();
+        final BiFunction<UserQueryDto, Pageable, Page<User>> action = conditionMap.get(condition);
+        return action.apply(userQueryDto, pageable);
+    }
+
+    private Map<UserQueryCondition, BiFunction<UserQueryDto, Pageable, Page<User>>> createUserQueryConditionMap() {
+        return Map.of(
+            new UserQueryCondition(false, false, false), (dto, pageable) -> userRepository.findByOrderByEmail(pageable),
+            new UserQueryCondition(true,  false, false), (dto, pageable) -> userRepository.findUsersByDepartment(dto.departmentIds(), pageable),
+            new UserQueryCondition(false, true,  false), (dto, pageable) -> userRepository.findUsersByRoles(dto.roleIds(), pageable),
+            new UserQueryCondition(false, false, true),  (dto, pageable) -> userRepository.findUsersByFuzzyEmail(dto.email(), pageable),
+            new UserQueryCondition(true,  true,  false), (dto, pageable) -> userRepository.findUsersByDepartmentAndRoles(dto.roleIds(), dto.departmentIds(), pageable),
+            new UserQueryCondition(true,  false, true),  (dto, pageable) -> userRepository.findUsersByDepartmentAndFuzzyEmail(dto.departmentIds(), dto.email(), pageable),
+            new UserQueryCondition(false, true,  true),  (dto, pageable) -> userRepository.findUsersByRolesAndFuzzyEmail(dto.roleIds(), dto.email(), pageable),
+            new UserQueryCondition(true,  true,  true),  (dto, pageable) -> userRepository.findUsersByDepartmentAndRolesAndFuzzyEmail(dto.roleIds(), dto.departmentIds(), dto.email(), pageable)
+        );
     }
 
     public User getUserById(int id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("user with id: " + id + "not found"));
-    }
-
-    public long getUserCount() {
-        return userRepository.count();
     }
 
     public User updateDepartment(Integer id, Integer departmentId) {

@@ -37,7 +37,7 @@ public class DepartmentControllerTest {
     @Test
     void getAllDepartments_returnsArrayOfDepartments() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        final List<DepartmentDto> departments = List.of(DepartmentDto.builder().name("Cabinet office").id("1").ggisID("ggis").build());
+        final List<DepartmentDto> departments = List.of(DepartmentDto.builder().name("Cabinet office").id(1).ggisID("ggis").build());
         when(departmentService.getAllDepartments())
                 .thenReturn(departments);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
@@ -48,7 +48,7 @@ public class DepartmentControllerTest {
     @Test
     void getById_returnsTheCorrectDepartment() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        final DepartmentDto department = DepartmentDto.builder().ggisID("ggis").name("Cabinet office").id("1").build();
+        final DepartmentDto department = DepartmentDto.builder().ggisID("ggis").name("Cabinet office").id(1).build();
         when(departmentService.getDepartmentById(1))
                 .thenReturn(Optional.of(Department.builder().ggisID("ggis").name("Cabinet office").id(1).build()));
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);

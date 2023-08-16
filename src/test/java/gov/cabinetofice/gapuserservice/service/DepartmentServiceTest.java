@@ -34,8 +34,8 @@ public class DepartmentServiceTest {
         Department department1 = Department.builder().id(1).build();
         Department department2 = Department.builder().id(2).build();
         List<Department> departments = List.of(department1, department2);
-        DepartmentDto departmentDto1 = DepartmentDto.builder().id("1").build();
-        DepartmentDto departmentDto2 = DepartmentDto.builder().id("2").build();
+        DepartmentDto departmentDto1 = DepartmentDto.builder().id(1).build();
+        DepartmentDto departmentDto2 = DepartmentDto.builder().id(2).build();
         List<DepartmentDto> expectedDepartments = List.of(departmentDto1, departmentDto2);
 
         when(departmentRepository.findAll()).thenReturn(departments);
