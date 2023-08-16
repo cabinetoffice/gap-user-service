@@ -2,6 +2,7 @@ package gov.cabinetofice.gapuserservice.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
 import gov.cabinetofice.gapuserservice.dto.MigrateUserDto;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
@@ -28,6 +29,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.io.IOException;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
+import java.security.SecureRandom;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.*;
 
@@ -57,6 +59,7 @@ public class OneLoginService {
     private static final String UI = "en";
     private static final String GRANT_TYPE = "authorization_code";
 
+    private final ApplicationConfigProperties configProperties;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final WebClient.Builder webClientBuilder;
@@ -90,12 +93,24 @@ public class OneLoginService {
         return userRepository.save(user);
     }
 
+    public String generateSecureRandomString(final Integer strLen) {
+        final String chrs = "0123456789abcdefghijklmnopqrstuvwxyz-_ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+        final SecureRandom secureRandom = new SecureRandom();
+
+        return secureRandom
+                .ints(strLen, 0, chrs.length())
+                .mapToObj(i -> chrs.charAt(i))
+                .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
+                .toString();
+    }
+
     public String generateNonce() {
-         return UUID.randomUUID().toString();
+        return Objects.equals(this.configProperties.getProfile(), "LOCAL") ? "aEwkamaos5C" : generateSecureRandomString(64);
     }
 
     public String generateState() {
-        return UUID.randomUUID().toString();
+        return generateSecureRandomString(64);
     }
 
     public String buildEncodedStateJson(final String redirectUrl, final String state) {

@@ -9,8 +9,12 @@ import gov.cabinetofice.gapuserservice.config.FindAGrantConfigProperties;
 import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
+import gov.cabinetofice.gapuserservice.model.Nonce;
 import gov.cabinetofice.gapuserservice.model.User;
+import gov.cabinetofice.gapuserservice.repository.NonceRepository;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
+import gov.cabinetofice.gapuserservice.service.encryption.AESService;
+import gov.cabinetofice.gapuserservice.service.encryption.Sha512Service;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
@@ -21,6 +25,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Controller;
@@ -30,10 +35,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
 
-import java.util.Base64;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 @RequiredArgsConstructor
 @Controller
@@ -46,6 +48,9 @@ public class LoginControllerV2 {
     private final OneLoginService oneLoginService;
     private final CustomJwtServiceImpl customJwtService;
     private final ApplicationConfigProperties configProperties;
+    @Autowired
+    private final Sha512Service encryptionService;
+    private final NonceRepository nonceRepository;
 
     private final FindAGrantConfigProperties findProperties;
 
@@ -85,11 +90,12 @@ public class LoginControllerV2 {
                 && customJwtService.isTokenValid(customJWTCookie.getValue());
 
         if (!isTokenValid) {
-            StateNonceRedirectCookieDto cookieData = generateAndStoreNonceAndState(response, redirectUrlParam);
+            final String state = generateAndStoreState(response, redirectUrlParam);
+            final String nonce = generateAndStoreNonce();
             if (migrationEnabled.equals("true")) {
                 return new RedirectView(NOTICE_PAGE_VIEW);
             } else {
-                return new RedirectView(oneLoginService.getOneLoginAuthorizeUrl(cookieData.getState(), cookieData.getNonce()));
+                return new RedirectView(oneLoginService.getOneLoginAuthorizeUrl(state, nonce));
             }
         }
 
@@ -99,7 +105,6 @@ public class LoginControllerV2 {
     @GetMapping("/redirect-after-login")
     public RedirectView redirectAfterLogin(
             final @CookieValue(name = STATE_COOKIE) String stateCookie,
-            final @CookieValue(name = NONCE_COOKIE) String nonceCookie,
             final HttpServletResponse response,
             final @RequestParam String code,
             final @RequestParam String state
@@ -107,13 +112,20 @@ public class LoginControllerV2 {
         final JSONObject tokenResponse = oneLoginService.getOneLoginUserTokenResponse(code);
         IdTokenDto decodedIdToken = oneLoginService.getDecodedIdToken(tokenResponse);
         final String tokenNonce = decodedIdToken.getNonce();
-        //final String tokenState = decodedIdToken.getState();
+
         final StateCookieDto stateCookieDto = oneLoginService.decodeStateCookie(stateCookie);
         final String redirectUrl = stateCookieDto.getRedirectUrl();
         final String cookieState = stateCookieDto.getState();
-        final Boolean stateAndNonceVerified = tokenNonce.equals(nonceCookie) && state.equals(cookieState);
+        final String encodedStateJsonString = oneLoginService.buildEncodedStateJson(redirectUrl, cookieState);
+        final String hashedStateCookie = encryptionService.getSHA512SecurePassword(encodedStateJsonString);
 
-        if (stateAndNonceVerified || Objects.equals(this.configProperties.getProfile(), "LOCAL")) {
+        final Nonce storedNonce = readAndDeleteNonce(tokenNonce);
+        final Boolean nonceExpired = isNonceExpired(storedNonce);
+
+        final String nonceString = storedNonce.getNonceString();
+        final Boolean stateAndNonceVerified = tokenNonce.equals(nonceString) && !nonceExpired && state.equals(hashedStateCookie);
+
+        if (stateAndNonceVerified) {
             final String authToken = tokenResponse.getString("access_token");
             final OneLoginUserInfoDto userInfo = oneLoginService.getOneLoginUserInfoDto(authToken);
             final User user = oneLoginService.createOrGetUserFromInfo(userInfo);
@@ -122,16 +134,17 @@ public class LoginControllerV2 {
                     .getLoginJourneyRedirect(user.getHighestRole().getName())
                     .getRedirectUrl(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl, redirectUrl));
         } else {
-            log.warn("/redirect-after-login unauthorized user, state matching: {}, nonce matching: {}", state.equals(cookieState), tokenNonce.equals(nonceCookie));
+            log.warn("/redirect-after-login unauthorized user, state matching: {}, nonce matching: {}", state.equals(cookieState), tokenNonce.equals(storedNonce));
             throw new UnauthorizedException("User authorization failed");
         }
     }
 
     @GetMapping("/notice-page")
     public ModelAndView showNoticePage(final HttpServletResponse response) {
-        StateNonceRedirectCookieDto cookieData = generateAndStoreNonceAndState(response, Optional.ofNullable(configProperties.getDefaultRedirectUrl()));
+        final String state = generateAndStoreState(response, Optional.ofNullable(configProperties.getDefaultRedirectUrl()));
+        final String nonce = "";
         return new ModelAndView(NOTICE_PAGE_VIEW)
-                .addObject("loginUrl", oneLoginService.getOneLoginAuthorizeUrl(cookieData.getState(), cookieData.getNonce()))
+                .addObject("loginUrl", oneLoginService.getOneLoginAuthorizeUrl(state, nonce))
                 .addObject("homePageUrl", findProperties.getUrl());
     }
 
@@ -177,21 +190,36 @@ public class LoginControllerV2 {
                 .getRedirectUrl(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl ,redirectUrlCookie);
     }
 
-    private StateNonceRedirectCookieDto generateAndStoreNonceAndState(final HttpServletResponse response, final Optional<String> redirectUrlParam) {
-        final String nonce = oneLoginService.generateNonce();
-        final Cookie nonceCookie = WebUtil.buildSecureCookie(NONCE_COOKIE, nonce, 3600);
-        response.addCookie(nonceCookie);
-
+    private String generateAndStoreState(final HttpServletResponse response, final Optional<String> redirectUrlParam) {
         final String state = oneLoginService.generateState();
         final String redirectUrl = redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl());
         final String encodedStateJsonString = oneLoginService.buildEncodedStateJson(redirectUrl, state);
         final Cookie stateCookie = WebUtil.buildSecureCookie(STATE_COOKIE, encodedStateJsonString, 3600);
         response.addCookie(stateCookie);
+        return encryptionService.getSHA512SecurePassword(encodedStateJsonString);
+    }
 
-        final StateNonceRedirectCookieDto cookieData = new StateNonceRedirectCookieDto();
-        cookieData.setNonce(nonce);
-        cookieData.setState(state);
-        cookieData.setRedirectUrl(redirectUrl);
-        return cookieData;
+    private String generateAndStoreNonce() {
+        final String nonce = oneLoginService.generateNonce();
+        final Nonce nonceModel = Nonce.builder().nonceString(nonce).build();
+        this.nonceRepository.save(nonceModel);
+        return nonce;
+    }
+
+    private Nonce readAndDeleteNonce(final String nonce) {
+        final Optional<Nonce> nonceModel = this.nonceRepository.findFirstByNonceStringOrderByNonceStringAsc(nonce);
+        if (nonceModel.isPresent()) {
+            this.nonceRepository.delete(nonceModel.get());
+        }
+        return nonceModel.get();
+    }
+
+    private Boolean isNonceExpired(Nonce nonce) {
+        final Date nonceCreatedAt = nonce.getCreatedAt();
+        Calendar c = Calendar.getInstance();
+        c.setTime(new Date());
+        c.add(Calendar.MINUTE, -10);
+        final Date expiryTime = c.getTime();
+        return nonceCreatedAt.before(expiryTime);
     }
 }

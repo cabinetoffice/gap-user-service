@@ -68,4 +68,11 @@ Responses that return JSON should be added to `mockOneLogin/wiremock/__files`
     `g.c.g.GapUserServiceApplication          : Started GapUserServiceApplication in X.xxx seconds`
 
 
-## Contributing
+## Troubleshooting
+- ensure that the email and sub in the gaplocaluserdb>gap_users table match what's returned in wiremock
+  - you must restart the wiremock server if you make any changes
+- ensure that ONE_LOGIN_ENABLED is true in all your projects
+- ensure that the ports match up between your FE and BE
+- if you're logging in as an admin, ensure that admin has a department
+- if you're having trouble running the migration scripts, run `mvn flyway:clean` and rerun the service
+  `
