@@ -117,8 +117,7 @@ public class OneLoginService {
     }
 
     public String generateNonce() {
-        //return Objects.equals(this.configProperties.getProfile(), "LOCAL") ? "aEwkamaos5C" : generateSecureRandomString(64);
-        return generateSecureRandomString(64);
+        return Objects.equals(this.configProperties.getProfile(), "LOCAL") ? "aEwkamaos5C" : generateSecureRandomString(64);
     }
 
     public String generateState() {
