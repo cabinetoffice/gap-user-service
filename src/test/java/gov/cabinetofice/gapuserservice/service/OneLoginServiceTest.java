@@ -40,7 +40,6 @@ import static org.mockito.Mockito.*;
 public class OneLoginServiceTest {
 
     @InjectMocks
-    @Spy
     private OneLoginService oneLoginService;
 
     private static MockedStatic<RestUtils> mockedStatic;

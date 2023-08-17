@@ -16,7 +16,6 @@ import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.NonceRepository;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
-import gov.cabinetofice.gapuserservice.service.encryption.Sha512Service;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
 import io.jsonwebtoken.Jwts;
@@ -25,9 +24,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.apache.http.HttpHeaders;
-import org.json.JSONException;
 import org.json.JSONObject;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -65,10 +62,7 @@ public class OneLoginService {
     private static final String VTR = "[\"Cl.Cm\"]";
     private static final String UI = "en";
     private static final String GRANT_TYPE = "authorization_code";
-    private final String STATE_COOKIE = "state";
 
-    @Autowired
-    private final Sha512Service encryptionService;
     private final ApplicationConfigProperties configProperties;
     private final NonceRepository nonceRepository;
     private final UserRepository userRepository;
@@ -111,7 +105,7 @@ public class OneLoginService {
 
         return secureRandom
                 .ints(strLen, 0, chrs.length())
-                .mapToObj(i -> chrs.charAt(i))
+                .mapToObj(chrs::charAt)
                 .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
                 .toString();
     }
@@ -148,6 +142,7 @@ public class OneLoginService {
     public String generateAndStoreState(final HttpServletResponse response, final String redirectUrl) {
         final String state = this.generateState();
         final String encodedStateJsonString = this.buildEncodedStateJson(redirectUrl, state);
+        String STATE_COOKIE = "state";
         final Cookie stateCookie = WebUtil.buildSecureCookie(STATE_COOKIE, encodedStateJsonString, 3600);
         response.addCookie(stateCookie);
         return encodedStateJsonString;
@@ -162,9 +157,7 @@ public class OneLoginService {
 
     public Nonce readAndDeleteNonce(final String nonce) {
         final Optional<Nonce> nonceModel = this.nonceRepository.findFirstByNonceStringOrderByNonceStringAsc(nonce);
-        if (nonceModel.isPresent()) {
-            this.nonceRepository.delete(nonceModel.get());
-        }
+        nonceModel.ifPresent(this.nonceRepository::delete);
         return nonceModel.orElse(new Nonce());
     }
 

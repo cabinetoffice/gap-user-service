@@ -154,7 +154,6 @@ class LoginControllerV2Test {
     class redirectAfterLogin {
         //B64 encoded stateCookie containing '{"state":"state","redirectUrl":"redirectUrl"}'
         final String stateCookie = "eyJzdGF0ZSI6InN0YXRlIiwicmVkaXJlY3RVcmwiOiJyZWRpcmVjdFVybCJ9";
-        final String nonceCookie = "nonce";
         final String redirectUrlCookie = "redirectUrl";
         final String code = "code";
         final String state = "state";

@@ -104,32 +104,20 @@ public class LoginControllerV2 {
     ) {
         final JSONObject tokenResponse = oneLoginService.getOneLoginUserTokenResponse(code);
         IdTokenDto decodedIdToken = oneLoginService.getDecodedIdToken(tokenResponse);
-        final String tokenNonce = decodedIdToken.getNonce();
 
         final StateCookieDto stateCookieDto = oneLoginService.decodeStateCookie(stateCookie);
         final String redirectUrl = stateCookieDto.getRedirectUrl();
-        final String hashedStateCookie = encryptionService.getSHA512SecurePassword(
-                oneLoginService.buildEncodedStateJson(redirectUrl, stateCookieDto.getState())
-        );
 
-        final Nonce storedNonce = oneLoginService.readAndDeleteNonce(tokenNonce);
-        final boolean nonceExpired = oneLoginService.isNonceExpired(storedNonce);
+        verifyStateAndNonce(decodedIdToken.getNonce(), stateCookieDto, state);
 
-        final String nonceString = storedNonce.getNonceString();
-        final boolean stateAndNonceVerified = tokenNonce.equals(nonceString) && !nonceExpired && state.equals(hashedStateCookie);
+        final String authToken = tokenResponse.getString("access_token");
+        final OneLoginUserInfoDto userInfo = oneLoginService.getOneLoginUserInfoDto(authToken);
+        final User user = oneLoginService.createOrGetUserFromInfo(userInfo);
+        addCustomJwtCookie(response, userInfo);
 
-        if (stateAndNonceVerified) {
-            final String authToken = tokenResponse.getString("access_token");
-            final OneLoginUserInfoDto userInfo = oneLoginService.getOneLoginUserInfoDto(authToken);
-            final User user = oneLoginService.createOrGetUserFromInfo(userInfo);
-            addCustomJwtCookie(response, userInfo);
-            return new RedirectView(user.getLoginJourneyState()
-                    .getLoginJourneyRedirect(user.getHighestRole().getName())
-                    .getRedirectUrl(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl, redirectUrl));
-        } else {
-            log.warn("/redirect-after-login unauthorized user; nonce expired: {}, nonce matching: {} state matching: {}", nonceExpired, tokenNonce.equals(nonceString), state.equals(hashedStateCookie));
-            throw new AccessDeniedException("User authorization failed");
-        }
+        return new RedirectView(user.getLoginJourneyState()
+                .getLoginJourneyRedirect(user.getHighestRole().getName())
+                .getRedirectUrl(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl, redirectUrl));
     }
 
     @GetMapping("/privacy-policy")
@@ -170,6 +158,30 @@ public class LoginControllerV2 {
         if (customJWTCookie == null)
             throw new UnauthorizedException(userServiceCookieName + " cookie not found");
         return customJWTCookie;
+    }
+
+    private void verifyStateAndNonce(final String nonce, final StateCookieDto stateCookieDto, final String state) {
+        // Validate that state returned is the same as the one stored in the cookie
+        final String encodedStateJson = oneLoginService.buildEncodedStateJson(
+                stateCookieDto.getRedirectUrl(),
+                stateCookieDto.getState()
+        );
+        final String hashedStateCookie = encryptionService.getSHA512SecurePassword(encodedStateJson);
+        final boolean isStateVerified = state.equals(hashedStateCookie);
+
+        // Validate that nonce is stored in the DB
+        final Nonce storedNonce = oneLoginService.readAndDeleteNonce(nonce);
+        final String nonceString = storedNonce.getNonceString();
+        final boolean isNonceVerified = nonce.equals(nonceString);
+
+        // Validate that nonce is less than 10 mins old
+        final boolean isNonceExpired = oneLoginService.isNonceExpired(storedNonce);
+
+        if (!(isStateVerified && isNonceVerified && !isNonceExpired)) {
+            log.warn("/redirect-after-login unauthorized user; nonce expired: {}, nonce verified: {}, " +
+                    "state verified: {}", isNonceExpired, isNonceVerified, isStateVerified);
+            throw new AccessDeniedException("User authorization failed");
+        }
     }
 
     private String runStateMachine(final String redirectUrlCookie, final User user, final String jwt) {
