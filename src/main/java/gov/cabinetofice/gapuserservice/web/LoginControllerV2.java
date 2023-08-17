@@ -62,8 +62,6 @@ public class LoginControllerV2 {
 
     private final String STATE_COOKIE = "state";
 
-    private final String NONCE_COOKIE = "nonce";
-
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
 
@@ -90,8 +88,10 @@ public class LoginControllerV2 {
                 && customJwtService.isTokenValid(customJWTCookie.getValue());
 
         if (!isTokenValid) {
-            final String state = generateAndStoreState(response, redirectUrlParam);
-            final String nonce = generateAndStoreNonce();
+            final String state = encryptionService.getSHA512SecurePassword(
+                    oneLoginService.generateAndStoreState(response, redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl()))
+            );
+            final String nonce = oneLoginService.generateAndStoreNonce();
             if (migrationEnabled.equals("true")) {
                 return new RedirectView(NOTICE_PAGE_VIEW);
             } else {
@@ -119,8 +119,8 @@ public class LoginControllerV2 {
         final String encodedStateJsonString = oneLoginService.buildEncodedStateJson(redirectUrl, cookieState);
         final String hashedStateCookie = encryptionService.getSHA512SecurePassword(encodedStateJsonString);
 
-        final Nonce storedNonce = readAndDeleteNonce(tokenNonce);
-        final Boolean nonceExpired = isNonceExpired(storedNonce);
+        final Nonce storedNonce = oneLoginService.readAndDeleteNonce(tokenNonce);
+        final Boolean nonceExpired = oneLoginService.isNonceExpired(storedNonce);
 
         final String nonceString = storedNonce.getNonceString();
         final Boolean stateAndNonceVerified = tokenNonce.equals(nonceString) && !nonceExpired && state.equals(hashedStateCookie);
@@ -134,15 +134,17 @@ public class LoginControllerV2 {
                     .getLoginJourneyRedirect(user.getHighestRole().getName())
                     .getRedirectUrl(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl, redirectUrl));
         } else {
-            log.warn("/redirect-after-login unauthorized user, state matching: {}, nonce matching: {}", state.equals(cookieState), tokenNonce.equals(storedNonce));
+            log.warn("/redirect-after-login unauthorized user, verified: {}, state matching: {}, state: {}, hashedState: {}, nonce matching: {}, nonce expired: {}, tokenNonce: {}, storedNonce: {}", stateAndNonceVerified, state.equals(hashedStateCookie), state, hashedStateCookie, tokenNonce.equals(nonceString), nonceExpired, tokenNonce, nonceString);
             throw new UnauthorizedException("User authorization failed");
         }
     }
 
     @GetMapping("/notice-page")
     public ModelAndView showNoticePage(final HttpServletResponse response) {
-        final String state = generateAndStoreState(response, Optional.ofNullable(configProperties.getDefaultRedirectUrl()));
-        final String nonce = "";
+        final String state = encryptionService.getSHA512SecurePassword(
+                oneLoginService.generateAndStoreState(response, configProperties.getDefaultRedirectUrl())
+        );
+        final String nonce = oneLoginService.generateAndStoreNonce();
         return new ModelAndView(NOTICE_PAGE_VIEW)
                 .addObject("loginUrl", oneLoginService.getOneLoginAuthorizeUrl(state, nonce))
                 .addObject("homePageUrl", findProperties.getUrl());
@@ -188,38 +190,5 @@ public class LoginControllerV2 {
                 .nextState(oneLoginService, user, jwt, log)
                 .getLoginJourneyRedirect(user.getHighestRole().getName())
                 .getRedirectUrl(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl ,redirectUrlCookie);
-    }
-
-    private String generateAndStoreState(final HttpServletResponse response, final Optional<String> redirectUrlParam) {
-        final String state = oneLoginService.generateState();
-        final String redirectUrl = redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl());
-        final String encodedStateJsonString = oneLoginService.buildEncodedStateJson(redirectUrl, state);
-        final Cookie stateCookie = WebUtil.buildSecureCookie(STATE_COOKIE, encodedStateJsonString, 3600);
-        response.addCookie(stateCookie);
-        return encryptionService.getSHA512SecurePassword(encodedStateJsonString);
-    }
-
-    private String generateAndStoreNonce() {
-        final String nonce = oneLoginService.generateNonce();
-        final Nonce nonceModel = Nonce.builder().nonceString(nonce).build();
-        this.nonceRepository.save(nonceModel);
-        return nonce;
-    }
-
-    private Nonce readAndDeleteNonce(final String nonce) {
-        final Optional<Nonce> nonceModel = this.nonceRepository.findFirstByNonceStringOrderByNonceStringAsc(nonce);
-        if (nonceModel.isPresent()) {
-            this.nonceRepository.delete(nonceModel.get());
-        }
-        return nonceModel.get();
-    }
-
-    private Boolean isNonceExpired(Nonce nonce) {
-        final Date nonceCreatedAt = nonce.getCreatedAt();
-        Calendar c = Calendar.getInstance();
-        c.setTime(new Date());
-        c.add(Calendar.MINUTE, -10);
-        final Date expiryTime = c.getTime();
-        return nonceCreatedAt.before(expiryTime);
     }
 }

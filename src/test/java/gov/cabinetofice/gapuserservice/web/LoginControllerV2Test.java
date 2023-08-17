@@ -8,6 +8,7 @@ import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
+import gov.cabinetofice.gapuserservice.model.Nonce;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -25,9 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -38,10 +37,7 @@ import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
 import org.json.JSONObject;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.*;
@@ -102,17 +98,7 @@ class LoginControllerV2Test {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final MockHttpServletRequest request = new MockHttpServletRequest();
 
-            when(oneLoginService.buildEncodedStateJson(redirectUrl.get(), state)).thenCallRealMethod();
-            when(oneLoginService.generateNonce()).thenReturn(nonce);
-            when(oneLoginService.generateState()).thenReturn(state);
-
             final RedirectView methodResponse = loginController.login(redirectUrl, request, response);
-
-            final Cookie nonceCookie = WebUtil.buildSecureCookie(loginController.getNONCE_COOKIE(), nonce, 3600);
-            verify(response).addCookie(nonceCookie);
-
-            final Cookie stateCookie = WebUtil.buildSecureCookie(loginController.getSTATE_COOKIE(), "eyJyZWRpcmVjdFVybCI6Imh0dHBzOlwvXC93d3cuZmluZC1nb3Zlcm5tZW50LWdyYW50cy5zZXJ2aWNlLmdvdi51a1wvIiwic3RhdGUiOiJzdGF0ZSJ9", 3600);
-            verify(response).addCookie(stateCookie);
 
             assertThat(methodResponse.getUrl()).isEqualTo("notice-page");
         }
@@ -125,14 +111,13 @@ class LoginControllerV2Test {
             final MockHttpServletRequest request = new MockHttpServletRequest();
 
             when(oneLoginService.buildEncodedStateJson(redirectUrl.get(), state)).thenCallRealMethod();
-            when(oneLoginService.generateNonce()).thenReturn(nonce);
             when(oneLoginService.generateState()).thenReturn(state);
+            when(oneLoginService.generateAndStoreNonce()).thenReturn("nonce");
+            when(oneLoginService.generateAndStoreState(response, redirectUrl.get())).thenCallRealMethod();
             when(oneLoginService.getOneLoginAuthorizeUrl(state, nonce)).thenReturn("loginUrl");
+            when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
 
             final RedirectView methodResponse = loginController.login(redirectUrl, request, response);
-
-            final Cookie nonceCookie = WebUtil.buildSecureCookie(loginController.getNONCE_COOKIE(), "nonce", 3600);
-            verify(response).addCookie(nonceCookie);
 
             final Cookie stateCookie = WebUtil.buildSecureCookie(loginController.getSTATE_COOKIE(), "eyJyZWRpcmVjdFVybCI6Imh0dHBzOlwvXC93d3cuZmluZC1nb3Zlcm5tZW50LWdyYW50cy5zZXJ2aWNlLmdvdi51a1wvIiwic3RhdGUiOiJzdGF0ZSJ9", 3600);
             verify(response).addCookie(stateCookie);
@@ -178,9 +163,13 @@ class LoginControllerV2Test {
         @Test
         void showNoticePage_ShowsNoticePage_WithLoginUrl() {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
-            when(oneLoginService.getOneLoginAuthorizeUrl(state, nonce)).thenReturn("loginUrl");
-            when(oneLoginService.generateNonce()).thenReturn(nonce);
+            when(oneLoginService.buildEncodedStateJson(configProperties.getDefaultRedirectUrl(), state)).thenCallRealMethod();
             when(oneLoginService.generateState()).thenReturn(state);
+            when(oneLoginService.generateAndStoreNonce()).thenReturn("nonce");
+            when(oneLoginService.generateAndStoreState(response, configProperties.getDefaultRedirectUrl())).thenCallRealMethod();
+            when(oneLoginService.getOneLoginAuthorizeUrl(state, nonce)).thenReturn("loginUrl");
+            when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
+
 
             final ModelAndView methodResponse = loginController.showNoticePage(response);
             assertThat(methodResponse.getViewName()).isEqualTo(LoginControllerV2.NOTICE_PAGE_VIEW);
@@ -206,6 +195,10 @@ class LoginControllerV2Test {
                 .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()));
         final IdTokenDto.IdTokenDtoBuilder idTokenDtoBuilder = IdTokenDto.builder()
                 .nonce("nonce");
+        final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
+                .nonceId(1)
+                .nonceString("nonce")
+                .createdAt(new Date());
         final StateCookieDto.StateCookieDtoBuilder stateCookieDtoBuilder = StateCookieDto.builder()
                 .state("state")
                 .redirectUrl("redirectUrl");
@@ -226,6 +219,8 @@ class LoginControllerV2Test {
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(userBuilder.build());
             when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
+            when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
+            when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
 
             loginController.redirectAfterLogin(stateCookie, response, code, state);
 
@@ -248,6 +243,8 @@ class LoginControllerV2Test {
             when(oneLoginService.createOrGetUserFromInfo(oneLoginUserInfoDto)).thenReturn(userBuilder.build());
             when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
+            when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
+            when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
 
             loginController.redirectAfterLogin(stateCookie, response, code, state);
 
@@ -274,6 +271,8 @@ class LoginControllerV2Test {
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.generateCustomJwtClaims(any())).thenReturn(claims);
             when(customJwtService.generateToken(claims)).thenReturn("jwtToken");
+            when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
+            when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
 
             loginController.redirectAfterLogin(stateCookie, response, code, state);
 
@@ -295,6 +294,8 @@ class LoginControllerV2Test {
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(userBuilder.build());
             when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
+            when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
+            when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
 
             final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, response, code, state);
 
@@ -321,6 +322,8 @@ class LoginControllerV2Test {
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
             when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
+            when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
+            when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
 
             final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, response, code, state);
 
@@ -347,6 +350,8 @@ class LoginControllerV2Test {
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
             when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
+            when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
+            when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
 
             final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, response, code, state);
 
@@ -374,6 +379,8 @@ class LoginControllerV2Test {
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
             when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
+            when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
+            when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
 
             final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, response, code, state);
 
@@ -394,6 +401,8 @@ class LoginControllerV2Test {
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
             when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
+            when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
+            when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
 
             final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, response, code, state);
 

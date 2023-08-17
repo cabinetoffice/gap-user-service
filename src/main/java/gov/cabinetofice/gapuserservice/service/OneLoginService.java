@@ -9,18 +9,25 @@ import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.*;
+import gov.cabinetofice.gapuserservice.model.Nonce;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
+import gov.cabinetofice.gapuserservice.repository.NonceRepository;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
+import gov.cabinetofice.gapuserservice.service.encryption.Sha512Service;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
+import gov.cabinetofice.gapuserservice.util.WebUtil;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.apache.http.HttpHeaders;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -58,8 +65,12 @@ public class OneLoginService {
     private static final String VTR = "[\"Cl.Cm\"]";
     private static final String UI = "en";
     private static final String GRANT_TYPE = "authorization_code";
+    private final String STATE_COOKIE = "state";
 
+    @Autowired
+    private final Sha512Service encryptionService;
     private final ApplicationConfigProperties configProperties;
+    private final NonceRepository nonceRepository;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final WebClient.Builder webClientBuilder;
@@ -132,6 +143,38 @@ public class OneLoginService {
             e.printStackTrace();
         }
         return stateCookieDto;
+    }
+
+    public String generateAndStoreState(final HttpServletResponse response, final String redirectUrl) {
+        final String state = this.generateState();
+        final String encodedStateJsonString = this.buildEncodedStateJson(redirectUrl, state);
+        final Cookie stateCookie = WebUtil.buildSecureCookie(STATE_COOKIE, encodedStateJsonString, 3600);
+        response.addCookie(stateCookie);
+        return encodedStateJsonString;
+    }
+
+    public String generateAndStoreNonce() {
+        final String nonce = this.generateNonce();
+        final Nonce nonceModel = Nonce.builder().nonceString(nonce).build();
+        this.nonceRepository.save(nonceModel);
+        return nonce;
+    }
+
+    public Nonce readAndDeleteNonce(final String nonce) {
+        final Optional<Nonce> nonceModel = this.nonceRepository.findFirstByNonceStringOrderByNonceStringAsc(nonce);
+        if (nonceModel.isPresent()) {
+            this.nonceRepository.delete(nonceModel.get());
+        }
+        return nonceModel.get();
+    }
+
+    public Boolean isNonceExpired(Nonce nonce) {
+        final Date nonceCreatedAt = nonce.getCreatedAt();
+        Calendar c = Calendar.getInstance();
+        c.setTime(new Date());
+        c.add(Calendar.MINUTE, -10);
+        final Date expiryTime = c.getTime();
+        return nonceCreatedAt.before(expiryTime) || nonceCreatedAt.after(new Date());
     }
 
     public void setUsersLoginJourneyState(final User user, final LoginJourneyState newState) {
