@@ -297,15 +297,18 @@ public class OneLoginService {
                 .block();
     }
 
+    private String decodeJWT(final String token) {
+        String[] chunks = token.split("\\.");
+        Base64.Decoder decoder = Base64.getUrlDecoder();
+        return new String(decoder.decode(chunks[1]));
+    }
+
     public IdTokenDto getDecodedIdToken(final JSONObject tokenResponse) {
         final String idToken = tokenResponse.getString("id_token");
-        String[] chunks = idToken.split("\\.");
-        Base64.Decoder decoder = Base64.getUrlDecoder();
-        String payload = new String(decoder.decode(chunks[1]));
         ObjectMapper mapper = new ObjectMapper();
         IdTokenDto decodedIdToken = new IdTokenDto();
         try {
-            decodedIdToken = mapper.readValue(payload, IdTokenDto.class);
+            decodedIdToken = mapper.readValue(decodeJWT(idToken), IdTokenDto.class);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }

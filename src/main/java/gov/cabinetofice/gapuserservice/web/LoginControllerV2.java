@@ -108,15 +108,15 @@ public class LoginControllerV2 {
 
         final StateCookieDto stateCookieDto = oneLoginService.decodeStateCookie(stateCookie);
         final String redirectUrl = stateCookieDto.getRedirectUrl();
-        final String cookieState = stateCookieDto.getState();
-        final String encodedStateJsonString = oneLoginService.buildEncodedStateJson(redirectUrl, cookieState);
-        final String hashedStateCookie = encryptionService.getSHA512SecurePassword(encodedStateJsonString);
+        final String hashedStateCookie = encryptionService.getSHA512SecurePassword(
+                oneLoginService.buildEncodedStateJson(redirectUrl, stateCookieDto.getState())
+        );
 
         final Nonce storedNonce = oneLoginService.readAndDeleteNonce(tokenNonce);
-        final Boolean nonceExpired = oneLoginService.isNonceExpired(storedNonce);
+        final boolean nonceExpired = oneLoginService.isNonceExpired(storedNonce);
 
         final String nonceString = storedNonce.getNonceString();
-        final Boolean stateAndNonceVerified = tokenNonce.equals(nonceString) && !nonceExpired && state.equals(hashedStateCookie);
+        final boolean stateAndNonceVerified = tokenNonce.equals(nonceString) && !nonceExpired && state.equals(hashedStateCookie);
 
         if (stateAndNonceVerified) {
             final String authToken = tokenResponse.getString("access_token");
