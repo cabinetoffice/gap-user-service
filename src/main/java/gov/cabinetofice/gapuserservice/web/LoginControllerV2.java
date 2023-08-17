@@ -18,6 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Controller;
@@ -36,11 +37,9 @@ import java.util.Optional;
 @ConditionalOnProperty(value = "feature.onelogin.enabled", havingValue = "true")
 @Log4j2
 public class LoginControllerV2 {
-
     private final OneLoginService oneLoginService;
     private final CustomJwtServiceImpl customJwtService;
     private final ApplicationConfigProperties configProperties;
-
     private final FindAGrantConfigProperties findProperties;
 
     public static final String PRIVACY_POLICY_PAGE_VIEW = "privacy-policy";
@@ -87,9 +86,14 @@ public class LoginControllerV2 {
     public RedirectView redirectAfterLogin(final @CookieValue(name = REDIRECT_URL_NAME) String redirectUrlCookie,
             final HttpServletResponse response,
             final @RequestParam String code) {
-        final OneLoginUserInfoDto userInfo = oneLoginService.getOneLoginUserInfoDto(code);
+        final JSONObject tokenResponse = oneLoginService.getOneLoginUserTokenResponse(code);
+        final String authToken = tokenResponse.getString("access_token");
+        final String tokenHint = tokenResponse.getString("id_token");
+        final OneLoginUserInfoDto userInfo = oneLoginService.getOneLoginUserInfoDto(authToken);
         final User user = oneLoginService.createOrGetUserFromInfo(userInfo);
-        addCustomJwtCookie(response, userInfo);
+
+        addCustomJwtCookie(response, userInfo, tokenHint);
+
         return new RedirectView(user.getLoginJourneyState()
                 .getLoginJourneyRedirect(user.getHighestRole().getName())
                 .getRedirectUrl(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl, redirectUrlCookie));
@@ -116,8 +120,20 @@ public class LoginControllerV2 {
         return new ModelAndView("redirect:" + runStateMachine(redirectUrlCookie, user, customJWTCookie.getValue()));
     }
 
-    private void addCustomJwtCookie(final HttpServletResponse response, final OneLoginUserInfoDto userInfo) {
-        final Map<String, String> customJwtClaims = oneLoginService.generateCustomJwtClaims(userInfo);
+    @GetMapping("/logout")
+    public RedirectView logout(final HttpServletRequest request) {
+        final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
+
+        if(customJWTCookie.getValue().isBlank()){
+            return new RedirectView(applicantBaseUrl);
+        }
+        oneLoginService.logoutUser(customJWTCookie);
+        return new RedirectView(applicantBaseUrl);
+    }
+
+
+    private void addCustomJwtCookie(final HttpServletResponse response, final OneLoginUserInfoDto userInfo, final String tokenHint) {
+        final Map<String, String> customJwtClaims = oneLoginService.generateCustomJwtClaims(userInfo, tokenHint);
         final String customServiceJwt = customJwtService.generateToken(customJwtClaims);
         final Cookie customJwt = WebUtil.buildSecureCookie(userServiceCookieName, customServiceJwt);
         response.addCookie(customJwt);

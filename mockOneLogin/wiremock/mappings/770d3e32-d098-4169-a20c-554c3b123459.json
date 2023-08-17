@@ -1,0 +1,12 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPath": "/logout"
+  },
+  "response": {
+    "status": 302,
+    "headers": {
+      "Location": "http://localhost:8082/v2/logout"
+    }
+  }
+}

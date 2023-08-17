@@ -1,5 +1,7 @@
 package gov.cabinetofice.gapuserservice.service;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
+import gov.cabinetofice.gapuserservice.dto.JwtPayload;
 import gov.cabinetofice.gapuserservice.dto.MigrateUserDto;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
@@ -9,11 +11,13 @@ import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
+import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import lombok.RequiredArgsConstructor;
 import org.apache.http.HttpHeaders;
+import jakarta.servlet.http.Cookie;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
@@ -48,6 +52,13 @@ public class OneLoginService {
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
 
+    @Value("${onelogin.logout-url}")
+    public String oneLoginLogoutEndpoint;
+
+    @Value("${onelogin.post-logout-redirect-uri}")
+    public String postLogoutRedirectUri;
+
+
     private static final String SCOPE = "openid email";
     private static final String VTR = "[\"Cl.Cm\"]";
     private static final String UI = "en";
@@ -56,6 +67,8 @@ public class OneLoginService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final WebClient.Builder webClientBuilder;
+    private final JwtBlacklistService jwtBlacklistService;
+    private final CustomJwtServiceImpl customJwtService;
 
     public PrivateKey parsePrivateKey() {
         try {
@@ -121,10 +134,11 @@ public class OneLoginService {
         return userRepository.findByEmailAddress(email);
     }
 
-    public Map<String, String> generateCustomJwtClaims(final OneLoginUserInfoDto userInfo) {
+    public Map<String, String> generateCustomJwtClaims(final OneLoginUserInfoDto userInfo, final String tokenHint) {
         final User user = getUserFromSub(userInfo.getSub())
                 .orElseThrow(() -> new UserNotFoundException("User not found when generating custom jwt claims"));
         final Map<String, String> claims = new HashMap<>();
+        claims.put("tokenHint", tokenHint);
         claims.put("email", userInfo.getEmailAddress());
         claims.put("sub", userInfo.getSub());
         claims.put("roles", user.getRoles().stream().map(Role::getName).toList().toString());
@@ -132,10 +146,13 @@ public class OneLoginService {
         return claims;
     }
 
-    public OneLoginUserInfoDto getOneLoginUserInfoDto(final String code) {
+    public JSONObject getOneLoginUserTokenResponse(final String code) {
         final String oneLoginJwt = createOneLoginJwt();
-        final String authToken = getAuthToken(oneLoginJwt, code);
-        return getUserInfo(authToken);
+        return getTokenResponse(oneLoginJwt, code);
+    }
+
+    public OneLoginUserInfoDto getOneLoginUserInfoDto(final String accessToken) {
+        return getUserInfo(accessToken);
     }
 
     public User createOrGetUserFromInfo(final OneLoginUserInfoDto userInfo) {
@@ -180,7 +197,7 @@ public class OneLoginService {
         }
     }
 
-    public String getAuthToken(final String jwt, final String code) {
+    public JSONObject getTokenResponse(final String jwt, final String code) {
         final String requestBody = "grant_type=" + GRANT_TYPE +
                 "&code=" + code +
                 "&redirect_uri=" + serviceRedirectUrl +
@@ -188,9 +205,8 @@ public class OneLoginService {
                 "&client_assertion=" + jwt;
 
         try {
-            final JSONObject response = RestUtils.postRequestWithBody(oneLoginBaseUrl + "/token", requestBody,
+            return RestUtils.postRequestWithBody(oneLoginBaseUrl + "/token", requestBody,
                     "application/x-www-form-urlencoded");
-            return response.getString("access_token");
         } catch (IOException e) {
             throw new InvalidRequestException("invalid request");
         } catch (JSONException e) {
@@ -213,4 +229,22 @@ public class OneLoginService {
                 .bodyToMono(Void.class)
                 .block();
     }
+
+    public void logoutUser(final Cookie customJWTCookie) {
+        try {
+            final DecodedJWT decodedJwt = customJwtService.decodedJwt(customJWTCookie.getValue());
+            final JwtPayload payload = customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJwt);
+
+            RestUtils.getRequest(oneLoginLogoutEndpoint + "?id_token_hint=" + payload.getTokenHint() +
+                    "&post_logout_redirect_uri=" + postLogoutRedirectUri);
+
+            jwtBlacklistService.addJwtToBlacklist(customJWTCookie.getValue());
+
+        } catch (IOException e) {
+            throw new InvalidRequestException("invalid request");
+        } catch (JSONException e) {
+            throw new AuthenticationException("unable to retrieve tokenHint");
+        }
+    }
 }
+
