@@ -1,6 +1,7 @@
 package gov.cabinetofice.gapuserservice.web.controlleradvice;
 
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
+import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
@@ -31,8 +32,7 @@ public class ControllerExceptionHandler {
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ErrorResponseBody handleValidationExceptions(
-            MethodArgumentNotValidException ex) {
+    public ErrorResponseBody handleValidationExceptions(MethodArgumentNotValidException ex) {
         return ErrorResponseBody.builder()
                 .responseAccepted(Boolean.FALSE)
                 .message("Validation failure")
@@ -51,14 +51,34 @@ public class ControllerExceptionHandler {
                 .build();
     }
 
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(value = { ConstraintViolationException.class })
+    protected ErrorResponseBody handleConflict(ConstraintViolationException ex) {
+        return ErrorResponseBody.builder()
+                .responseAccepted(Boolean.FALSE)
+                .message("Validation failure")
+                .errors(ex.getConstraintViolations()
+                        .stream()
+                        .map(e -> {
+                            final String fieldName = e instanceof FieldError fieldError ? fieldError.getField() : e.getPropertyPath().toString();
+                            return Error.builder()
+                                    .fieldName(fieldName)
+                                    .errorMessage(e.getMessage())
+                                    .build();
+                        })
+                        .toList()
+                )
+                .build();
+    }
+
     @ExceptionHandler(value = { UnauthorizedException.class })
     @ResponseStatus(value = HttpStatus.UNAUTHORIZED)
-        public ErrorResponseBody handleUnauthorizedException(RuntimeException ex) {
-            return ErrorResponseBody.builder()
-                    .responseAccepted(Boolean.FALSE)
-                    .message(ex.getMessage())
-                    .build();
-        }
+    public ErrorResponseBody handleUnauthorizedException(RuntimeException ex) {
+        return ErrorResponseBody.builder()
+                .responseAccepted(Boolean.FALSE)
+                .message(ex.getMessage())
+                .build();
+    }
 
 }
 

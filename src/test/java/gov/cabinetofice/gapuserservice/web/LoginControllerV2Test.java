@@ -93,17 +93,6 @@ class LoginControllerV2Test {
         final String state = "state";
         final String nonce = "nonce";
         @Test
-        void shouldRedirectToNoticePage_IfTokenIsNull() {
-            final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/");
-            final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
-            final MockHttpServletRequest request = new MockHttpServletRequest();
-
-            final RedirectView methodResponse = loginController.login(redirectUrl, request, response);
-
-            assertThat(methodResponse.getUrl()).isEqualTo("notice-page");
-        }
-
-        @Test
         void shouldRedirectToLoginPage_IfTokenIsNull_AndMigrationJourneyDisabled() {
             ReflectionTestUtils.setField(loginController, "migrationEnabled", "false");
             final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/");
@@ -158,23 +147,6 @@ class LoginControllerV2Test {
 
             verify(customJwtService, times(0)).generateToken(any());
             assertThat(methodResponse.getUrl()).isEqualTo(configProperties.getDefaultRedirectUrl());
-        }
-
-        @Test
-        void showNoticePage_ShowsNoticePage_WithLoginUrl() {
-            final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
-            when(oneLoginService.buildEncodedStateJson(configProperties.getDefaultRedirectUrl(), state)).thenCallRealMethod();
-            when(oneLoginService.generateState()).thenReturn(state);
-            when(oneLoginService.generateAndStoreNonce()).thenReturn("nonce");
-            when(oneLoginService.generateAndStoreState(response, configProperties.getDefaultRedirectUrl())).thenCallRealMethod();
-            when(oneLoginService.getOneLoginAuthorizeUrl(state, nonce)).thenReturn("loginUrl");
-            when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
-
-
-            final ModelAndView methodResponse = loginController.showNoticePage(response);
-            assertThat(methodResponse.getViewName()).isEqualTo(LoginControllerV2.NOTICE_PAGE_VIEW);
-            assertThat(methodResponse.getModel().get("loginUrl")).isEqualTo("loginUrl");
-
         }
     }
 

@@ -1,6 +1,6 @@
 package gov.cabinetofice.gapuserservice.service.user;
 
-import gov.cabinetofice.gapuserservice.dto.UserDto;
+import gov.cabinetofice.gapuserservice.dto.UserQueryDto;
 import gov.cabinetofice.gapuserservice.exceptions.DepartmentNotFoundException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.model.Department;
@@ -10,6 +10,7 @@ import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.DepartmentRepository;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -18,9 +19,11 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -72,12 +75,6 @@ public class OneLoginUserServiceTest {
     }
 
     @Test
-    void shouldCallUserRepository() {
-        oneLoginUserService.getUserCount();
-        verify(userRepository, times(1)).count();
-    }
-
-    @Test
     void shouldReturnUserWhenValidIdIsGiven() {
 
         User mockedUser = User.builder().gapUserId(1).build();
@@ -95,26 +92,186 @@ public class OneLoginUserServiceTest {
         assertThrows(UserNotFoundException.class, () -> oneLoginUserService.getUserById(100));
     }
 
-    @Test
-    void shouldReturnPaginatedUsers() {
-        User user1 = User.builder().gapUserId(1).build();
-        User user2 = User.builder().gapUserId(2).build();
-        List<User> users = Arrays.asList(user1, user2);
+    @Nested
+    class getPaginatedUsers {
+        @Test
+        void noEmailDepartmentsOrRole() {
+            User user1 = User.builder().gapUserId(1).build();
+            User user2 = User.builder().gapUserId(2).build();
+            List<User> users = Arrays.asList(user1, user2);
+            Pageable pageable = mock(Pageable.class);
+            Page<User> userPage = new PageImpl<>(users, pageable, users.size());
+            UserQueryDto userQueryDto = new UserQueryDto(Collections.emptyList(), Collections.emptyList(), "");
 
-        Pageable pageable = mock(Pageable.class);
-        Page<User> userPage = new PageImpl<>(users, pageable, users.size());
+            when(userRepository.findByOrderByEmail(pageable)).thenReturn(userPage);
 
-        when(userRepository.findAll(pageable)).thenReturn(userPage);
+            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
 
+            List<User> resultContent = pageResult.getContent();
+            assertEquals(users.size(), resultContent.size());
+            assertEquals(user1, resultContent.get(0));
+            assertEquals(user2, resultContent.get(1));
+            verify(userRepository, times(1)).findByOrderByEmail(pageable);
+        }
 
-        UserDto userDto1 = new UserDto(user1);
-        UserDto userDto2 = new UserDto(user2);
+        @Test
+        void hasEmail_noDepartmentsOrRoles() {
+            User user1 = User.builder().gapUserId(1).build();
+            User user2 = User.builder().gapUserId(2).build();
+            List<User> users = Arrays.asList(user1, user2);
+            String emailAddress = "baz";
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<User> userPage = new PageImpl<>(users, pageable, users.size());
+            UserQueryDto userQueryDto = new UserQueryDto(Collections.emptyList(), Collections.emptyList(), emailAddress);
 
-        List<UserDto> result = oneLoginUserService.getPaginatedUsers(pageable);
+            when(userRepository.findUsersByFuzzyEmail(eq(emailAddress), eq(pageable)))
+                    .thenReturn(userPage);
 
-        assertEquals(2, result.size());
-        assertEquals(userDto1, result.get(0));
-        assertEquals(userDto2, result.get(1));
+            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
+
+            List<User> result = pageResult.getContent();
+            assertEquals(2, result.size());
+            assertEquals(user1, result.get(0));
+            assertEquals(user2, result.get(1));
+            verify(userRepository, times(1)).findUsersByFuzzyEmail(emailAddress, pageable);
+        }
+
+        @Test
+        void hasDepartments_noEmailOrRoles() {
+            User user1 = User.builder().gapUserId(1).build();
+            User user2 = User.builder().gapUserId(2).build();
+            List<User> users = Arrays.asList(user1, user2);
+            List<Integer> departmentIds = Arrays.asList(1, 2);
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<User> userPage = new PageImpl<>(users, pageable, users.size());
+            UserQueryDto userQueryDto = new UserQueryDto(departmentIds, Collections.emptyList(), "");
+
+            when(userRepository.findUsersByDepartment(eq(departmentIds), eq(pageable)))
+                    .thenReturn(userPage);
+
+            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
+
+            List<User> result = pageResult.getContent();
+            assertEquals(2, result.size());
+            assertEquals(user1, result.get(0));
+            assertEquals(user2, result.get(1));
+            verify(userRepository, times(1)).findUsersByDepartment(departmentIds, pageable);
+        }
+
+        @Test
+        void hasRoles_NoDepartmentsOrEmail() {
+            User user1 = User.builder().gapUserId(1).build();
+            User user2 = User.builder().gapUserId(2).build();
+            List<User> users = Arrays.asList(user1, user2);
+            List<Integer> roleIds = Arrays.asList(1, 2);
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<User> userPage = new PageImpl<>(users, pageable, users.size());
+            UserQueryDto userQueryDto = new UserQueryDto(Collections.emptyList(), roleIds, "");
+
+            when(userRepository.findUsersByRoles(eq(roleIds), eq(pageable)))
+                    .thenReturn(userPage);
+
+            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
+
+            List<User> result = pageResult.getContent();
+            assertEquals(2, result.size());
+            assertEquals(user1, result.get(0));
+            assertEquals(user2, result.get(1));
+            verify(userRepository, times(1)).findUsersByRoles(roleIds, pageable);
+        }
+
+        @Test
+        void hasEmailAndDepartment_NoRoles() {
+            User user1 = User.builder().gapUserId(1).build();
+            User user2 = User.builder().gapUserId(2).build();
+            List<User> users = Arrays.asList(user1, user2);
+            List<Integer> departmentIds = Arrays.asList(1, 2);
+            String emailAddress = "example";
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<User> userPage = new PageImpl<>(users, pageable, users.size());
+            UserQueryDto userQueryDto = new UserQueryDto(departmentIds, Collections.emptyList(), emailAddress);
+
+            when(userRepository.findUsersByDepartmentAndFuzzyEmail(eq(departmentIds), eq(emailAddress), eq(pageable)))
+                    .thenReturn(userPage);
+
+            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
+
+            List<User> result = pageResult.getContent();
+            assertEquals(2, result.size());
+            assertEquals(user1, result.get(0));
+            assertEquals(user2, result.get(1));
+            verify(userRepository, times(1)).findUsersByDepartmentAndFuzzyEmail(departmentIds, emailAddress, pageable);
+        }
+
+        @Test
+        void hasEmailAndRoles_NoDepartments() {
+            User user1 = User.builder().gapUserId(1).emailAddress("user1@example.com").build();
+            User user2 = User.builder().gapUserId(2).emailAddress("user2@example.com").build();
+            List<User> users = Arrays.asList(user1, user2);
+            List<Integer> roleIds = Arrays.asList(3, 4);
+            String emailAddress = "example";
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<User> userPage = new PageImpl<>(users, pageable, users.size());
+            UserQueryDto userQueryDto = new UserQueryDto(Collections.emptyList(), roleIds, emailAddress);
+
+            when(userRepository.findUsersByRolesAndFuzzyEmail(eq(roleIds), eq(emailAddress), eq(pageable)))
+                    .thenReturn(userPage);
+
+            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
+
+            List<User> result = pageResult.getContent();
+            assertEquals(2, result.size());
+            assertEquals(user1, result.get(0));
+            assertEquals(user2, result.get(1));
+            verify(userRepository, times(1)).findUsersByRolesAndFuzzyEmail(roleIds, emailAddress, pageable);
+        }
+
+        @Test
+        void hasRolesAndDepartment_NoEmail() {
+            User user1 = User.builder().gapUserId(1).build();
+            User user2 = User.builder().gapUserId(2).build();
+            List<User> users = Arrays.asList(user1, user2);
+            List<Integer> departmentIds = Arrays.asList(1, 2);
+            List<Integer> roleIds = Arrays.asList(3, 4);
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<User> userPage = new PageImpl<>(users, pageable, users.size());
+            UserQueryDto userQueryDto = new UserQueryDto(departmentIds, roleIds, "");
+
+            when(userRepository.findUsersByDepartmentAndRoles(eq(roleIds), eq(departmentIds), eq(pageable)))
+                    .thenReturn(userPage);
+
+            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
+
+            List<User> result = pageResult.getContent();
+            assertEquals(2, result.size());
+            assertEquals(user1, result.get(0));
+            assertEquals(user2, result.get(1));
+            verify(userRepository, times(1)).findUsersByDepartmentAndRoles(roleIds, departmentIds, pageable);
+        }
+
+        @Test
+        void hasEmailDepartmentAndRoles() {
+            User user1 = User.builder().gapUserId(1).emailAddress("user1@example.com").build();
+            User user2 = User.builder().gapUserId(2).emailAddress("user2@example.com").build();
+            List<User> users = Arrays.asList(user1, user2);
+            List<Integer> departmentIds = Arrays.asList(1, 2);
+            List<Integer> roleIds = Arrays.asList(3, 4);
+            String emailAddress = "example";
+            Pageable pageable = PageRequest.of(0, 10);
+            Page<User> userPage = new PageImpl<>(users, pageable, users.size());
+            UserQueryDto userQueryDto = new UserQueryDto(departmentIds, roleIds, emailAddress);
+
+            when(userRepository.findUsersByDepartmentAndRolesAndFuzzyEmail(eq(roleIds), eq(departmentIds) ,eq(emailAddress), eq(pageable)))
+                    .thenReturn(userPage);
+
+            Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
+
+            List<User> result = pageResult.getContent();
+            assertEquals(2, result.size());
+            assertEquals(user1, result.get(0));
+            assertEquals(user2, result.get(1));
+            verify(userRepository, times(1)).findUsersByDepartmentAndRolesAndFuzzyEmail(roleIds, departmentIds, emailAddress, pageable);
+        }
     }
 
     @Test
@@ -193,5 +350,5 @@ public class OneLoginUserServiceTest {
         assertThat(updatedUser.getRoles().size()).isEqualTo(4);
         assertThat(updatedUser.getRoles().stream().anyMatch(role -> role.getName().equals(RoleEnum.APPLICANT))).isTrue();
         assertThat(updatedUser.getRoles().stream().anyMatch(role -> role.getName().equals(RoleEnum.FIND))).isTrue();
-    }
-}
+    }}
+
