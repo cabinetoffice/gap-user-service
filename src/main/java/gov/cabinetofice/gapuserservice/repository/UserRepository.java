@@ -29,8 +29,10 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
     @Query(value = """
             SELECT *
-            FROM gap_users
-            ORDER BY levenshtein(email, :emailQuery) ASC
+                FROM
+                    gap_users
+                ORDER BY
+                    similarity(email, :emailQuery) DESC
             """,
             nativeQuery = true)
     Page<User> findUsersByFuzzyEmail(
@@ -39,10 +41,10 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     );
 
     @Query(value = """
-            SELECT DISTINCT ON (gap_user_id, distance) *
+            SELECT DISTINCT ON (gap_user_id, similarity) *
             	FROM (
             	   select *,
-            			  levenshtein(email, :emailQuery) as distance
+            			  similarity(email, :emailQuery) as similarity
             	   FROM gap_users
             	) u
             	JOIN
@@ -52,7 +54,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
                     r.roles_id IN :roleIds
                     AND u.dept_id IN :departmentIds
             	ORDER BY
-            		distance ASC;
+            		similarity DESC
             """,
             nativeQuery = true)
     Page<User> findUsersByDepartmentAndRolesAndFuzzyEmail(
@@ -63,9 +65,13 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     );
 
     @Query(value = """
-            SELECT * FROM gap_users u
-            WHERE u.dept_id IN :departmentIds
-            ORDER BY levenshtein(email, :emailQuery) ASC
+            SELECT *
+                FROM
+                    gap_users u
+                WHERE
+                    u.dept_id IN :departmentIds
+                ORDER BY
+                    similarity(email, :emailQuery) DESC
             """,
             nativeQuery = true)
     Page<User> findUsersByDepartmentAndFuzzyEmail(
@@ -75,10 +81,10 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     );
 
     @Query(value = """
-            SELECT DISTINCT ON (gap_user_id, distance) *
+            SELECT DISTINCT ON (gap_user_id, similarity) *
             	FROM (
             	   select *,
-            			  levenshtein(email, :emailQuery) as distance
+            			  similarity(email, :emailQuery) as similarity
             	   FROM gap_users
             	) u
             	JOIN
@@ -87,7 +93,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
                 WHERE
                     r.roles_id IN :roleIds
             	ORDER BY
-            		distance ASC;
+            		similarity DESC
             """,
             nativeQuery = true)
     Page<User> findUsersByRolesAndFuzzyEmail(
@@ -97,11 +103,18 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     );
 
     @Query(value = """
-            SELECT DISTINCT ON(gap_user_id, email) * FROM gap_users u
-            JOIN roles_users r ON r.users_gap_user_id = u.gap_user_id
-            WHERE r.roles_id IN :roleIds
-            AND u.dept_id in :departmentIds
-            order by u.email
+            SELECT DISTINCT ON(gap_user_id, email) *
+                FROM
+                    gap_users u
+                JOIN
+                    roles_users r
+                        ON r.users_gap_user_id = u.gap_user_id
+                WHERE
+                    r.roles_id IN :roleIds
+                AND
+                    u.dept_id in :departmentIds
+                ORDER BY
+                    u.email ASC
             """, nativeQuery = true)
     Page<User> findUsersByDepartmentAndRoles(
             @Param("roleIds") Collection<Integer> roleIds,
@@ -110,9 +123,13 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     );
 
     @Query("""
-            select u from User u
-            where u.department.id in :departmentIds
-            order by u.emailAddress
+            SELECT u
+                FROM
+                    User u
+                WHERE
+                    u.department.id in :departmentIds
+                ORDER BY
+                    u.emailAddress ASC
             """)
     Page<User> findUsersByDepartment(
             @Param("departmentIds") Collection<Integer> departmentIds,
@@ -120,10 +137,16 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     );
 
     @Query(value = """
-            SELECT DISTINCT ON(gap_user_id, email) * FROM gap_users u
-            JOIN roles_users r ON r.users_gap_user_id = u.gap_user_id
-            WHERE r.roles_id IN :roleIds
-            order by u.email
+            SELECT DISTINCT ON(gap_user_id, email) *
+                FROM
+                    gap_users u
+                JOIN
+                    roles_users r
+                        ON r.users_gap_user_id = u.gap_user_id
+                WHERE
+                    r.roles_id IN :roleIds
+                ORDER BY
+                    u.email ASC
             """, nativeQuery = true)
     Page<User> findUsersByRoles(
             @Param("roleIds") Collection<Integer> roleIds,
