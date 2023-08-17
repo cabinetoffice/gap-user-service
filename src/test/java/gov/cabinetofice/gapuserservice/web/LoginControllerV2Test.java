@@ -1,6 +1,5 @@
 package gov.cabinetofice.gapuserservice.web;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.FindAGrantConfigProperties;
 import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
@@ -14,7 +13,6 @@ import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.NonceRepository;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
-import gov.cabinetofice.gapuserservice.service.encryption.AESService;
 import gov.cabinetofice.gapuserservice.service.encryption.Sha512Service;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
@@ -30,6 +28,7 @@ import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.servlet.ModelAndView;
@@ -40,6 +39,7 @@ import org.json.JSONObject;
 import java.util.*;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -407,6 +407,72 @@ class LoginControllerV2Test {
             final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, response, code, state);
 
             assertThat(methodResponse.getUrl()).isEqualTo("/techSupportAppBaseUrl");
+        }
+
+        @Test
+        void shouldRequireReauthentication_ifNonceIsExpired() throws JSONException {
+            final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+            final JSONObject tokenResponse = new JSONObject();
+            tokenResponse.put("id_token", idToken);
+            final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
+                    .nonceId(1)
+                    .nonceString("nonce")
+                    .createdAt(null);
+            final Nonce nonce = nonceBuilder.build();
+
+            when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
+            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
+            when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonce);
+            when(oneLoginService.isNonceExpired(nonce)).thenReturn(true);
+            when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
+
+            Exception exception = assertThrows(AccessDeniedException.class, () -> loginController.redirectAfterLogin(stateCookie, response, code, state));
+            assertThat(exception.getMessage()).isEqualTo("User authorization failed");
+        }
+
+        @Test
+        void shouldRequireReauthentication_ifNonceDoesNotMatch() throws JSONException {
+            final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+            final JSONObject tokenResponse = new JSONObject();
+            tokenResponse.put("id_token", idToken);
+            final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
+                    .nonceId(1)
+                    .nonceString("invalid_nonce")
+                    .createdAt(new Date());
+            final Nonce nonce = nonceBuilder.build();
+
+            when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
+            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
+            when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonce);
+            when(oneLoginService.isNonceExpired(nonce)).thenReturn(false);
+            when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
+
+            Exception exception = assertThrows(AccessDeniedException.class, () -> loginController.redirectAfterLogin(stateCookie, response, code, state));
+            assertThat(exception.getMessage()).isEqualTo("User authorization failed");
+        }
+
+        @Test
+        void shouldRequireReauthentication_ifStateDoesNotMatch() throws JSONException {
+            final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+            final JSONObject tokenResponse = new JSONObject();
+            tokenResponse.put("id_token", idToken);
+            final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
+                    .nonceId(1)
+                    .nonceString("nonce")
+                    .createdAt(new Date());
+            final Nonce nonce = nonceBuilder.build();
+
+            when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
+            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
+            when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonce);
+            when(oneLoginService.isNonceExpired(nonce)).thenReturn(false);
+            when(encryptionService.getSHA512SecurePassword(any())).thenReturn("invalid_state");
+
+            Exception exception = assertThrows(AccessDeniedException.class, () -> loginController.redirectAfterLogin(stateCookie, response, code, state));
+            assertThat(exception.getMessage()).isEqualTo("User authorization failed");
         }
     }
 

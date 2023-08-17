@@ -117,7 +117,8 @@ public class OneLoginService {
     }
 
     public String generateNonce() {
-        return Objects.equals(this.configProperties.getProfile(), "LOCAL") ? "aEwkamaos5C" : generateSecureRandomString(64);
+        //return Objects.equals(this.configProperties.getProfile(), "LOCAL") ? "aEwkamaos5C" : generateSecureRandomString(64);
+        return generateSecureRandomString(64);
     }
 
     public String generateState() {
@@ -165,7 +166,7 @@ public class OneLoginService {
         if (nonceModel.isPresent()) {
             this.nonceRepository.delete(nonceModel.get());
         }
-        return nonceModel.get();
+        return nonceModel.orElse(new Nonce());
     }
 
     public Boolean isNonceExpired(Nonce nonce) {
@@ -174,7 +175,7 @@ public class OneLoginService {
         c.setTime(new Date());
         c.add(Calendar.MINUTE, -10);
         final Date expiryTime = c.getTime();
-        return nonceCreatedAt.before(expiryTime) || nonceCreatedAt.after(new Date());
+        return nonceCreatedAt == null || nonceCreatedAt.before(expiryTime) || nonceCreatedAt.after(new Date());
     }
 
     public void setUsersLoginJourneyState(final User user, final LoginJourneyState newState) {

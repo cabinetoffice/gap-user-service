@@ -2,8 +2,6 @@ package gov.cabinetofice.gapuserservice.web;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.FindAGrantConfigProperties;
 import gov.cabinetofice.gapuserservice.dto.*;
@@ -13,7 +11,6 @@ import gov.cabinetofice.gapuserservice.model.Nonce;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.NonceRepository;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
-import gov.cabinetofice.gapuserservice.service.encryption.AESService;
 import gov.cabinetofice.gapuserservice.service.encryption.Sha512Service;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
@@ -28,6 +25,7 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -134,8 +132,8 @@ public class LoginControllerV2 {
                     .getLoginJourneyRedirect(user.getHighestRole().getName())
                     .getRedirectUrl(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl, redirectUrl));
         } else {
-            log.warn("/redirect-after-login unauthorized user, verified: {}, state matching: {}, state: {}, hashedState: {}, nonce matching: {}, nonce expired: {}, tokenNonce: {}, storedNonce: {}", stateAndNonceVerified, state.equals(hashedStateCookie), state, hashedStateCookie, tokenNonce.equals(nonceString), nonceExpired, tokenNonce, nonceString);
-            throw new UnauthorizedException("User authorization failed");
+            log.warn("/redirect-after-login unauthorized user; nonce expired: {}, nonce matching: {} state matching: {}", nonceExpired, tokenNonce.equals(nonceString), state.equals(hashedStateCookie));
+            throw new AccessDeniedException("User authorization failed");
         }
     }
 
