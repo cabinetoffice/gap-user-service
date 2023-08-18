@@ -694,10 +694,11 @@ class LoginControllerV2Test {
                 String applicantBaseUrl = "/applicantBaseUrl";
 
                 HttpServletRequest request = mock(HttpServletRequest.class);
+                HttpServletResponse response = mock(HttpServletResponse.class);
                 mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName")).thenReturn( new Cookie(userServiceCookieName, "") );
-                RedirectView methodResponse = loginController.logout(request);
+                RedirectView methodResponse = loginController.logout(request, response);
 
-                verify(oneLoginService, never()).logoutUser(any(Cookie.class));
+                verify(oneLoginService, never()).logoutUser(any(Cookie.class), any(HttpServletResponse.class));
                 Assertions.assertEquals(applicantBaseUrl, methodResponse.getUrl());
             }
 
@@ -707,11 +708,12 @@ class LoginControllerV2Test {
                 String applicantBaseUrl = "/applicantBaseUrl";
 
                 HttpServletRequest request = mock(HttpServletRequest.class);
+                HttpServletResponse response = mock(HttpServletResponse.class);
                 mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName")).thenReturn( new Cookie(userServiceCookieName, "ba") );
 
-                RedirectView methodResponse = loginController.logout(request);
+                RedirectView methodResponse = loginController.logout(request, response);
 
-                verify(oneLoginService, times(1)).logoutUser(any(Cookie.class));
+                verify(oneLoginService, times(1)).logoutUser(any(Cookie.class), any(HttpServletResponse.class));
                 Assertions.assertEquals(applicantBaseUrl, methodResponse.getUrl());
             }
         }

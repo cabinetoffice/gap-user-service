@@ -1,11 +1,7 @@
 package gov.cabinetofice.gapuserservice.service;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
-import gov.cabinetofice.gapuserservice.dto.JwtPayload;
-import gov.cabinetofice.gapuserservice.dto.MigrateUserDto;
-import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
-import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
-import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
+import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.*;
 import gov.cabinetofice.gapuserservice.model.Department;
@@ -15,16 +11,23 @@ import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.http.HttpHeaders;
+import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -51,6 +54,8 @@ public class OneLoginServiceTest {
     @Mock
     private CustomJwtServiceImpl customJwtService;
 
+    @Mock
+    private OneLoginUserService oneLoginUserService;
 
     private static MockedStatic<RestUtils> mockedStatic;
 
@@ -402,20 +407,23 @@ public class OneLoginServiceTest {
         @Test
         void testLogoutUser() throws IOException, JSONException {
             String tokenValue = "token.in.threeParts";
+            HttpServletResponse response = mock(HttpServletResponse.class);
+            HttpResponse httpResponse = mock(HttpResponse.class);
             DecodedJWT decodedJWT = mock(DecodedJWT.class);
             JwtPayload payload = new JwtPayload();
             payload.setTokenHint(tokenValue);
 
             when(customJwtService.decodedJwt(tokenValue)).thenReturn(decodedJWT);
             when(customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJWT)).thenReturn(payload);
+            when(RestUtils.getRequest(any())).thenReturn(httpResponse);
+            when(httpResponse.getStatusLine()).thenReturn(mock(StatusLine.class));
 
             Cookie customJWTCookie = new Cookie("customJWT", tokenValue);
 
-            oneLoginService.logoutUser(customJWTCookie);
+            oneLoginService.logoutUser(customJWTCookie, response);
 
             verify(customJwtService, times(1)).decodedJwt(tokenValue);
             verify(customJwtService, times(1)).decodeTheTokenPayloadInAReadableFormat(decodedJWT);
-            verify(jwtBlacklistService, times(1)).addJwtToBlacklist(tokenValue);
         }
 }
 

@@ -1,6 +1,7 @@
 package gov.cabinetofice.gapuserservice.util;
 
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -79,14 +80,11 @@ public class RestUtilsTest {
 
 
         when(HttpClients.createDefault()).thenReturn(httpClient);
-        when(httpResponse.getEntity()).thenReturn(httpEntity);
         when(httpClient.execute(Mockito.any(HttpGet.class))).thenReturn(httpResponse);
 
-        JSONObject result = RestUtils.getRequest(url);
+        HttpResponse result = RestUtils.getRequest(url);
 
         verify(httpClient, times(1)).execute(any(HttpGet.class));
-        verify(httpResponse, times(1)).getEntity();
-        Assertions.assertEquals(expectedResponse, result.toString());
     }
 
     @Test
