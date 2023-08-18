@@ -35,12 +35,11 @@ public class RestUtils {
         return convertResponseToJson(response);
     }
 
-    public static JSONObject getRequest(String url) throws IOException {
+    public static HttpResponse getRequest(String url) throws IOException {
         HttpClient httpClient = HttpClients.createDefault();
         HttpGet httpGet = new HttpGet(url);
 
-        HttpResponse response = httpClient.execute(httpGet);
-        return convertResponseToJson(response);
+        return httpClient.execute(httpGet);
     }
 
     private static JSONObject convertResponseToJson(HttpResponse response) throws IOException {

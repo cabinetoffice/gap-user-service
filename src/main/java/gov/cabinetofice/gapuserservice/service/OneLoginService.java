@@ -25,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.http.HttpHeaders;
+import org.apache.http.HttpResponse;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
@@ -293,16 +294,21 @@ public class OneLoginService {
                 .block();
     }
 
-    public void logoutUser(final Cookie customJWTCookie) {
+    public HttpResponse logoutUser(final Cookie customJWTCookie) {
         try {
             final DecodedJWT decodedJwt = customJwtService.decodedJwt(customJWTCookie.getValue());
             final JwtPayload payload = customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJwt);
 
-            RestUtils.getRequest(oneLoginLogoutEndpoint + "?id_token_hint=" + payload.getTokenHint() +
-                    "&post_logout_redirect_uri=" + postLogoutRedirectUri);
-
             jwtBlacklistService.addJwtToBlacklist(customJWTCookie.getValue());
 
+            HttpResponse response = RestUtils.getRequest(oneLoginLogoutEndpoint + "?id_token_hint=" + payload.getTokenHint() +
+                    "&post_logout_redirect_uri=" + postLogoutRedirectUri);
+
+            if(response.getStatusLine().getStatusCode() == 401 || response.getStatusLine().getStatusCode() == 403) {
+                System.out.println("One Login's logout endpoint returned 401 or 403 with jwt: " + customJWTCookie.getValue());
+            }
+
+            return response;
         } catch (IOException e) {
             throw new InvalidRequestException("invalid request");
         } catch (JSONException e) {

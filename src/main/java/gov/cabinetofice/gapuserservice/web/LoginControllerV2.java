@@ -4,7 +4,10 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.FindAGrantConfigProperties;
-import gov.cabinetofice.gapuserservice.dto.*;
+import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
+import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
+import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
+import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.model.Nonce;
@@ -22,7 +25,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.json.JSONObject;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.access.AccessDeniedException;
@@ -33,7 +35,9 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
 
-import java.util.*;
+import java.util.Date;
+import java.util.Map;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 @Controller
@@ -144,7 +148,7 @@ public class LoginControllerV2 {
     public RedirectView logout(final HttpServletRequest request) {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
 
-        if(customJWTCookie.getValue().isBlank()){
+        if(customJWTCookie == null || customJWTCookie.getValue().isBlank()){
             return new RedirectView(applicantBaseUrl);
         }
         oneLoginService.logoutUser(customJWTCookie);
