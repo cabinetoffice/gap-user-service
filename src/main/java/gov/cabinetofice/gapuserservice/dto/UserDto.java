@@ -29,4 +29,5 @@ public class UserDto {
         this.role = user.getHighestRole();
         this.created = user.getCreated();
     }
+
 }
