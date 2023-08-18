@@ -14,6 +14,8 @@ import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -152,10 +154,11 @@ class LoginControllerV2Test {
                 .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()));
 
         @Test
-        void shouldFetchOneLoginUserInfo() {
+        void shouldFetchOneLoginUserInfo() throws JSONException {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
 
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(userBuilder.build());
+            when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(new JSONObject("{access_token: code, id_token: code}"));
 
             loginController.redirectAfterLogin(redirectUrlCookie, response, code);
 
@@ -163,7 +166,7 @@ class LoginControllerV2Test {
         }
 
         @Test
-        void shouldCreateOrGetUserFromOneLoginInfo() {
+        void shouldCreateOrGetUserFromOneLoginInfo() throws JSONException {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
                     .emailAddress("email")
@@ -172,6 +175,7 @@ class LoginControllerV2Test {
 
             when(oneLoginService.getOneLoginUserInfoDto(code)).thenReturn(oneLoginUserInfoDto);
             when(oneLoginService.createOrGetUserFromInfo(oneLoginUserInfoDto)).thenReturn(userBuilder.build());
+            when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(new JSONObject("{access_token: code, id_token: code}"));
 
             loginController.redirectAfterLogin(redirectUrlCookie, response, code);
 
@@ -179,14 +183,16 @@ class LoginControllerV2Test {
         }
 
         @Test
-        void shouldCreateJwtCookie() {
+        void shouldCreateJwtCookie() throws JSONException {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final Map<String, String> claims = Map.of("claim1", "value1", "claim2", "value2");
             final Cookie cookie = WebUtil.buildSecureCookie("userServiceCookieName", "jwtToken");
 
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(userBuilder.build());
-            when(oneLoginService.generateCustomJwtClaims(any(), "tokenHint")).thenReturn(claims);
+            when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(new JSONObject("{access_token: string1, id_token: jwtToken}"));
+            when(oneLoginService.generateCustomJwtClaims(any(), any())).thenReturn(claims);
             when(customJwtService.generateToken(claims)).thenReturn("jwtToken");
+            when(oneLoginService.getOneLoginUserInfoDto(any())).thenReturn(null);
 
             loginController.redirectAfterLogin(redirectUrlCookie, response, code);
 
@@ -194,10 +200,11 @@ class LoginControllerV2Test {
         }
 
         @Test
-        void shouldRedirectToPrivacyPolicyPage_whenItHasNotBeenAccepted() {
+        void shouldRedirectToPrivacyPolicyPage_whenItHasNotBeenAccepted() throws JSONException {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
 
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(userBuilder.build());
+            when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(new JSONObject("{access_token: string, id_token: string}"));
 
             final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrlCookie, response, code);
 
@@ -205,7 +212,7 @@ class LoginControllerV2Test {
         }
 
         @Test
-        void shouldRedirectToSADashboard_whenUserIsSA() {
+        void shouldRedirectToSADashboard_whenUserIsSA() throws JSONException {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final User user = userBuilder
                     .roles(List.of(Role.builder().name(RoleEnum.SUPER_ADMIN).build()))
@@ -213,14 +220,16 @@ class LoginControllerV2Test {
                     .build();
 
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
+            when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(new JSONObject("{access_token: string, id_token: string}"));
 
             final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrlCookie, response, code);
+
 
             assertThat(methodResponse.getUrl()).isEqualTo("/adminBaseUrl?redirectUrl=/super-admin-dashboard");
         }
 
         @Test
-        void shouldRedirectToAdminDashboard_whenUserIsAdmin() {
+        void shouldRedirectToAdminDashboard_whenUserIsAdmin() throws JSONException {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final User user = userBuilder
                     .roles(List.of(Role.builder().name(RoleEnum.ADMIN).build()))
@@ -228,6 +237,7 @@ class LoginControllerV2Test {
                     .build();
 
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
+            when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(new JSONObject("{access_token: string, id_token: string}"));
 
             final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrlCookie, response, code);
 
@@ -235,14 +245,16 @@ class LoginControllerV2Test {
         }
 
         @Test
-        void shouldRedirectToRedirectUrlCookie_whenUserIsApplicant() {
+        void shouldRedirectToRedirectUrlCookie_whenUserIsApplicant() throws JSONException {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final User user = userBuilder
                     .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
                     .loginJourneyState(LoginJourneyState.USER_READY)
                     .build();
 
+
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
+            when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(new JSONObject("{access_token: string, id_token: string}"));
 
             final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrlCookie, response, code);
 
@@ -250,7 +262,7 @@ class LoginControllerV2Test {
         }
 
         @Test
-        void shouldRedirectToTechSupportDashboard_whenUserIsTechSupport() {
+        void shouldRedirectToTechSupportDashboard_whenUserIsTechSupport() throws JSONException {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final User user = userBuilder
                     .roles(List.of(Role.builder().name(RoleEnum.TECHNICAL_SUPPORT).build()))
@@ -258,6 +270,7 @@ class LoginControllerV2Test {
                     .build();
 
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
+            when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(new JSONObject("{access_token: string, id_token: string}"));
 
             final RedirectView methodResponse = loginController.redirectAfterLogin(redirectUrlCookie, response, code);
 
