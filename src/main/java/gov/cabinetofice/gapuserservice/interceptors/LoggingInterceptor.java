@@ -34,9 +34,8 @@ public class LoggingInterceptor implements HandlerInterceptor {
     }
 
     public Map<String, Collection<String>> getHeadersFromResponse(HttpServletResponse response) {
-        return new HashSet<String>(response.getHeaderNames())
+        return new HashSet<>(response.getHeaderNames())
                 .stream()
-                .filter(h -> !h.equals("cookie"))
                 .collect(Collectors.toMap(h -> h, response::getHeaders));
     }
 
