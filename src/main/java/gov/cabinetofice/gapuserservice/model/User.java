@@ -6,6 +6,9 @@ import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import groovyjarjarantlr4.v4.runtime.misc.Nullable;
 import jakarta.persistence.*;
 import lombok.*;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 
@@ -42,12 +45,12 @@ public class User {
     @Enumerated(EnumType.STRING)
     private LoginJourneyState loginJourneyState;
 
-    @CreatedDate
+    @CreationTimestamp
     @Nullable
     @Column(name = "created")
     private Instant created;
 
-    @LastModifiedDate
+    @UpdateTimestamp
     @Nullable
     @Column(name = "updated")
     private Instant updated;
