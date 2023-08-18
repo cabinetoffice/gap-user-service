@@ -145,13 +145,12 @@ public class LoginControllerV2 {
     }
 
     @GetMapping("/logout")
-    public RedirectView logout(final HttpServletRequest request) {
+    public RedirectView logout(final HttpServletRequest request, final HttpServletResponse response) {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
-
         if(customJWTCookie == null || customJWTCookie.getValue().isBlank()){
             return new RedirectView(applicantBaseUrl);
         }
-        oneLoginService.logoutUser(customJWTCookie);
+        oneLoginService.logoutUser(customJWTCookie, response);
         return new RedirectView(applicantBaseUrl);
     }
 

@@ -294,21 +294,29 @@ public class OneLoginService {
                 .block();
     }
 
-    public HttpResponse logoutUser(final Cookie customJWTCookie) {
+    public HttpResponse logoutUser(final Cookie customJWTCookie, final HttpServletResponse response) {
         try {
             final DecodedJWT decodedJwt = customJwtService.decodedJwt(customJWTCookie.getValue());
             final JwtPayload payload = customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJwt);
 
             jwtBlacklistService.addJwtToBlacklist(customJWTCookie.getValue());
+            final Cookie userTokenCookie = WebUtil.buildCookie(
+                    new Cookie(userServiceCookieName, null),
+                    Boolean.TRUE,
+                    Boolean.TRUE,
+                    null
+            );
+            userTokenCookie.setMaxAge(0);
+            response.addCookie(userTokenCookie);
 
-            HttpResponse response = RestUtils.getRequest(oneLoginLogoutEndpoint + "?id_token_hint=" + payload.getTokenHint() +
+            HttpResponse res = RestUtils.getRequest(oneLoginLogoutEndpoint + "?id_token_hint=" + payload.getTokenHint() +
                     "&post_logout_redirect_uri=" + postLogoutRedirectUri);
 
-            if(response.getStatusLine().getStatusCode() == 401 || response.getStatusLine().getStatusCode() == 403) {
+            if(res.getStatusLine().getStatusCode() == 401 || res.getStatusLine().getStatusCode() == 403) {
                 System.out.println("One Login's logout endpoint returned 401 or 403 with jwt: " + customJWTCookie.getValue());
             }
 
-            return response;
+            return res;
         } catch (IOException e) {
             throw new InvalidRequestException("invalid request");
         } catch (JSONException e) {
