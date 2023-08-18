@@ -1,31 +1,45 @@
 package gov.cabinetofice.gapuserservice.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
+import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
 import gov.cabinetofice.gapuserservice.dto.MigrateUserDto;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
+import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.*;
+import gov.cabinetofice.gapuserservice.model.Nonce;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
+import gov.cabinetofice.gapuserservice.repository.NonceRepository;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
+import gov.cabinetofice.gapuserservice.util.WebUtil;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.http.HttpHeaders;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 import java.io.IOException;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.*;
+
+import static gov.cabinetofice.gapuserservice.util.HelperUtils.generateSecureRandomString;
 
 @RequiredArgsConstructor
 @Service
@@ -53,6 +67,8 @@ public class OneLoginService {
     private static final String UI = "en";
     private static final String GRANT_TYPE = "authorization_code";
 
+    private final ApplicationConfigProperties configProperties;
+    private final NonceRepository nonceRepository;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final WebClient.Builder webClientBuilder;
@@ -87,11 +103,63 @@ public class OneLoginService {
     }
 
     public String generateNonce() {
-         return UUID.randomUUID().toString();
+        return Objects.equals(this.configProperties.getProfile(), "LOCAL") ? "aEwkamaos5C" : generateSecureRandomString(64);
     }
 
     public String generateState() {
-        return UUID.randomUUID().toString();
+        return generateSecureRandomString(64);
+    }
+
+    public String buildEncodedStateJson(final String redirectUrl, final String state) {
+        JSONObject stateJsonObject = new JSONObject();
+        stateJsonObject.put("state", state);
+        stateJsonObject.put("redirectUrl", redirectUrl);
+        final String stateJsonString = stateJsonObject.toString();
+        return Base64.getEncoder().encodeToString(stateJsonString.getBytes());
+    }
+
+    public StateCookieDto decodeStateCookie(final String stateCookie) {
+        final byte[] decodedStateBytes = Base64.getDecoder().decode(stateCookie);
+        final String decodedStateString = new String(decodedStateBytes);
+        final ObjectMapper mapper = new ObjectMapper();
+        StateCookieDto stateCookieDto = new StateCookieDto();
+        try {
+            stateCookieDto = mapper.readValue(decodedStateString, StateCookieDto.class);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        return stateCookieDto;
+    }
+
+    public String generateAndStoreState(final HttpServletResponse response, final String redirectUrl) {
+        final String state = this.generateState();
+        final String encodedStateJsonString = this.buildEncodedStateJson(redirectUrl, state);
+        String STATE_COOKIE = "state";
+        final Cookie stateCookie = WebUtil.buildSecureCookie(STATE_COOKIE, encodedStateJsonString, 3600);
+        response.addCookie(stateCookie);
+        return encodedStateJsonString;
+    }
+
+    public String generateAndStoreNonce() {
+        final String nonce = this.generateNonce();
+        final Nonce nonceModel = Nonce.builder().nonceString(nonce).build();
+        this.nonceRepository.save(nonceModel);
+        return nonce;
+    }
+
+    public Nonce readAndDeleteNonce(final String nonce) {
+        final Optional<Nonce> nonceModel = this.nonceRepository.findFirstByNonceStringOrderByNonceStringAsc(nonce);
+        nonceModel.ifPresent(this.nonceRepository::delete);
+        return nonceModel.orElse(new Nonce());
+    }
+
+    public Boolean isNonceExpired(Nonce nonce) {
+        final Date nonceCreatedAt = nonce.getCreatedAt();
+        Calendar c = Calendar.getInstance();
+        c.setTime(new Date());
+        c.add(Calendar.MINUTE, -10);
+        final Date expiryTime = c.getTime();
+        return nonceCreatedAt == null || nonceCreatedAt.before(expiryTime) || nonceCreatedAt.after(new Date());
     }
 
     public void setUsersLoginJourneyState(final User user, final LoginJourneyState newState) {
@@ -99,14 +167,14 @@ public class OneLoginService {
         userRepository.save(user);
     }
 
-    public String getOneLoginAuthorizeUrl() {
+    public String getOneLoginAuthorizeUrl(final String state, final String nonce) {
         return oneLoginBaseUrl +
                         "/authorize?response_type=code" +
                         "&scope=" + SCOPE +
                         "&client_id=" + clientId +
-                        "&state=" + generateState() +
+                        "&state=" + state +
                         "&redirect_uri=" + serviceRedirectUrl +
-                        "&nonce=" + generateNonce() +
+                        "&nonce=" + nonce +
                         "&vtr=" + VTR +
                         "&ui_locales=" + UI;
     }
@@ -132,10 +200,13 @@ public class OneLoginService {
         return claims;
     }
 
-    public OneLoginUserInfoDto getOneLoginUserInfoDto(final String code) {
+    public JSONObject getOneLoginUserTokenResponse(final String code) {
         final String oneLoginJwt = createOneLoginJwt();
-        final String authToken = getAuthToken(oneLoginJwt, code);
-        return getUserInfo(authToken);
+        return getTokenResponse(oneLoginJwt, code);
+    }
+
+    public OneLoginUserInfoDto getOneLoginUserInfoDto(final String accessToken) {
+        return getUserInfo(accessToken);
     }
 
     public User createOrGetUserFromInfo(final OneLoginUserInfoDto userInfo) {
@@ -180,21 +251,18 @@ public class OneLoginService {
         }
     }
 
-    public String getAuthToken(final String jwt, final String code) {
+    public JSONObject getTokenResponse(final String jwt, final String code) {
         final String requestBody = "grant_type=" + GRANT_TYPE +
-                "&code=" + code +
+                "&code=" + sanitizeCode(code) +
                 "&redirect_uri=" + serviceRedirectUrl +
                 "&client_assertion_type=" + clientAssertionType +
                 "&client_assertion=" + jwt;
 
         try {
-            final JSONObject response = RestUtils.postRequestWithBody(oneLoginBaseUrl + "/token", requestBody,
+            return RestUtils.postRequestWithBody(oneLoginBaseUrl + "/token", requestBody,
                     "application/x-www-form-urlencoded");
-            return response.getString("access_token");
         } catch (IOException e) {
             throw new InvalidRequestException("invalid request");
-        } catch (JSONException e) {
-            throw new AuthenticationException("unable to retrieve access_token");
         }
     }
 
@@ -212,5 +280,32 @@ public class OneLoginService {
                 .retrieve()
                 .bodyToMono(Void.class)
                 .block();
+    }
+
+    private String decodeJWT(final String token) {
+        String[] chunks = token.split("\\.");
+        Base64.Decoder decoder = Base64.getUrlDecoder();
+        return new String(decoder.decode(chunks[1]));
+    }
+
+    public IdTokenDto getDecodedIdToken(final JSONObject tokenResponse) {
+        final String idToken = tokenResponse.getString("id_token");
+        ObjectMapper mapper = new ObjectMapper();
+        IdTokenDto decodedIdToken = new IdTokenDto();
+        try {
+            decodedIdToken = mapper.readValue(decodeJWT(idToken), IdTokenDto.class);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        return decodedIdToken;
+    }
+
+    private String sanitizeCode(String code) {
+        return Jsoup.clean(
+                StringEscapeUtils.escapeHtml4(
+                        StringEscapeUtils.escapeEcmaScript(StringUtils.replace(code, "'", "''"))
+                ),
+                Safelist.basic()
+        );
     }
 }
