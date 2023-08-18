@@ -434,6 +434,8 @@ class LoginControllerV2Test {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final JSONObject tokenResponse = new JSONObject();
             tokenResponse.put("id_token", idToken);
+            tokenResponse.put("tokenHint", "tokenHint");
+            tokenResponse.put("access_token", "access_token");
             final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
                     .nonceId(1)
                     .nonceString("nonce")
