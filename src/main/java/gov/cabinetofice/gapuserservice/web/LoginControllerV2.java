@@ -46,7 +46,6 @@ public class LoginControllerV2 {
     private final OneLoginService oneLoginService;
     private final CustomJwtServiceImpl customJwtService;
     private final ApplicationConfigProperties configProperties;
-    @Autowired
     private final Sha512Service encryptionService;
     private final NonceRepository nonceRepository;
 
