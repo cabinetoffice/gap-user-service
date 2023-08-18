@@ -3,7 +3,9 @@ package gov.cabinetofice.gapuserservice.service;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.dto.JwtPayload;
 import gov.cabinetofice.gapuserservice.dto.MigrateUserDto;
+import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
+import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.*;
 import gov.cabinetofice.gapuserservice.model.Department;
@@ -22,10 +24,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -200,7 +199,6 @@ public class OneLoginServiceTest {
         when(RestUtils.postRequestWithBody(DUMMY_BASE_URL + "/token",
                 requestBody, "application/x-www-form-urlencoded"))
                 .thenThrow(new IOException());
-
 
         Assertions.assertThrows(InvalidRequestException.class, () -> oneLoginService
                 .getTokenResponse("dummyJwt", "dummyCode"));
@@ -420,6 +418,36 @@ public class OneLoginServiceTest {
             verify(jwtBlacklistService, times(1)).addJwtToBlacklist(tokenValue);
         }
 }
+
+    @Test
+    void generateStateJson() {
+        final String redirectUrl = "redirectUrl";
+        final String state = "state";
+        final String expected = "eyJyZWRpcmVjdFVybCI6InJlZGlyZWN0VXJsIiwic3RhdGUiOiJzdGF0ZSJ9";
+        final String result = oneLoginService.buildEncodedStateJson(redirectUrl, state);
+        Assertions.assertEquals(result, expected);
+    }
+
+    @Test
+    void decodeStateCookie() {
+        final String encodedStateCookie = "eyJyZWRpcmVjdFVybCI6InJlZGlyZWN0VXJsIiwic3RhdGUiOiJzdGF0ZSJ9";
+        final StateCookieDto.StateCookieDtoBuilder stateCookieDtoBuilder = StateCookieDto.builder()
+                .state("state")
+                .redirectUrl("redirectUrl");
+        final StateCookieDto expected = stateCookieDtoBuilder.build();
+        final StateCookieDto result = oneLoginService.decodeStateCookie(encodedStateCookie);
+        Assertions.assertEquals(result, expected);
+    }
+
+    @Test
+    void getDecodedIdToken() throws JSONException {
+        final IdTokenDto.IdTokenDtoBuilder idTokenDtoBuilder = IdTokenDto.builder().nonce("nonce");
+        final JSONObject tokenResponse = new JSONObject();
+        tokenResponse.put("id_token", "eyJraWQiOiI2NDRhZjU5OGI3ODBmNTQxMDZjYTBmM2MwMTczNDFiYzIzMGM0ZjgzNzNmMzVmMzJlMThlM2U0MGNjN2FjZmY2IiwiYWxnIjoiRVMyNTYifQ.eyJzdWIiOm51bGwsImF0X2hhc2giOm51bGwsImlzcyI6bnVsbCwiYXVkIjpudWxsLCJleHAiOjAsImlhdCI6MCwidm90IjpudWxsLCJ2dG0iOm51bGwsInNpZCI6bnVsbCwibm9uY2UiOiJub25jZSJ9.AvCEdn3oHfwQoMtf8xgYZ0vfeNi1ELuT5Egndb2M1njBgRSuZsOgFPrHLzTkeT_XYjqI06J48MtI9q-inpQ3Ag");
+        final IdTokenDto expected = idTokenDtoBuilder.build();
+        final IdTokenDto result = oneLoginService.getDecodedIdToken(tokenResponse);
+        Assertions.assertEquals(expected, result);
+    }
 
     private Claims getClaims(String jwtToken) throws NoSuchAlgorithmException, InvalidKeySpecException {
 

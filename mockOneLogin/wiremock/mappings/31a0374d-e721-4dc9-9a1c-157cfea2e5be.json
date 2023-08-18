@@ -6,7 +6,7 @@
   "response": {
     "status": 302,
     "headers": {
-      "Location": "http://localhost:8082/v2/redirect-after-login?code=qwertyuiop"
+      "Location": "http://localhost:8082/v2/redirect-after-login?code=qwertyuiop&state={{request.query.state}}"
     }
   }
 }

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.security.SecureRandom;
 import java.util.Objects;
 
 public class HelperUtils {
@@ -54,5 +55,17 @@ public class HelperUtils {
         catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static String generateSecureRandomString(final Integer strLen) {
+        final String chrs = "0123456789abcdefghijklmnopqrstuvwxyz-_ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+        final SecureRandom secureRandom = new SecureRandom();
+
+        return secureRandom
+                .ints(strLen, 0, chrs.length())
+                .mapToObj(chrs::charAt)
+                .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
+                .toString();
     }
 }

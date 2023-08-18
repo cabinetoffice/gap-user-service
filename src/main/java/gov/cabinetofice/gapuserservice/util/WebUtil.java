@@ -1,6 +1,7 @@
 package gov.cabinetofice.gapuserservice.util;
 
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 
 public class WebUtil {
 
@@ -26,5 +27,22 @@ public class WebUtil {
         cookie.setHttpOnly(true);
         cookie.setPath("/");
         return cookie;
+    }
+
+    public static Cookie buildSecureCookie(final String name, final String value, final Integer maxAge) {
+        final Cookie cookie = buildSecureCookie(name, value);
+        cookie.setMaxAge(maxAge);
+        return cookie;
+    }
+
+    public static Cookie buildNullCookie(final String name) {
+        final Cookie cookie = new Cookie(name, null);
+        cookie.setMaxAge(0);
+        return cookie;
+    }
+
+    public static void deleteCookie(final String name, final HttpServletResponse response) {
+        final Cookie cookie = buildNullCookie(name);
+        response.addCookie(cookie);
     }
 }
