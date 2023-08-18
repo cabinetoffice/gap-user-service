@@ -1,5 +1,7 @@
 package gov.cabinetofice.gapuserservice.service.user;
 
+import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
+import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.dto.UserQueryDto;
 import gov.cabinetofice.gapuserservice.exceptions.DepartmentNotFoundException;
 import gov.cabinetofice.gapuserservice.exceptions.RoleNotFoundException;
@@ -22,7 +24,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.function.BiFunction;
 
 @RequiredArgsConstructor
@@ -33,6 +38,8 @@ public class OneLoginUserService {
     private final DepartmentRepository departmentRepository;
     private final RoleRepository roleRepository;
     private final JwtBlacklistService jwtBlacklistService;
+    private final ApplicationConfigProperties configProperties;
+    private final ThirdPartyAuthProviderProperties authenticationProvider;
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
@@ -117,7 +124,9 @@ public class OneLoginUserService {
     }
 
     public void invalidateUserJwt(final Cookie customJWTCookie, final HttpServletResponse response) {
-        jwtBlacklistService.addJwtToBlacklist(customJWTCookie.getValue());
+        if (customJWTCookie.getValue() != null) {
+            jwtBlacklistService.addJwtToBlacklist(customJWTCookie.getValue());
+        }
         final Cookie userTokenCookie = WebUtil.buildCookie(
                 new Cookie(userServiceCookieName, null),
                 Boolean.TRUE,
@@ -126,5 +135,16 @@ public class OneLoginUserService {
         );
         userTokenCookie.setMaxAge(0);
         response.addCookie(userTokenCookie);
+
+        final String authenticationCookieDomain = Objects.equals(this.configProperties.getProfile(), "LOCAL") ? "localhost" : "cabinetoffice.gov.uk";
+
+        final Cookie thirdPartyAuthToken = WebUtil.buildCookie(
+                new Cookie(authenticationProvider.getTokenCookie(), null),
+                Boolean.TRUE,
+                Boolean.TRUE,
+                authenticationCookieDomain
+        );
+        thirdPartyAuthToken.setMaxAge(0);
+        response.addCookie(thirdPartyAuthToken);
     }
 }
