@@ -5,8 +5,6 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -41,13 +39,8 @@ public class User {
     @Enumerated(EnumType.STRING)
     private LoginJourneyState loginJourneyState;
 
-    @CreatedDate
     @Column(name = "created")
     private Instant created;
-
-    @LastModifiedDate
-    @Column(name = "updated")
-    private Instant updated;
 
     @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY, mappedBy = "users")
     @ToString.Exclude
@@ -62,6 +55,12 @@ public class User {
     @JsonManagedReference
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
     private Department department;
+
+    @PrePersist
+    @PreUpdate
+    void created() {
+        this.created = Instant.now();
+    }
 
     public void addRole(final Role role) {
         this.roles.add(role);
