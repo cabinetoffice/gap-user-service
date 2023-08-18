@@ -171,15 +171,26 @@ public class LoginControllerV2 {
 
         // Validate that nonce is stored in the DB
         final Nonce storedNonce = oneLoginService.readAndDeleteNonce(nonce);
-        final String nonceString = storedNonce.getNonceString();
-        final boolean isNonceVerified = nonce.equals(nonceString);
+        final boolean isNonceVerified = nonce.equals(storedNonce.getNonceString());
 
         // Validate that nonce is less than 10 mins old
         final boolean isNonceExpired = oneLoginService.isNonceExpired(storedNonce);
 
-        if (!(isStateVerified && isNonceVerified && !isNonceExpired)) {
-            log.warn("/redirect-after-login unauthorized user; nonce expired: {}, nonce verified: {}, " +
-                    "state verified: {}", isNonceExpired, isNonceVerified, isStateVerified);
+        if (isNonceExpired) {
+            log.info("/redirect-after-login unauthorized user; nonce expired");
+            log.debug("nonce from token: {}, nonce from db: {}, expiry: {}, now: {}" +
+                            "state from response: {}, hashed state from cookie: {}, plaintext state from cookie: {}",
+                    nonce, storedNonce.getNonceString(), storedNonce.getCreatedAt(), new Date(),
+                    state, hashedStateCookie, encodedStateJson);
+            throw new AccessDeniedException("User authorization failed, please try again");
+        } else if (!(isStateVerified && isNonceVerified)) {
+            log.warn("/redirect-after-login unauthorized user; nonce verified: {}, state verified: {}",
+                    isNonceVerified, isStateVerified);
+            log.debug("nonce from token: {}, nonce from db: {}," +
+                    "state from response: {}, hashed state from cookie: {}, plaintext state from cookie: {}",
+                    nonce, storedNonce.getNonceString(),
+                    state, hashedStateCookie, encodedStateJson);
+            // TODO take action against malicious activity e.g. temp block user and send email
             throw new AccessDeniedException("User authorization failed");
         }
     }

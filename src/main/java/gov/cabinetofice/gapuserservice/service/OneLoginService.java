@@ -23,19 +23,23 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.http.HttpHeaders;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 import java.io.IOException;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
-import java.security.SecureRandom;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.*;
+
+import static gov.cabinetofice.gapuserservice.util.HelperUtils.generateSecureRandomString;
 
 @RequiredArgsConstructor
 @Service
@@ -96,18 +100,6 @@ public class OneLoginService {
             user.addRole(role);
         }
         return userRepository.save(user);
-    }
-
-    public String generateSecureRandomString(final Integer strLen) {
-        final String chrs = "0123456789abcdefghijklmnopqrstuvwxyz-_ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-        final SecureRandom secureRandom = new SecureRandom();
-
-        return secureRandom
-                .ints(strLen, 0, chrs.length())
-                .mapToObj(chrs::charAt)
-                .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
-                .toString();
     }
 
     public String generateNonce() {
@@ -261,7 +253,7 @@ public class OneLoginService {
 
     public JSONObject getTokenResponse(final String jwt, final String code) {
         final String requestBody = "grant_type=" + GRANT_TYPE +
-                "&code=" + code +
+                "&code=" + sanitizeCode(code) +
                 "&redirect_uri=" + serviceRedirectUrl +
                 "&client_assertion_type=" + clientAssertionType +
                 "&client_assertion=" + jwt;
@@ -306,5 +298,14 @@ public class OneLoginService {
             e.printStackTrace();
         }
         return decodedIdToken;
+    }
+
+    private String sanitizeCode(String code) {
+        return Jsoup.clean(
+                StringEscapeUtils.escapeHtml4(
+                        StringEscapeUtils.escapeEcmaScript(StringUtils.replace(code, "'", "''"))
+                ),
+                Safelist.basic()
+        );
     }
 }
