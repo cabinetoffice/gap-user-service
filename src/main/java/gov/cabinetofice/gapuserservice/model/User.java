@@ -3,6 +3,7 @@ package gov.cabinetofice.gapuserservice.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
+import groovyjarjarantlr4.v4.runtime.misc.Nullable;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -42,10 +43,12 @@ public class User {
     private LoginJourneyState loginJourneyState;
 
     @CreatedDate
+    @Nullable
     @Column(name = "created")
     private Instant created;
 
     @LastModifiedDate
+    @Nullable
     @Column(name = "updated")
     private Instant updated;
 
