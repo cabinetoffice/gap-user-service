@@ -399,7 +399,7 @@ class LoginControllerV2Test {
             when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
 
             Exception exception = assertThrows(AccessDeniedException.class, () -> loginController.redirectAfterLogin(stateCookie, response, code, state));
-            assertThat(exception.getMessage()).isEqualTo("User authorization failed");
+            assertThat(exception.getMessage()).isEqualTo("User authorization failed, please try again");
         }
 
         @Test
