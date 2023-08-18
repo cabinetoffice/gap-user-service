@@ -66,6 +66,29 @@ public class RestUtilsTest {
         Assertions.assertEquals(expectedResponse, result.toString());
     }
 
+
+    @Test
+    void testGetRequest() throws IOException {
+        String url = "9";
+        String expectedResponse = "{\"key\":\"value\"}";
+
+        CloseableHttpClient httpClient = mock(CloseableHttpClient.class);
+        CloseableHttpResponse httpResponse = mock(CloseableHttpResponse.class);
+
+        HttpEntity httpEntity = new StringEntity(expectedResponse, ContentType.TEXT_PLAIN);
+
+
+        when(HttpClients.createDefault()).thenReturn(httpClient);
+        when(httpResponse.getEntity()).thenReturn(httpEntity);
+        when(httpClient.execute(Mockito.any(HttpGet.class))).thenReturn(httpResponse);
+
+        JSONObject result = RestUtils.getRequest(url);
+
+        verify(httpClient, times(1)).execute(any(HttpGet.class));
+        verify(httpResponse, times(1)).getEntity();
+        Assertions.assertEquals(expectedResponse, result.toString());
+    }
+
     @Test
     void testPostRequestWithBody() throws IOException {
         String url = "https://example.com";

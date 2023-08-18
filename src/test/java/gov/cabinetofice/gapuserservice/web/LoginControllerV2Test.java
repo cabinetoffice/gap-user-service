@@ -12,19 +12,19 @@ import gov.cabinetofice.gapuserservice.service.OneLoginService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
@@ -42,6 +42,10 @@ import static org.mockito.Mockito.*;
 class LoginControllerV2Test {
 
     private LoginControllerV2 loginController;
+
+    @Autowired
+    private MockMvc mockMvc;
+
 
     @Mock
     private OneLoginService oneLoginService;
@@ -181,7 +185,7 @@ class LoginControllerV2Test {
             final Cookie cookie = WebUtil.buildSecureCookie("userServiceCookieName", "jwtToken");
 
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(userBuilder.build());
-            when(oneLoginService.generateCustomJwtClaims(any())).thenReturn(claims);
+            when(oneLoginService.generateCustomJwtClaims(any(), "tokenHint")).thenReturn(claims);
             when(customJwtService.generateToken(claims)).thenReturn("jwtToken");
 
             loginController.redirectAfterLogin(redirectUrlCookie, response, code);
@@ -487,6 +491,36 @@ class LoginControllerV2Test {
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.MIGRATING_USER);
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.MIGRATION_FAILED);
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.USER_READY);
+        }
+
+        @Nested
+        class logout {
+            @Test
+            void testLogoutWithBlankCookie() {
+                String userServiceCookieName = "customJWT";
+                String applicantBaseUrl = "/applicantBaseUrl";
+
+                HttpServletRequest request = mock(HttpServletRequest.class);
+                mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName")).thenReturn( new Cookie(userServiceCookieName, "") );
+                RedirectView methodResponse = loginController.logout(request);
+
+                verify(oneLoginService, never()).logoutUser(any(Cookie.class));
+                Assertions.assertEquals(applicantBaseUrl, methodResponse.getUrl());
+            }
+
+            @Test
+            void testLogoutWithNonBlankCookie() {
+                String userServiceCookieName = "customJWT";
+                String applicantBaseUrl = "/applicantBaseUrl";
+
+                HttpServletRequest request = mock(HttpServletRequest.class);
+                mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName")).thenReturn( new Cookie(userServiceCookieName, "ba") );
+
+                RedirectView methodResponse = loginController.logout(request);
+
+                verify(oneLoginService, times(1)).logoutUser(any(Cookie.class));
+                Assertions.assertEquals(applicantBaseUrl, methodResponse.getUrl());
+            }
         }
     }
 }
