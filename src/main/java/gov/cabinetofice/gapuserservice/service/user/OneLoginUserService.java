@@ -11,8 +11,13 @@ import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.DepartmentRepository;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
+import gov.cabinetofice.gapuserservice.service.JwtBlacklistService;
 import gov.cabinetofice.gapuserservice.util.UserQueryCondition;
+import gov.cabinetofice.gapuserservice.util.WebUtil;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -27,6 +32,10 @@ public class OneLoginUserService {
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
     private final RoleRepository roleRepository;
+    private final JwtBlacklistService jwtBlacklistService;
+
+    @Value("${jwt.cookie-name}")
+    public String userServiceCookieName;
 
     public Page<User> getPaginatedUsers(Pageable pageable, UserQueryDto userQueryDto) {
         final Map<UserQueryCondition, BiFunction<UserQueryDto, Pageable, Page<User>>> conditionMap = createUserQueryConditionMap();
@@ -105,5 +114,17 @@ public class OneLoginUserService {
         User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User not found"));
         userRepository.delete(user);
         return user;
+    }
+
+    public void invalidateUserJwt(final Cookie customJWTCookie, final HttpServletResponse response) {
+        jwtBlacklistService.addJwtToBlacklist(customJWTCookie.getValue());
+        final Cookie userTokenCookie = WebUtil.buildCookie(
+                new Cookie(userServiceCookieName, null),
+                Boolean.TRUE,
+                Boolean.TRUE,
+                null
+        );
+        userTokenCookie.setMaxAge(0);
+        response.addCookie(userTokenCookie);
     }
 }

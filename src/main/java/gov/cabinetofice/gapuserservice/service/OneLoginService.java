@@ -15,6 +15,7 @@ import gov.cabinetofice.gapuserservice.repository.NonceRepository;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
 import io.jsonwebtoken.Jwts;
@@ -83,6 +84,7 @@ public class OneLoginService {
     private final WebClient.Builder webClientBuilder;
     private final JwtBlacklistService jwtBlacklistService;
     private final CustomJwtServiceImpl customJwtService;
+    private final OneLoginUserService oneLoginUserService;
 
     public PrivateKey parsePrivateKey() {
         try {
@@ -299,16 +301,6 @@ public class OneLoginService {
             final DecodedJWT decodedJwt = customJwtService.decodedJwt(customJWTCookie.getValue());
             final JwtPayload payload = customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJwt);
 
-            jwtBlacklistService.addJwtToBlacklist(customJWTCookie.getValue());
-            final Cookie userTokenCookie = WebUtil.buildCookie(
-                    new Cookie(userServiceCookieName, null),
-                    Boolean.TRUE,
-                    Boolean.TRUE,
-                    null
-            );
-            userTokenCookie.setMaxAge(0);
-            response.addCookie(userTokenCookie);
-
             HttpResponse res = RestUtils.getRequest(oneLoginLogoutEndpoint + "?id_token_hint=" + payload.getTokenHint() +
                     "&post_logout_redirect_uri=" + postLogoutRedirectUri);
 
@@ -316,6 +308,7 @@ public class OneLoginService {
                 System.out.println("One Login's logout endpoint returned 401 or 403 with jwt: " + customJWTCookie.getValue());
             }
 
+            oneLoginUserService.invalidateUserJwt(customJWTCookie, response);
             return res;
         } catch (IOException e) {
             throw new InvalidRequestException("invalid request");
