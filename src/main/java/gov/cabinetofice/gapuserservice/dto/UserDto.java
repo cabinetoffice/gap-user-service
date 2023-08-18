@@ -5,7 +5,12 @@ import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.User;
 import lombok.Data;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Data
 public class UserDto {
@@ -15,6 +20,8 @@ public class UserDto {
     private List<Role> roles;
     private Role role;
     private Department department;
+    private Optional<Instant> created;
+    private Optional<Instant> updated;
 
     public UserDto(final User user) {
         this.gapUserId = user.getGapUserId().toString();
@@ -23,5 +30,7 @@ public class UserDto {
         this.department = user.getDepartment();
         this.roles = user.getRoles();
         this.role = user.getHighestRole();
+        this.created = Optional.ofNullable(user.getCreated());
+        this.updated = Optional.ofNullable(user.getUpdated());
     }
 }
