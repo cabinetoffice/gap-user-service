@@ -1,7 +1,7 @@
 package gov.cabinetofice.gapuserservice.service;
 
-import gov.cabinetofice.gapuserservice.dto.MigrateUserDto;
 import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
+import gov.cabinetofice.gapuserservice.dto.MigrateUserDto;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
@@ -20,7 +20,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -30,10 +33,14 @@ import java.io.IOException;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 
 import static io.jsonwebtoken.impl.crypto.RsaProvider.generateKeyPair;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -96,7 +103,7 @@ public class OneLoginServiceTest {
     void shouldThrowPrivateKeyParsingExceptionWhenKeyIsInvalid() {
         ReflectionTestUtils.setField(oneLoginService, "privateKey", "invalidKey");
 
-        Assertions.assertThrows(PrivateKeyParsingException.class, () -> oneLoginService.createOneLoginJwt());
+        assertThrows(PrivateKeyParsingException.class, () -> oneLoginService.createOneLoginJwt());
     }
 
 
@@ -147,7 +154,7 @@ public class OneLoginServiceTest {
                 .thenThrow(new IOException());
 
 
-        Assertions.assertThrows(AuthenticationException.class, () -> oneLoginService
+        assertThrows(AuthenticationException.class, () -> oneLoginService
                 .getUserInfo("accessToken"));
     }
 
@@ -164,7 +171,7 @@ public class OneLoginServiceTest {
                 requestBody, "application/x-www-form-urlencoded"))
                 .thenThrow(new IOException());
 
-        Assertions.assertThrows(InvalidRequestException.class, () -> oneLoginService
+        assertThrows(InvalidRequestException.class, () -> oneLoginService
                 .getTokenResponse("dummyJwt", "dummyCode"));
     }
 
@@ -206,7 +213,7 @@ public class OneLoginServiceTest {
         void shouldThrowExceptionWhenRoleDoesNotExist() {
             when(roleRepository.findByName(any())).thenReturn(Optional.empty());
 
-            Assertions.assertThrows(RoleNotFoundException.class, () -> oneLoginService.createNewUser("", ""));
+            assertThrows(RoleNotFoundException.class, () -> oneLoginService.createNewUser("", ""));
         }
     }
 
@@ -287,7 +294,7 @@ public class OneLoginServiceTest {
         void shouldThrowUserNotFoundException_whenUserNotFound() {
             when(userRepository.findBySub(any())).thenReturn(Optional.empty());
 
-            Assertions.assertThrows(UserNotFoundException.class, () -> oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto));
+            assertThrows(UserNotFoundException.class, () -> oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto));
         }
     }
 
@@ -391,6 +398,65 @@ public class OneLoginServiceTest {
         final IdTokenDto expected = idTokenDtoBuilder.build();
         final IdTokenDto result = oneLoginService.getDecodedIdToken(tokenResponse);
         Assertions.assertEquals(expected, result);
+    }
+
+    @Nested
+    class validateIdToken {
+
+        @Test
+        void testValidIdToken() {
+            IdTokenDto validToken = new IdTokenDto();
+            validToken.setIss(DUMMY_BASE_URL.concat("/"));
+            validToken.setAud(DUMMY_CLIENT_ID);
+            validToken.setExp(Instant.now().plus(Duration.ofHours(1)).getEpochSecond());
+            validToken.setIat(Instant.now().minus(Duration.ofHours(1)).getEpochSecond());
+
+            assertDoesNotThrow(() -> oneLoginService.validateIdToken(validToken));
+        }
+
+        @Test
+        void testInvalidIss() {
+            IdTokenDto invalidToken = new IdTokenDto();
+            invalidToken.setIss("invalidBaseUrl");
+            invalidToken.setAud(DUMMY_CLIENT_ID);
+            invalidToken.setExp(Instant.now().plus(Duration.ofHours(1)).getEpochSecond());
+            invalidToken.setIat(Instant.now().minus(Duration.ofHours(1)).getEpochSecond());
+
+            assertThrows(UnauthorizedException.class, () -> oneLoginService.validateIdToken(invalidToken));
+        }
+
+        @Test
+        void testInvalidAud() {
+            IdTokenDto invalidToken = new IdTokenDto();
+            invalidToken.setIss(DUMMY_BASE_URL);
+            invalidToken.setAud("invalidClientId");
+            invalidToken.setExp(Instant.now().plus(Duration.ofHours(1)).getEpochSecond());
+            invalidToken.setIat(Instant.now().minus(Duration.ofHours(1)).getEpochSecond());
+
+            assertThrows(UnauthorizedException.class, () -> oneLoginService.validateIdToken(invalidToken));
+        }
+
+        @Test
+        void testExpiredToken() {
+            IdTokenDto expiredToken = new IdTokenDto();
+            expiredToken.setIss(DUMMY_BASE_URL);
+            expiredToken.setAud(DUMMY_CLIENT_ID);
+            expiredToken.setExp(Instant.now().minus(Duration.ofMinutes(1)).getEpochSecond());
+            expiredToken.setIat(Instant.now().minus(Duration.ofHours(1)).getEpochSecond());
+
+            assertThrows(UnauthorizedException.class, () -> oneLoginService.validateIdToken(expiredToken));
+        }
+
+        @Test
+        void testFutureIssuedToken() {
+            IdTokenDto futureIssuedToken = new IdTokenDto();
+            futureIssuedToken.setIss(DUMMY_BASE_URL);
+            futureIssuedToken.setAud(DUMMY_CLIENT_ID);
+            futureIssuedToken.setExp(Instant.now().plus(Duration.ofHours(1)).getEpochSecond());
+            futureIssuedToken.setIat(Instant.now().plus(Duration.ofHours(1)).getEpochSecond());
+
+            assertThrows(UnauthorizedException.class, () -> oneLoginService.validateIdToken(futureIssuedToken));
+        }
     }
 
     private Claims getClaims(String jwtToken) throws NoSuchAlgorithmException, InvalidKeySpecException {

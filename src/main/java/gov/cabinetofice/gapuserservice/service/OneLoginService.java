@@ -2,6 +2,13 @@ package gov.cabinetofice.gapuserservice.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.crypto.ECDSAVerifier;
+import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jwt.SignedJWT;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
 import gov.cabinetofice.gapuserservice.dto.MigrateUserDto;
@@ -23,26 +30,32 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.http.HttpHeaders;
 import org.json.JSONObject;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.jsoup.Jsoup;
-import org.jsoup.safety.Safelist;
+
 import java.io.IOException;
+import java.net.URL;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.text.ParseException;
+import java.time.Instant;
 import java.util.*;
 
 import static gov.cabinetofice.gapuserservice.util.HelperUtils.generateSecureRandomString;
 
 @RequiredArgsConstructor
 @Service
+@Log4j2
 public class OneLoginService {
 
     @Value("${onelogin.client-id}")
@@ -280,6 +293,49 @@ public class OneLoginService {
                 .retrieve()
                 .bodyToMono(Void.class)
                 .block();
+    }
+
+    public void validateIdToken(IdTokenDto decodedIdToken) {
+
+        long currentEpochSeconds = Instant.now().getEpochSecond();
+
+        if (!decodedIdToken.getIss().equals(oneLoginBaseUrl.concat("/")) ||
+                !decodedIdToken.getAud().equals(clientId) ||
+                currentEpochSeconds > decodedIdToken.getExp() ||
+                currentEpochSeconds < decodedIdToken.getIat()) {
+            log.error("Invalid id token {}", decodedIdToken);
+            throw new UnauthorizedException("Invalid id token");
+        }
+    }
+
+    public void validateUserSub(String IdTokenSub, String userInfoStub) {
+        if (!IdTokenSub.equals(userInfoStub)) {
+            log.error("User subs do not match {} {}", IdTokenSub, userInfoStub);
+            throw new UnauthorizedException("Invalid User sub");
+        }
+    }
+
+
+    public void validateAuthTokenSignatureAndAlgorithm(String authToken) {
+
+        try {
+            SignedJWT signedAuthToken = SignedJWT.parse(authToken);
+            JWSAlgorithm jwtAlgorithm = JWSAlgorithm.parse(signedAuthToken.getHeader().getAlgorithm().getName());
+            String keyId = signedAuthToken.getHeader().getKeyID();
+
+            JWKSet jwkSet = JWKSet.load(new URL(oneLoginBaseUrl.concat("/.well-known/jwks.json")));
+            JWK matchingJwk = Objects.requireNonNull(jwkSet.getKeyByKeyId(keyId));
+            ECDSAVerifier verifier = new ECDSAVerifier((ECKey) matchingJwk);
+
+            if (!signedAuthToken.verify(verifier) || !signedAuthToken.getHeader().getAlgorithm().equals(jwtAlgorithm)) {
+                log.error("Invalid id token signature {}", signedAuthToken);
+                throw new UnauthorizedException("Invalid id token signature");
+            }
+
+        } catch (IOException | ParseException | JOSEException e) {
+            log.error("Unable to validate access token {} due to {}", authToken, e);
+            throw new UnauthorizedException("Unable to validate access token {}", e);
+        }
     }
 
     private String decodeJWT(final String token) {
