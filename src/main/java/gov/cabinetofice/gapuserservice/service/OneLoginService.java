@@ -324,7 +324,10 @@ public class OneLoginService {
             String keyId = signedAuthToken.getHeader().getKeyID();
 
             JWKSet jwkSet = JWKSet.load(new URL(oneLoginBaseUrl.concat("/.well-known/jwks.json")));
-            JWK matchingJwk = Objects.requireNonNull(jwkSet.getKeyByKeyId(keyId));
+            Optional<JWK> optionalMatchingJwk = Optional.ofNullable(jwkSet.getKeyByKeyId(keyId));
+            JWK matchingJwk = optionalMatchingJwk.orElseThrow(() -> new UnauthorizedException
+                    ("Matching JWK not found for key ID: " + keyId));
+
             ECDSAVerifier verifier = new ECDSAVerifier((ECKey) matchingJwk);
 
             if (!signedAuthToken.verify(verifier) || !signedAuthToken.getHeader().getAlgorithm().equals(jwtAlgorithm)) {
