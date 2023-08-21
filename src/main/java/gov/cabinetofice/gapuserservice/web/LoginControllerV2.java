@@ -135,7 +135,7 @@ public class LoginControllerV2 {
             final @Valid @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto,
             final BindingResult result,
             final HttpServletRequest request,
-            final @CookieValue(name = REDIRECT_URL_NAME) Optional<String> redirectUrlCookie) {
+            final @CookieValue(name = REDIRECT_URL_NAME, required = false) Optional<String> redirectUrlCookie) {
         if (result.hasErrors())
             return submitToPrivacyPolicyPage(privacyPolicyDto);
         final Cookie customJWTCookie = getCustomJwtCookieFromRequest(request);
