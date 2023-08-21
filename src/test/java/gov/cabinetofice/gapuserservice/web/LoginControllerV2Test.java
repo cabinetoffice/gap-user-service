@@ -712,6 +712,7 @@ class LoginControllerV2Test {
                 HttpServletRequest request = mock(HttpServletRequest.class);
                 HttpServletResponse response = mock(HttpServletResponse.class);
                 mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName")).thenReturn( new Cookie(userServiceCookieName, "ba") );
+                when(oneLoginService.logoutUser(any(), any())).thenReturn(new RedirectView(applicantBaseUrl));
 
                 RedirectView methodResponse = loginController.logout(request, response);
 
