@@ -6,6 +6,7 @@ import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -38,6 +39,9 @@ public class User {
     @Enumerated(EnumType.STRING)
     private LoginJourneyState loginJourneyState;
 
+    @Column(name = "created")
+    private Instant created;
+
     @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY, mappedBy = "users")
     @ToString.Exclude
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
@@ -51,6 +55,12 @@ public class User {
     @JsonManagedReference
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
     private Department department;
+
+    @PrePersist
+    @PreUpdate
+    void created() {
+        this.created = Instant.now();
+    }
 
     public void addRole(final Role role) {
         this.roles.add(role);
@@ -80,7 +90,8 @@ public class User {
     }
 
     public boolean isAdmin() {
-        return this.roles.stream().anyMatch((role) -> role.getName().equals(RoleEnum.ADMIN) || role.getName().equals(RoleEnum.SUPER_ADMIN));
+        return this.roles.stream().anyMatch(
+                (role) -> role.getName().equals(RoleEnum.ADMIN) || role.getName().equals(RoleEnum.SUPER_ADMIN));
     }
 
     public boolean isSuperAdmin() {
@@ -92,10 +103,15 @@ public class User {
     }
 
     public Role getHighestRole() {
-        if (isSuperAdmin()) return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.SUPER_ADMIN)).findFirst().get();
-        if (isAdmin()) return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.ADMIN)).findFirst().get();
-        if (isTechnicalSupport()) return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.TECHNICAL_SUPPORT)).findFirst().get();
-        if (isApplicant()) return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.APPLICANT)).findFirst().get();
+        if (isSuperAdmin())
+            return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.SUPER_ADMIN)).findFirst().get();
+        if (isAdmin())
+            return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.ADMIN)).findFirst().get();
+        if (isTechnicalSupport())
+            return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.TECHNICAL_SUPPORT)).findFirst()
+                    .get();
+        if (isApplicant())
+            return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.APPLICANT)).findFirst().get();
         return null;
     }
 
