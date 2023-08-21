@@ -1,6 +1,7 @@
 package gov.cabinetofice.gapuserservice.util;
 
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -64,6 +65,26 @@ public class RestUtilsTest {
         verify(httpClient, times(1)).execute(any(HttpGet.class));
         verify(httpResponse, times(1)).getEntity();
         Assertions.assertEquals(expectedResponse, result.toString());
+    }
+
+
+    @Test
+    void testGetRequest() throws IOException {
+        String url = "9";
+        String expectedResponse = "{\"key\":\"value\"}";
+
+        CloseableHttpClient httpClient = mock(CloseableHttpClient.class);
+        CloseableHttpResponse httpResponse = mock(CloseableHttpResponse.class);
+
+        HttpEntity httpEntity = new StringEntity(expectedResponse, ContentType.TEXT_PLAIN);
+
+
+        when(HttpClients.createDefault()).thenReturn(httpClient);
+        when(httpClient.execute(Mockito.any(HttpGet.class))).thenReturn(httpResponse);
+
+        HttpResponse result = RestUtils.getRequest(url);
+
+        verify(httpClient, times(1)).execute(any(HttpGet.class));
     }
 
     @Test
