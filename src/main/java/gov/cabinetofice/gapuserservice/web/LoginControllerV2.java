@@ -4,7 +4,10 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.FindAGrantConfigProperties;
-import gov.cabinetofice.gapuserservice.dto.*;
+import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
+import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
+import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
+import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.model.Nonce;
@@ -22,7 +25,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.json.JSONObject;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.access.AccessDeniedException;
@@ -33,7 +35,9 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
 
-import java.util.*;
+import java.util.Date;
+import java.util.Map;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 @Controller
@@ -42,7 +46,6 @@ import java.util.*;
 @Log4j2
 @Getter
 public class LoginControllerV2 {
-
     private final OneLoginService oneLoginService;
     private final CustomJwtServiceImpl customJwtService;
     private final ApplicationConfigProperties configProperties;
@@ -98,11 +101,12 @@ public class LoginControllerV2 {
     public RedirectView redirectAfterLogin(
             final @CookieValue(name = STATE_COOKIE) String stateCookie,
             final HttpServletResponse response,
-            final @RequestParam String code,
-            final @RequestParam String state
-    ) {
+             final @RequestParam String code,
+            final @RequestParam String state) {
         final JSONObject tokenResponse = oneLoginService.getOneLoginUserTokenResponse(code);
-        IdTokenDto decodedIdToken = oneLoginService.getDecodedIdToken(tokenResponse);
+        final String idToken = tokenResponse.getString("id_token");
+
+        IdTokenDto decodedIdToken = oneLoginService.decodeTokenId(idToken);
 
         final StateCookieDto stateCookieDto = oneLoginService.decodeStateCookie(stateCookie);
         final String redirectUrl = stateCookieDto.getRedirectUrl();
@@ -112,7 +116,7 @@ public class LoginControllerV2 {
         final String authToken = tokenResponse.getString("access_token");
         final OneLoginUserInfoDto userInfo = oneLoginService.getOneLoginUserInfoDto(authToken);
         final User user = oneLoginService.createOrGetUserFromInfo(userInfo);
-        addCustomJwtCookie(response, userInfo);
+        addCustomJwtCookie(response, userInfo, idToken);
 
         return new RedirectView(user.getLoginJourneyState()
                 .getLoginJourneyRedirect(user.getHighestRole().getName())
@@ -140,8 +144,19 @@ public class LoginControllerV2 {
         return new ModelAndView("redirect:" + runStateMachine(redirectUrlCookie, user, customJWTCookie.getValue()));
     }
 
-    private void addCustomJwtCookie(final HttpServletResponse response, final OneLoginUserInfoDto userInfo) {
-        final Map<String, String> customJwtClaims = oneLoginService.generateCustomJwtClaims(userInfo);
+    @GetMapping("/logout")
+    public RedirectView logout(final HttpServletRequest request, final HttpServletResponse response) {
+        final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
+        if(customJWTCookie == null || customJWTCookie.getValue().isBlank()){
+            return new RedirectView(applicantBaseUrl);
+        }
+        oneLoginService.logoutUser(customJWTCookie, response);
+        return new RedirectView(applicantBaseUrl);
+    }
+
+
+    private void addCustomJwtCookie(final HttpServletResponse response, final OneLoginUserInfoDto userInfo, final String idToken) {
+        final Map<String, String> customJwtClaims = oneLoginService.generateCustomJwtClaims(userInfo, idToken);
         final String customServiceJwt = customJwtService.generateToken(customJwtClaims);
         final Cookie customJwt = WebUtil.buildSecureCookie(userServiceCookieName, customServiceJwt);
         response.addCookie(customJwt);

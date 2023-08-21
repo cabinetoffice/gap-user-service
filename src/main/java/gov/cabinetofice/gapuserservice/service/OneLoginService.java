@@ -1,12 +1,10 @@
 package gov.cabinetofice.gapuserservice.service;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
-import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
-import gov.cabinetofice.gapuserservice.dto.MigrateUserDto;
-import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
-import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
+import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.*;
 import gov.cabinetofice.gapuserservice.model.Nonce;
@@ -16,6 +14,8 @@ import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.NonceRepository;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
+import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
 import io.jsonwebtoken.Jwts;
@@ -23,16 +23,20 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.http.HttpHeaders;
+import org.apache.http.HttpResponse;
+import org.json.JSONException;
 import org.json.JSONObject;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.jsoup.Jsoup;
-import org.jsoup.safety.Safelist;
+
 import java.io.IOException;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
@@ -43,6 +47,7 @@ import static gov.cabinetofice.gapuserservice.util.HelperUtils.generateSecureRan
 
 @RequiredArgsConstructor
 @Service
+@Log4j2
 public class OneLoginService {
 
     @Value("${onelogin.client-id}")
@@ -62,6 +67,13 @@ public class OneLoginService {
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
 
+    @Value("${onelogin.logout-url}")
+    public String oneLoginLogoutEndpoint;
+
+    @Value("${onelogin.post-logout-redirect-uri}")
+    public String postLogoutRedirectUri;
+
+
     private static final String SCOPE = "openid email";
     private static final String VTR = "[\"Cl.Cm\"]";
     private static final String UI = "en";
@@ -72,6 +84,9 @@ public class OneLoginService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final WebClient.Builder webClientBuilder;
+    private final JwtBlacklistService jwtBlacklistService;
+    private final CustomJwtServiceImpl customJwtService;
+    private final OneLoginUserService oneLoginUserService;
 
     public PrivateKey parsePrivateKey() {
         try {
@@ -189,10 +204,11 @@ public class OneLoginService {
         return userRepository.findByEmailAddress(email);
     }
 
-    public Map<String, String> generateCustomJwtClaims(final OneLoginUserInfoDto userInfo) {
+    public Map<String, String> generateCustomJwtClaims(final OneLoginUserInfoDto userInfo, final String idToken) {
         final User user = getUserFromSub(userInfo.getSub())
                 .orElseThrow(() -> new UserNotFoundException("User not found when generating custom jwt claims"));
         final Map<String, String> claims = new HashMap<>();
+        claims.put("idToken", idToken);
         claims.put("email", userInfo.getEmailAddress());
         claims.put("sub", userInfo.getSub());
         claims.put("roles", user.getRoles().stream().map(Role::getName).toList().toString());
@@ -282,14 +298,35 @@ public class OneLoginService {
                 .block();
     }
 
+    public HttpResponse logoutUser(final Cookie customJWTCookie, final HttpServletResponse response) {
+        try {
+
+            final DecodedJWT decodedJwt = customJwtService.decodedJwt(customJWTCookie.getValue());
+            final JwtPayload payload = customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJwt);
+
+            HttpResponse res = RestUtils.getRequest(oneLoginLogoutEndpoint + "?id_token_hint=" + sanitizeCode(payload.getIdToken()) +
+                    "&post_logout_redirect_uri=" + postLogoutRedirectUri);
+
+            if(res.getStatusLine().getStatusCode() == 401 || res.getStatusLine().getStatusCode() == 403) {
+                log.error("One Login's logout endpoint returned 401 or 403 with jwt: " + customJWTCookie.getValue());
+            }
+
+            oneLoginUserService.invalidateUserJwt(customJWTCookie, response);
+            return res;
+        } catch (IOException e) {
+            throw new InvalidRequestException("invalid request");
+        } catch (JSONException e) {
+            throw new AuthenticationException("unable to retrieve tokenHint");
+        }
+    }
+    
     private String decodeJWT(final String token) {
         String[] chunks = token.split("\\.");
         Base64.Decoder decoder = Base64.getUrlDecoder();
         return new String(decoder.decode(chunks[1]));
     }
 
-    public IdTokenDto getDecodedIdToken(final JSONObject tokenResponse) {
-        final String idToken = tokenResponse.getString("id_token");
+    public IdTokenDto decodeTokenId(final String idToken) {
         ObjectMapper mapper = new ObjectMapper();
         IdTokenDto decodedIdToken = new IdTokenDto();
         try {
@@ -309,3 +346,4 @@ public class OneLoginService {
         );
     }
 }
+

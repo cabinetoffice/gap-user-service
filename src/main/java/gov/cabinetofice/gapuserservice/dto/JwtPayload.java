@@ -17,4 +17,5 @@ public class JwtPayload {
     private int exp;
     private int iat;
     private String email;
+    private String idToken;
 }
