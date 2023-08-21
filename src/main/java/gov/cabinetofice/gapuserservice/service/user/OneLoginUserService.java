@@ -1,5 +1,7 @@
 package gov.cabinetofice.gapuserservice.service.user;
 
+import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
+import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.dto.UserQueryDto;
 import gov.cabinetofice.gapuserservice.exceptions.DepartmentNotFoundException;
 import gov.cabinetofice.gapuserservice.exceptions.RoleNotFoundException;
@@ -11,13 +13,21 @@ import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.DepartmentRepository;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
+import gov.cabinetofice.gapuserservice.service.JwtBlacklistService;
 import gov.cabinetofice.gapuserservice.util.UserQueryCondition;
+import gov.cabinetofice.gapuserservice.util.WebUtil;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.function.BiFunction;
 
 @RequiredArgsConstructor
@@ -27,6 +37,12 @@ public class OneLoginUserService {
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
     private final RoleRepository roleRepository;
+    private final JwtBlacklistService jwtBlacklistService;
+    private final ApplicationConfigProperties configProperties;
+    private final ThirdPartyAuthProviderProperties authenticationProvider;
+
+    @Value("${jwt.cookie-name}")
+    public String userServiceCookieName;
 
     public Page<User> getPaginatedUsers(Pageable pageable, UserQueryDto userQueryDto) {
         final Map<UserQueryCondition, BiFunction<UserQueryDto, Pageable, Page<User>>> conditionMap = createUserQueryConditionMap();
@@ -105,5 +121,30 @@ public class OneLoginUserService {
         User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User not found"));
         userRepository.delete(user);
         return user;
+    }
+
+    public void invalidateUserJwt(final Cookie customJWTCookie, final HttpServletResponse response) {
+        if (customJWTCookie.getValue() != null) {
+            jwtBlacklistService.addJwtToBlacklist(customJWTCookie.getValue());
+        }
+        final Cookie userTokenCookie = WebUtil.buildCookie(
+                new Cookie(userServiceCookieName, null),
+                Boolean.TRUE,
+                Boolean.TRUE,
+                null
+        );
+        userTokenCookie.setMaxAge(0);
+        response.addCookie(userTokenCookie);
+
+        final String authenticationCookieDomain = Objects.equals(this.configProperties.getProfile(), "LOCAL") ? "localhost" : "cabinetoffice.gov.uk";
+
+        final Cookie thirdPartyAuthToken = WebUtil.buildCookie(
+                new Cookie(authenticationProvider.getTokenCookie(), null),
+                Boolean.TRUE,
+                Boolean.TRUE,
+                authenticationCookieDomain
+        );
+        thirdPartyAuthToken.setMaxAge(0);
+        response.addCookie(thirdPartyAuthToken);
     }
 }

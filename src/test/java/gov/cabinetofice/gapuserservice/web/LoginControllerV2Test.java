@@ -17,19 +17,19 @@ import gov.cabinetofice.gapuserservice.service.encryption.Sha512Service;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.json.JSONException;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
@@ -46,6 +46,10 @@ import static org.mockito.Mockito.*;
 class LoginControllerV2Test {
 
     private LoginControllerV2 loginController;
+
+    @Autowired
+    private MockMvc mockMvc;
+
 
     @Mock
     private OneLoginService oneLoginService;
@@ -188,7 +192,7 @@ class LoginControllerV2Test {
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(userBuilder.build());
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
             when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
@@ -212,7 +216,7 @@ class LoginControllerV2Test {
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
             when(oneLoginService.createOrGetUserFromInfo(oneLoginUserInfoDto)).thenReturn(userBuilder.build());
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
             when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
@@ -238,9 +242,9 @@ class LoginControllerV2Test {
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(userBuilder.build());
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
-            when(oneLoginService.generateCustomJwtClaims(any())).thenReturn(claims);
+            when(oneLoginService.generateCustomJwtClaims(any(), any())).thenReturn(claims);
             when(customJwtService.generateToken(claims)).thenReturn("jwtToken");
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
             when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
@@ -263,7 +267,7 @@ class LoginControllerV2Test {
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(userBuilder.build());
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
             when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
@@ -291,12 +295,13 @@ class LoginControllerV2Test {
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
             when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
 
             final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, response, code, state);
+
 
             assertThat(methodResponse.getUrl()).isEqualTo("/adminBaseUrl?redirectUrl=/super-admin-dashboard");
         }
@@ -319,7 +324,7 @@ class LoginControllerV2Test {
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
             when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
@@ -348,7 +353,7 @@ class LoginControllerV2Test {
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
             when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
@@ -377,7 +382,7 @@ class LoginControllerV2Test {
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
             when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
@@ -401,7 +406,7 @@ class LoginControllerV2Test {
             final Nonce nonce = nonceBuilder.build();
 
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonce);
             when(oneLoginService.isNonceExpired(nonce)).thenReturn(true);
@@ -424,7 +429,7 @@ class LoginControllerV2Test {
             final Nonce nonce = nonceBuilder.build();
 
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonce);
             when(oneLoginService.isNonceExpired(nonce)).thenReturn(false);
@@ -446,7 +451,7 @@ class LoginControllerV2Test {
             final Nonce nonce = nonceBuilder.build();
 
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonce);
             when(oneLoginService.isNonceExpired(nonce)).thenReturn(false);
@@ -472,7 +477,7 @@ class LoginControllerV2Test {
                     .thenReturn(new Cookie("userServiceCookieName", mockJwt));
             when(result.hasErrors()).thenReturn(true);
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, Optional.of(redirectUrl));
             assertThat(methodResponse.getViewName()).isEqualTo(LoginControllerV2.PRIVACY_POLICY_PAGE_VIEW);
             verify(oneLoginService,  times(0)).setUsersLoginJourneyState(any(), any());
         }
@@ -494,7 +499,8 @@ class LoginControllerV2Test {
             when(result.hasErrors()).thenReturn(false);
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result,
+                    request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:" + redirectUrl);
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -518,7 +524,8 @@ class LoginControllerV2Test {
             when(result.hasErrors()).thenReturn(false);
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result,
+                    request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/adminBaseUrl?redirectUrl=/dashboard");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -542,7 +549,8 @@ class LoginControllerV2Test {
             when(result.hasErrors()).thenReturn(false);
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result,
+                    request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/adminBaseUrl?redirectUrl=/super-admin-dashboard");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -566,7 +574,8 @@ class LoginControllerV2Test {
             when(result.hasErrors()).thenReturn(false);
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result,
+                    request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/techSupportAppBaseUrl");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -592,7 +601,8 @@ class LoginControllerV2Test {
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
             doNothing().when(oneLoginService).migrateUser(user, mockJwt);
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto,
+                    result, request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/adminBaseUrl?redirectUrl=/dashboard?migrationStatus=success");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -620,7 +630,8 @@ class LoginControllerV2Test {
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
             doThrow(new RuntimeException()).when(oneLoginService).migrateUser(user, mockJwt);
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto,
+                    result, request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/adminBaseUrl?redirectUrl=/dashboard?migrationStatus=error");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -648,7 +659,8 @@ class LoginControllerV2Test {
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
             doNothing().when(oneLoginService).migrateUser(user, mockJwt);
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result,
+                    request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/redirectUrl?migrationStatus=success");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -676,13 +688,47 @@ class LoginControllerV2Test {
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
             doThrow(new RuntimeException()).when(oneLoginService).migrateUser(user, mockJwt);
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto,
+                    result, request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/applicantBaseUrl/dashboard?migrationStatus=error");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.MIGRATING_USER);
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.MIGRATION_FAILED);
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.USER_READY);
+        }
+
+        @Nested
+        class logout {
+            @Test
+            void testLogoutWithBlankCookie() {
+                String userServiceCookieName = "customJWT";
+                String applicantBaseUrl = "/applicantBaseUrl";
+
+                HttpServletRequest request = mock(HttpServletRequest.class);
+                HttpServletResponse response = mock(HttpServletResponse.class);
+                mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName")).thenReturn( new Cookie(userServiceCookieName, "") );
+                RedirectView methodResponse = loginController.logout(request, response);
+
+                verify(oneLoginService, never()).logoutUser(any(Cookie.class), any(HttpServletResponse.class));
+                Assertions.assertEquals(applicantBaseUrl, methodResponse.getUrl());
+            }
+
+            @Test
+            void testLogoutWithNonBlankCookie() {
+                String userServiceCookieName = "customJWT";
+                String applicantBaseUrl = "/applicantBaseUrl";
+
+                HttpServletRequest request = mock(HttpServletRequest.class);
+                HttpServletResponse response = mock(HttpServletResponse.class);
+                mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName")).thenReturn( new Cookie(userServiceCookieName, "ba") );
+                when(oneLoginService.logoutUser(any(), any())).thenReturn(new RedirectView(applicantBaseUrl));
+
+                RedirectView methodResponse = loginController.logout(request, response);
+
+                verify(oneLoginService, times(1)).logoutUser(any(Cookie.class), any(HttpServletResponse.class));
+                Assertions.assertEquals(applicantBaseUrl, methodResponse.getUrl());
+            }
         }
     }
 }

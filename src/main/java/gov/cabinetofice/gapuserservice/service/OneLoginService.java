@@ -1,5 +1,6 @@
 package gov.cabinetofice.gapuserservice.service;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
@@ -10,10 +11,7 @@ import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jwt.SignedJWT;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
-import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
-import gov.cabinetofice.gapuserservice.dto.MigrateUserDto;
-import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
-import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
+import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.*;
 import gov.cabinetofice.gapuserservice.model.Nonce;
@@ -23,6 +21,8 @@ import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.NonceRepository;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
+import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
 import io.jsonwebtoken.Jwts;
@@ -41,6 +41,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.servlet.view.RedirectView;
+
 
 import java.io.IOException;
 import java.net.URL;
@@ -75,6 +77,13 @@ public class OneLoginService {
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
 
+    @Value("${onelogin.logout-url}")
+    public String oneLoginLogoutEndpoint;
+
+    @Value("${onelogin.post-logout-redirect-uri}")
+    public String postLogoutRedirectUri;
+
+
     private static final String SCOPE = "openid email";
     private static final String VTR = "[\"Cl.Cm\"]";
     private static final String UI = "en";
@@ -85,6 +94,9 @@ public class OneLoginService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final WebClient.Builder webClientBuilder;
+    private final JwtBlacklistService jwtBlacklistService;
+    private final CustomJwtServiceImpl customJwtService;
+    private final OneLoginUserService oneLoginUserService;
 
     public PrivateKey parsePrivateKey() {
         try {
@@ -202,10 +214,11 @@ public class OneLoginService {
         return userRepository.findByEmailAddress(email);
     }
 
-    public Map<String, String> generateCustomJwtClaims(final OneLoginUserInfoDto userInfo) {
+    public Map<String, String> generateCustomJwtClaims(final OneLoginUserInfoDto userInfo, final String idToken) {
         final User user = getUserFromSub(userInfo.getSub())
                 .orElseThrow(() -> new UserNotFoundException("User not found when generating custom jwt claims"));
         final Map<String, String> claims = new HashMap<>();
+        claims.put("idToken", idToken);
         claims.put("email", userInfo.getEmailAddress());
         claims.put("sub", userInfo.getSub());
         claims.put("roles", user.getRoles().stream().map(Role::getName).toList().toString());
@@ -295,6 +308,15 @@ public class OneLoginService {
                 .block();
     }
 
+    public RedirectView logoutUser(final Cookie customJWTCookie, final HttpServletResponse response) {
+        final DecodedJWT decodedJwt = customJwtService.decodedJwt(customJWTCookie.getValue());
+        final JwtPayload payload = customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJwt);
+        oneLoginUserService.invalidateUserJwt(customJWTCookie, response);
+        return new RedirectView(oneLoginLogoutEndpoint + "?id_token_hint=" + sanitizeCode(payload.getIdToken()) +
+                "&post_logout_redirect_uri=" + postLogoutRedirectUri);
+    }
+
+
     public void validateIdToken(IdTokenDto decodedIdToken) {
 
         long currentEpochSeconds = Instant.now().getEpochSecond();
@@ -352,8 +374,7 @@ public class OneLoginService {
         return new String(decoder.decode(chunks[1]));
     }
 
-    public IdTokenDto getDecodedIdToken(final JSONObject tokenResponse) {
-        final String idToken = tokenResponse.getString("id_token");
+    public IdTokenDto decodeTokenId(final String idToken) {
         ObjectMapper mapper = new ObjectMapper();
         IdTokenDto decodedIdToken = new IdTokenDto();
         try {
@@ -373,3 +394,4 @@ public class OneLoginService {
         );
     }
 }
+

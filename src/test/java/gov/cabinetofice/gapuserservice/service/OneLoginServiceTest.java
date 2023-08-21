@@ -1,5 +1,7 @@
 package gov.cabinetofice.gapuserservice.service;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
+import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
 import gov.cabinetofice.gapuserservice.dto.MigrateUserDto;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
@@ -12,10 +14,15 @@ import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
+import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.http.HttpHeaders;
+import org.apache.http.HttpResponse;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.*;
@@ -48,8 +55,17 @@ public class OneLoginServiceTest {
 
     @InjectMocks
     private OneLoginService oneLoginService;
+    @Mock
+    private JwtBlacklistService jwtBlacklistService;
+
+    @Mock
+    private CustomJwtServiceImpl customJwtService;
+
+    @Mock
+    private OneLoginUserService oneLoginUserService;
 
     private static MockedStatic<RestUtils> mockedStatic;
+
 
     private Map<String, String> testKeyPair;
 
@@ -115,14 +131,16 @@ public class OneLoginServiceTest {
                 "&client_assertion_type=" + "assertion_type" +
                 "&client_assertion=" + "dummyJwt";
 
+        JSONObject expected = new JSONObject("{\"access_token\":\"dummyToken\"" +
+                ",\"token_type\":\"Bearer\",\"expires_in\":180}");
+
         when(RestUtils.postRequestWithBody(DUMMY_BASE_URL + "/token",
                 requestBody, "application/x-www-form-urlencoded"))
-                .thenReturn(new JSONObject("{\"access_token\":\"dummyToken\"" +
-                ",\"token_type\":\"Bearer\",\"expires_in\":180}"));
+                .thenReturn(expected);
 
-        String result = oneLoginService.getTokenResponse("dummyJwt", "dummyCode").getString("access_token");
+        JSONObject result = oneLoginService.getTokenResponse("dummyJwt", "dummyCode");
 
-        Assertions.assertEquals("dummyToken", result);
+        Assertions.assertEquals( result, expected);
     }
 
     @Test
@@ -156,6 +174,29 @@ public class OneLoginServiceTest {
 
         assertThrows(AuthenticationException.class, () -> oneLoginService
                 .getUserInfo("accessToken"));
+    }
+
+
+    @Test
+    void shouldReturnErrorWhenAccessTokenIsInvalid() throws IOException, JSONException {
+
+        String expectedResponse = "{\"error_description\":\"Invalid grant\",\"error\":\"invalid_grant\"}";
+
+        String requestBody = "grant_type=" + GRANT_TYPE +
+                "&code=" + "dummyCode" +
+                "&redirect_uri=" + DUMMY_BASE_URL + "/redirect" +
+                "&client_assertion_type=" + "assertion_type" +
+                "&client_assertion=" + "dummyJwt";
+
+        when(RestUtils.postRequestWithBody(DUMMY_BASE_URL + "/token",
+                requestBody, "application/x-www-form-urlencoded"))
+                .thenReturn(new JSONObject(expectedResponse));
+
+        JSONObject jsonResponse = oneLoginService
+                .getTokenResponse("dummyJwt", "dummyCode");
+        JSONObject jsonExpectedResponse = new JSONObject(expectedResponse);
+
+        Assertions.assertEquals(jsonResponse.getString("error_description"), jsonExpectedResponse.getString("error_description"));
     }
 
     @Test
@@ -254,7 +295,7 @@ public class OneLoginServiceTest {
             final User user = userBuilder.build();
             when(userRepository.findBySub(any())).thenReturn(Optional.of(user));
 
-            final Map<String, String> result = oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto);
+            final Map<String, String> result = oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto, "tokenHint");
 
             Assertions.assertEquals("sub", result.get("sub"));
             Assertions.assertEquals("email", result.get("email"));
@@ -265,7 +306,7 @@ public class OneLoginServiceTest {
             final User user = userBuilder.build();
             when(userRepository.findBySub(any())).thenReturn(Optional.of(user));
 
-            final Map<String, String> result = oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto);
+            final Map<String, String> result = oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto, "tokenHint");
 
             Assertions.assertEquals("[APPLICANT, FIND]", result.get("roles"));
         }
@@ -275,7 +316,7 @@ public class OneLoginServiceTest {
             final User user = userBuilder.build();
             when(userRepository.findBySub(any())).thenReturn(Optional.of(user));
 
-            final Map<String, String> result = oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto);
+            final Map<String, String> result = oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto, "tokenHint");
 
             Assertions.assertEquals("department", result.get("department"));
         }
@@ -285,7 +326,7 @@ public class OneLoginServiceTest {
             final User user = userBuilder.department(null).build();
             when(userRepository.findBySub(any())).thenReturn(Optional.of(user));
 
-            final Map<String, String> result = oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto);
+            final Map<String, String> result = oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto, "tokenHint");
 
             Assertions.assertNull(result.get("department"));
         }
@@ -294,7 +335,7 @@ public class OneLoginServiceTest {
         void shouldThrowUserNotFoundException_whenUserNotFound() {
             when(userRepository.findBySub(any())).thenReturn(Optional.empty());
 
-            assertThrows(UserNotFoundException.class, () -> oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto));
+            assertThrows(UserNotFoundException.class, () -> oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto, "tokenHint"));
         }
     }
 
@@ -368,7 +409,28 @@ public class OneLoginServiceTest {
             verify(mockRequestBodySpec).header("Authorization", "Bearer jwt");
             verify(mockRequestBodySpec).bodyValue(migrateUserDto);
         }
-    }
+
+
+        @Test
+        void testLogoutUser() throws IOException, JSONException {
+            String tokenValue = "token.in.threeParts";
+            HttpServletResponse response = mock(HttpServletResponse.class);
+            HttpResponse httpResponse = mock(HttpResponse.class);
+            DecodedJWT decodedJWT = mock(DecodedJWT.class);
+            JwtPayload payload = new JwtPayload();
+            payload.setIdToken(tokenValue);
+
+            when(customJwtService.decodedJwt(tokenValue)).thenReturn(decodedJWT);
+            when(customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJWT)).thenReturn(payload);
+            when(RestUtils.getRequest(any())).thenReturn(httpResponse);
+            Cookie customJWTCookie = new Cookie("customJWT", tokenValue);
+
+            oneLoginService.logoutUser(customJWTCookie, response);
+
+            verify(customJwtService, times(1)).decodedJwt(tokenValue);
+            verify(customJwtService, times(1)).decodeTheTokenPayloadInAReadableFormat(decodedJWT);
+        }
+}
 
     @Test
     void generateStateJson() {
@@ -394,9 +456,11 @@ public class OneLoginServiceTest {
     void getDecodedIdToken() throws JSONException {
         final IdTokenDto.IdTokenDtoBuilder idTokenDtoBuilder = IdTokenDto.builder().nonce("nonce");
         final JSONObject tokenResponse = new JSONObject();
-        tokenResponse.put("id_token", "eyJraWQiOiI2NDRhZjU5OGI3ODBmNTQxMDZjYTBmM2MwMTczNDFiYzIzMGM0ZjgzNzNmMzVmMzJlMThlM2U0MGNjN2FjZmY2IiwiYWxnIjoiRVMyNTYifQ.eyJzdWIiOm51bGwsImF0X2hhc2giOm51bGwsImlzcyI6bnVsbCwiYXVkIjpudWxsLCJleHAiOjAsImlhdCI6MCwidm90IjpudWxsLCJ2dG0iOm51bGwsInNpZCI6bnVsbCwibm9uY2UiOiJub25jZSJ9.AvCEdn3oHfwQoMtf8xgYZ0vfeNi1ELuT5Egndb2M1njBgRSuZsOgFPrHLzTkeT_XYjqI06J48MtI9q-inpQ3Ag");
+        String idToken = "eyJraWQiOiI2NDRhZjU5OGI3ODBmNTQxMDZjYTBmM2MwMTczNDFiYzIzMGM0ZjgzNzNmMzVmMzJlMThlM2U0MGNjN2FjZmY2IiwiYWxnIjoiRVMyNTYifQ.eyJzdWIiOm51bGwsImF0X2hhc2giOm51bGwsImlzcyI6bnVsbCwiYXVkIjpudWxsLCJleHAiOjAsImlhdCI6MCwidm90IjpudWxsLCJ2dG0iOm51bGwsInNpZCI6bnVsbCwibm9uY2UiOiJub25jZSJ9.AvCEdn3oHfwQoMtf8xgYZ0vfeNi1ELuT5Egndb2M1njBgRSuZsOgFPrHLzTkeT_XYjqI06J48MtI9q-inpQ3Ag";
+
+        tokenResponse.put("id_token", idToken);
         final IdTokenDto expected = idTokenDtoBuilder.build();
-        final IdTokenDto result = oneLoginService.getDecodedIdToken(tokenResponse);
+        final IdTokenDto result = oneLoginService.decodeTokenId(idToken);
         Assertions.assertEquals(expected, result);
     }
 
