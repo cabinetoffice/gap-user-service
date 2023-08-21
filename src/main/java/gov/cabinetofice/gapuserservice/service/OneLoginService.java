@@ -27,8 +27,6 @@ import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.http.HttpHeaders;
-import org.apache.http.HttpResponse;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
@@ -36,6 +34,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.servlet.view.RedirectView;
 
 import java.io.IOException;
 import java.security.KeyFactory;
@@ -298,27 +297,14 @@ public class OneLoginService {
                 .block();
     }
 
-    public HttpResponse logoutUser(final Cookie customJWTCookie, final HttpServletResponse response) {
-        try {
-
-            final DecodedJWT decodedJwt = customJwtService.decodedJwt(customJWTCookie.getValue());
-            final JwtPayload payload = customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJwt);
-
-            HttpResponse res = RestUtils.getRequest(oneLoginLogoutEndpoint + "?id_token_hint=" + sanitizeCode(payload.getIdToken()) +
-                    "&post_logout_redirect_uri=" + postLogoutRedirectUri);
-
-            if(res.getStatusLine().getStatusCode() == 401 || res.getStatusLine().getStatusCode() == 403) {
-                log.error("One Login's logout endpoint returned 401 or 403 with jwt: " + customJWTCookie.getValue());
-            }
-
-            oneLoginUserService.invalidateUserJwt(customJWTCookie, response);
-            return res;
-        } catch (IOException e) {
-            throw new InvalidRequestException("invalid request");
-        } catch (JSONException e) {
-            throw new AuthenticationException("unable to retrieve tokenHint");
-        }
+    public RedirectView logoutUser(final Cookie customJWTCookie, final HttpServletResponse response) {
+        final DecodedJWT decodedJwt = customJwtService.decodedJwt(customJWTCookie.getValue());
+        final JwtPayload payload = customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJwt);
+        oneLoginUserService.invalidateUserJwt(customJWTCookie, response);
+        return new RedirectView(oneLoginLogoutEndpoint + "?id_token_hint=" + sanitizeCode(payload.getIdToken()) +
+                "&post_logout_redirect_uri=" + postLogoutRedirectUri);
     }
+
     
     private String decodeJWT(final String token) {
         String[] chunks = token.split("\\.");

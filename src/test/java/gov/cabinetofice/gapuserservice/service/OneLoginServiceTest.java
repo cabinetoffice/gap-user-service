@@ -19,7 +19,6 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
-import org.apache.http.StatusLine;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.*;
@@ -416,8 +415,6 @@ public class OneLoginServiceTest {
             when(customJwtService.decodedJwt(tokenValue)).thenReturn(decodedJWT);
             when(customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJWT)).thenReturn(payload);
             when(RestUtils.getRequest(any())).thenReturn(httpResponse);
-            when(httpResponse.getStatusLine()).thenReturn(mock(StatusLine.class));
-
             Cookie customJWTCookie = new Cookie("customJWT", tokenValue);
 
             oneLoginService.logoutUser(customJWTCookie, response);
