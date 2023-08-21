@@ -27,6 +27,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
@@ -298,6 +299,7 @@ public class OneLoginService {
 
     public HttpResponse logoutUser(final Cookie customJWTCookie, final HttpServletResponse response) {
         try {
+
             final DecodedJWT decodedJwt = customJwtService.decodedJwt(customJWTCookie.getValue());
             final JwtPayload payload = customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJwt);
 
@@ -305,7 +307,8 @@ public class OneLoginService {
                     "&post_logout_redirect_uri=" + postLogoutRedirectUri);
 
             if(res.getStatusLine().getStatusCode() == 401 || res.getStatusLine().getStatusCode() == 403) {
-                System.out.println("One Login's logout endpoint returned 401 or 403 with jwt: " + customJWTCookie.getValue());
+                final Logger logger = null;
+                logger.error("One Login's logout endpoint returned 401 or 403 with jwt: " + customJWTCookie.getValue());
             }
 
             oneLoginUserService.invalidateUserJwt(customJWTCookie, response);
