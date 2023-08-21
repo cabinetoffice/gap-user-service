@@ -330,7 +330,12 @@ public class OneLoginService {
 
             ECDSAVerifier verifier = new ECDSAVerifier((ECKey) matchingJwk);
 
-            if (!signedAuthToken.verify(verifier) || !signedAuthToken.getHeader().getAlgorithm().equals(jwtAlgorithm)) {
+            if (!matchingJwk.getAlgorithm().equals(jwtAlgorithm)) {
+                log.error("Invalid id token algorithm {}", jwtAlgorithm);
+                throw new UnauthorizedException("Invalid id token algorithm");
+            }
+
+            if (!signedAuthToken.verify(verifier)) {
                 log.error("Invalid id token signature {}", signedAuthToken);
                 throw new UnauthorizedException("Invalid id token signature");
             }
