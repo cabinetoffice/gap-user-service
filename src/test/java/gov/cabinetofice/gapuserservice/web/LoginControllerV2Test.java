@@ -192,7 +192,7 @@ class LoginControllerV2Test {
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(userBuilder.build());
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
             when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
@@ -216,7 +216,7 @@ class LoginControllerV2Test {
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
             when(oneLoginService.createOrGetUserFromInfo(oneLoginUserInfoDto)).thenReturn(userBuilder.build());
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
             when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
@@ -242,7 +242,7 @@ class LoginControllerV2Test {
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(userBuilder.build());
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.generateCustomJwtClaims(any(), any())).thenReturn(claims);
             when(customJwtService.generateToken(claims)).thenReturn("jwtToken");
@@ -267,7 +267,7 @@ class LoginControllerV2Test {
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(userBuilder.build());
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
             when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
@@ -295,7 +295,7 @@ class LoginControllerV2Test {
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
             when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
@@ -324,7 +324,7 @@ class LoginControllerV2Test {
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
             when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
@@ -353,7 +353,7 @@ class LoginControllerV2Test {
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
             when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
@@ -375,7 +375,7 @@ class LoginControllerV2Test {
 
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonceBuilder.build());
             when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
@@ -390,8 +390,6 @@ class LoginControllerV2Test {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final JSONObject tokenResponse = new JSONObject();
             tokenResponse.put("id_token", idToken);
-            tokenResponse.put("tokenHint", "blah");
-            tokenResponse.put("access_token", "blah");
             final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
                     .nonceId(1)
                     .nonceString("nonce")
@@ -399,7 +397,7 @@ class LoginControllerV2Test {
             final Nonce nonce = nonceBuilder.build();
 
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonce);
             when(oneLoginService.isNonceExpired(nonce)).thenReturn(true);
@@ -414,8 +412,6 @@ class LoginControllerV2Test {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final JSONObject tokenResponse = new JSONObject();
             tokenResponse.put("id_token", idToken);
-            tokenResponse.put("tokenHint", "blah");
-            tokenResponse.put("access_token", "blah");
             final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
                     .nonceId(1)
                     .nonceString("invalid_nonce")
@@ -423,7 +419,7 @@ class LoginControllerV2Test {
             final Nonce nonce = nonceBuilder.build();
 
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonce);
             when(oneLoginService.isNonceExpired(nonce)).thenReturn(false);
@@ -438,8 +434,6 @@ class LoginControllerV2Test {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final JSONObject tokenResponse = new JSONObject();
             tokenResponse.put("id_token", idToken);
-            tokenResponse.put("tokenHint", "tokenHint");
-            tokenResponse.put("access_token", "access_token");
             final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
                     .nonceId(1)
                     .nonceString("nonce")
@@ -447,7 +441,7 @@ class LoginControllerV2Test {
             final Nonce nonce = nonceBuilder.build();
 
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
-            when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
+            when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.readAndDeleteNonce("nonce")).thenReturn(nonce);
             when(oneLoginService.isNonceExpired(nonce)).thenReturn(false);

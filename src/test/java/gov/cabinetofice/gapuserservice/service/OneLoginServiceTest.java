@@ -411,7 +411,7 @@ public class OneLoginServiceTest {
             HttpResponse httpResponse = mock(HttpResponse.class);
             DecodedJWT decodedJWT = mock(DecodedJWT.class);
             JwtPayload payload = new JwtPayload();
-            payload.setTokenHint(tokenValue);
+            payload.setIdToken(tokenValue);
 
             when(customJwtService.decodedJwt(tokenValue)).thenReturn(decodedJWT);
             when(customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJWT)).thenReturn(payload);
@@ -451,9 +451,11 @@ public class OneLoginServiceTest {
     void getDecodedIdToken() throws JSONException {
         final IdTokenDto.IdTokenDtoBuilder idTokenDtoBuilder = IdTokenDto.builder().nonce("nonce");
         final JSONObject tokenResponse = new JSONObject();
-        tokenResponse.put("id_token", "eyJraWQiOiI2NDRhZjU5OGI3ODBmNTQxMDZjYTBmM2MwMTczNDFiYzIzMGM0ZjgzNzNmMzVmMzJlMThlM2U0MGNjN2FjZmY2IiwiYWxnIjoiRVMyNTYifQ.eyJzdWIiOm51bGwsImF0X2hhc2giOm51bGwsImlzcyI6bnVsbCwiYXVkIjpudWxsLCJleHAiOjAsImlhdCI6MCwidm90IjpudWxsLCJ2dG0iOm51bGwsInNpZCI6bnVsbCwibm9uY2UiOiJub25jZSJ9.AvCEdn3oHfwQoMtf8xgYZ0vfeNi1ELuT5Egndb2M1njBgRSuZsOgFPrHLzTkeT_XYjqI06J48MtI9q-inpQ3Ag");
+        String idToken = "eyJraWQiOiI2NDRhZjU5OGI3ODBmNTQxMDZjYTBmM2MwMTczNDFiYzIzMGM0ZjgzNzNmMzVmMzJlMThlM2U0MGNjN2FjZmY2IiwiYWxnIjoiRVMyNTYifQ.eyJzdWIiOm51bGwsImF0X2hhc2giOm51bGwsImlzcyI6bnVsbCwiYXVkIjpudWxsLCJleHAiOjAsImlhdCI6MCwidm90IjpudWxsLCJ2dG0iOm51bGwsInNpZCI6bnVsbCwibm9uY2UiOiJub25jZSJ9.AvCEdn3oHfwQoMtf8xgYZ0vfeNi1ELuT5Egndb2M1njBgRSuZsOgFPrHLzTkeT_XYjqI06J48MtI9q-inpQ3Ag";
+
+        tokenResponse.put("id_token", idToken);
         final IdTokenDto expected = idTokenDtoBuilder.build();
-        final IdTokenDto result = oneLoginService.getDecodedIdToken(tokenResponse);
+        final IdTokenDto result = oneLoginService.decodeTokenId(idToken);
         Assertions.assertEquals(expected, result);
     }
 
