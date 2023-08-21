@@ -360,6 +360,7 @@ class LoginControllerV2Test {
 
         @Test
         void shouldRedirectToTechSupportDashboard_whenUserIsTechSupport() throws JSONException {
+
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final User user = userBuilder
                     .roles(List.of(Role.builder().name(RoleEnum.TECHNICAL_SUPPORT).build()))
@@ -368,7 +369,13 @@ class LoginControllerV2Test {
             final JSONObject tokenResponse = new JSONObject();
             tokenResponse.put("id_token", idToken).put("access_token", accessToken);
 
+            final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
+                    .emailAddress("email")
+                    .sub("sub")
+                    .build();
+
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
+            when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
             when(oneLoginService.getDecodedIdToken(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
@@ -384,7 +391,9 @@ class LoginControllerV2Test {
         void shouldRequireReauthentication_ifNonceIsExpired() throws JSONException {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final JSONObject tokenResponse = new JSONObject();
-            tokenResponse.put("id_token", idToken);
+            tokenResponse.put("id_token", idToken).put("access_token", accessToken);
+
+            when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
                     .nonceId(1)
                     .nonceString("nonce")
@@ -406,7 +415,8 @@ class LoginControllerV2Test {
         void shouldRequireReauthentication_ifNonceDoesNotMatch() throws JSONException {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final JSONObject tokenResponse = new JSONObject();
-            tokenResponse.put("id_token", idToken);
+            tokenResponse.put("id_token", idToken).put("access_token", accessToken);
+
             final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
                     .nonceId(1)
                     .nonceString("invalid_nonce")
@@ -428,7 +438,7 @@ class LoginControllerV2Test {
         void shouldRequireReauthentication_ifStateDoesNotMatch() throws JSONException {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final JSONObject tokenResponse = new JSONObject();
-            tokenResponse.put("id_token", idToken);
+            tokenResponse.put("id_token", idToken).put("access_token", accessToken);;
             final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
                     .nonceId(1)
                     .nonceString("nonce")
