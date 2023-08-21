@@ -14,8 +14,8 @@ public class IdTokenDto {
     private String at_hash;
     private String iss;
     private String aud;
-    private int exp;
-    private int iat;
+    private long exp;
+    private long iat;
     private String vot;
     private String vtm;
     private String sid;
