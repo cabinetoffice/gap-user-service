@@ -23,11 +23,11 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
-import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
@@ -47,6 +47,7 @@ import static gov.cabinetofice.gapuserservice.util.HelperUtils.generateSecureRan
 
 @RequiredArgsConstructor
 @Service
+@Log4j2
 public class OneLoginService {
 
     @Value("${onelogin.client-id}")
@@ -307,8 +308,7 @@ public class OneLoginService {
                     "&post_logout_redirect_uri=" + postLogoutRedirectUri);
 
             if(res.getStatusLine().getStatusCode() == 401 || res.getStatusLine().getStatusCode() == 403) {
-                final Logger logger = null;
-                logger.error("One Login's logout endpoint returned 401 or 403 with jwt: " + customJWTCookie.getValue());
+                log.error("One Login's logout endpoint returned 401 or 403 with jwt: " + customJWTCookie.getValue());
             }
 
             oneLoginUserService.invalidateUserJwt(customJWTCookie, response);
