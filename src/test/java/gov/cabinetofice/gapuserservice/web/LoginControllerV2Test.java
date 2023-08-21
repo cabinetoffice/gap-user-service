@@ -467,7 +467,7 @@ class LoginControllerV2Test {
                     .thenReturn(new Cookie("userServiceCookieName", mockJwt));
             when(result.hasErrors()).thenReturn(true);
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, Optional.of(redirectUrl));
             assertThat(methodResponse.getViewName()).isEqualTo(LoginControllerV2.PRIVACY_POLICY_PAGE_VIEW);
             verify(oneLoginService,  times(0)).setUsersLoginJourneyState(any(), any());
         }
@@ -489,7 +489,8 @@ class LoginControllerV2Test {
             when(result.hasErrors()).thenReturn(false);
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result,
+                    request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:" + redirectUrl);
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -513,7 +514,8 @@ class LoginControllerV2Test {
             when(result.hasErrors()).thenReturn(false);
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result,
+                    request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/adminBaseUrl?redirectUrl=/dashboard");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -537,7 +539,8 @@ class LoginControllerV2Test {
             when(result.hasErrors()).thenReturn(false);
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result,
+                    request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/adminBaseUrl?redirectUrl=/super-admin-dashboard");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -561,7 +564,8 @@ class LoginControllerV2Test {
             when(result.hasErrors()).thenReturn(false);
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result,
+                    request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/techSupportAppBaseUrl");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -587,7 +591,8 @@ class LoginControllerV2Test {
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
             doNothing().when(oneLoginService).migrateUser(user, mockJwt);
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto,
+                    result, request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/adminBaseUrl?redirectUrl=/dashboard?migrationStatus=success");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -615,7 +620,8 @@ class LoginControllerV2Test {
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
             doThrow(new RuntimeException()).when(oneLoginService).migrateUser(user, mockJwt);
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto,
+                    result, request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/adminBaseUrl?redirectUrl=/dashboard?migrationStatus=error");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -643,7 +649,8 @@ class LoginControllerV2Test {
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
             doNothing().when(oneLoginService).migrateUser(user, mockJwt);
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result,
+                    request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/redirectUrl?migrationStatus=success");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -671,7 +678,8 @@ class LoginControllerV2Test {
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
             doThrow(new RuntimeException()).when(oneLoginService).migrateUser(user, mockJwt);
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto,
+                    result, request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/applicantBaseUrl/dashboard?migrationStatus=error");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);

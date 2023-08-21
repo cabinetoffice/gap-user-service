@@ -135,13 +135,14 @@ public class LoginControllerV2 {
             final @Valid @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto,
             final BindingResult result,
             final HttpServletRequest request,
-            final @CookieValue(name = REDIRECT_URL_NAME) String redirectUrlCookie) {
+            final @CookieValue(name = REDIRECT_URL_NAME) Optional<String> redirectUrlCookie) {
         if (result.hasErrors())
             return submitToPrivacyPolicyPage(privacyPolicyDto);
         final Cookie customJWTCookie = getCustomJwtCookieFromRequest(request);
         final User user = getUserFromCookie(customJWTCookie)
                 .orElseThrow(() -> new UserNotFoundException("Privacy policy: Could not fetch user from jwt"));
-        return new ModelAndView("redirect:" + runStateMachine(redirectUrlCookie, user, customJWTCookie.getValue()));
+        return new ModelAndView("redirect:" + runStateMachine(redirectUrlCookie
+                .orElse(configProperties.getDefaultRedirectUrl()), user, customJWTCookie.getValue()));
     }
 
     @GetMapping("/logout")
