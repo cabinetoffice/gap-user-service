@@ -203,11 +203,11 @@ public class OneLoginService {
         return userRepository.findByEmailAddress(email);
     }
 
-    public Map<String, String> generateCustomJwtClaims(final OneLoginUserInfoDto userInfo, final String tokenHint) {
+    public Map<String, String> generateCustomJwtClaims(final OneLoginUserInfoDto userInfo, final String idToken) {
         final User user = getUserFromSub(userInfo.getSub())
                 .orElseThrow(() -> new UserNotFoundException("User not found when generating custom jwt claims"));
         final Map<String, String> claims = new HashMap<>();
-        claims.put("tokenHint", tokenHint);
+        claims.put("idToken", idToken);
         claims.put("email", userInfo.getEmailAddress());
         claims.put("sub", userInfo.getSub());
         claims.put("roles", user.getRoles().stream().map(Role::getName).toList().toString());
@@ -303,7 +303,7 @@ public class OneLoginService {
             final DecodedJWT decodedJwt = customJwtService.decodedJwt(customJWTCookie.getValue());
             final JwtPayload payload = customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJwt);
 
-            HttpResponse res = RestUtils.getRequest(oneLoginLogoutEndpoint + "?id_token_hint=" + payload.getTokenHint() +
+            HttpResponse res = RestUtils.getRequest(oneLoginLogoutEndpoint + "?id_token_hint=" + sanitizeCode(payload.getIdToken()) +
                     "&post_logout_redirect_uri=" + postLogoutRedirectUri);
 
             if(res.getStatusLine().getStatusCode() == 401 || res.getStatusLine().getStatusCode() == 403) {
@@ -326,8 +326,7 @@ public class OneLoginService {
         return new String(decoder.decode(chunks[1]));
     }
 
-    public IdTokenDto getDecodedIdToken(final JSONObject tokenResponse) {
-        final String idToken = tokenResponse.getString("id_token");
+    public IdTokenDto decodeTokenId(final String idToken) {
         ObjectMapper mapper = new ObjectMapper();
         IdTokenDto decodedIdToken = new IdTokenDto();
         try {

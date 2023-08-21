@@ -125,7 +125,7 @@ public class CustomJwtServiceImpl implements JwtService {
         final String sub = jwt.getSubject();
         final String roles = jsonObject.getString("roles");
         final String iss = jsonObject.getString("iss");
-        final String tokenHint = jsonObject.getString("tokenHint");
+        final String idToken = jsonObject.getString("idToken");
         final String aud = jsonObject.getString("aud");
         final int exp = jsonObject.getInt("exp");
         final int iat = jsonObject.getInt("iat");
@@ -133,7 +133,7 @@ public class CustomJwtServiceImpl implements JwtService {
         return JwtPayload.builder()
                 .sub(sub)
                 .roles(roles)
-                .tokenHint(tokenHint)
+                .idToken(idToken)
                 .iss(iss)
                 .aud(aud)
                 .exp(exp)

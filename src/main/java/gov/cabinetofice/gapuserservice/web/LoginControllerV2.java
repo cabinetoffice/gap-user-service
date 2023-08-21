@@ -104,19 +104,19 @@ public class LoginControllerV2 {
              final @RequestParam String code,
             final @RequestParam String state) {
         final JSONObject tokenResponse = oneLoginService.getOneLoginUserTokenResponse(code);
-        final String authToken = tokenResponse.getString("access_token");
-        final String tokenHint = tokenResponse.getString("id_token");
+        final String idToken = tokenResponse.getString("id_token");
 
-        IdTokenDto decodedIdToken = oneLoginService.getDecodedIdToken(tokenResponse);
+        IdTokenDto decodedIdToken = oneLoginService.decodeTokenId(idToken);
 
         final StateCookieDto stateCookieDto = oneLoginService.decodeStateCookie(stateCookie);
         final String redirectUrl = stateCookieDto.getRedirectUrl();
 
         verifyStateAndNonce(decodedIdToken.getNonce(), stateCookieDto, state);
 
+        final String authToken = tokenResponse.getString("access_token");
         final OneLoginUserInfoDto userInfo = oneLoginService.getOneLoginUserInfoDto(authToken);
         final User user = oneLoginService.createOrGetUserFromInfo(userInfo);
-        addCustomJwtCookie(response, userInfo, tokenHint);
+        addCustomJwtCookie(response, userInfo, idToken);
 
         return new RedirectView(user.getLoginJourneyState()
                 .getLoginJourneyRedirect(user.getHighestRole().getName())
@@ -155,8 +155,8 @@ public class LoginControllerV2 {
     }
 
 
-    private void addCustomJwtCookie(final HttpServletResponse response, final OneLoginUserInfoDto userInfo, final String tokenHint) {
-        final Map<String, String> customJwtClaims = oneLoginService.generateCustomJwtClaims(userInfo, tokenHint);
+    private void addCustomJwtCookie(final HttpServletResponse response, final OneLoginUserInfoDto userInfo, final String idToken) {
+        final Map<String, String> customJwtClaims = oneLoginService.generateCustomJwtClaims(userInfo, idToken);
         final String customServiceJwt = customJwtService.generateToken(customJwtClaims);
         final Cookie customJwt = WebUtil.buildSecureCookie(userServiceCookieName, customServiceJwt);
         response.addCookie(customJwt);
