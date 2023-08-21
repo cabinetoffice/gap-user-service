@@ -46,13 +46,22 @@ public class LoggingInterceptor implements HandlerInterceptor {
                 .collect(Collectors.toList());
     }
 
+    public List<String> getCookiesFromRequest(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return new ArrayList<>();
+        }
+        return removeJWTFromCookies(cookies);
+    }
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         String jsonString = new JSONObject()
+                .put("event", "incoming request")
                 .put("URL", request.getRequestURL())
                 .put("method", request.getMethod())
                 .put("headers", new JSONObject(getHeadersFromRequest(request)))
-                .put("cookies", removeJWTFromCookies(request.getCookies()))
+                .put("cookies", getCookiesFromRequest(request))
                 .toString();
         log.info(jsonString);
         return true;
@@ -62,8 +71,10 @@ public class LoggingInterceptor implements HandlerInterceptor {
     public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler,
                            @Nullable ModelAndView modelAndView) {
         String jsonString = new JSONObject()
+                .put("event", "outgoing response")
                 .put("requestURL", request.getRequestURL())
                 .put("requestMethod", request.getMethod())
+                .put("status",  response.getStatus())
                 .put("headers", new JSONObject(getHeadersFromResponse(response)))
                 .toString();
         log.info(jsonString);
