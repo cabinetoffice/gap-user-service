@@ -3,6 +3,13 @@ package gov.cabinetofice.gapuserservice.service;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.crypto.ECDSAVerifier;
+import com.nimbusds.jose.jwk.ECKey;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jwt.SignedJWT;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
@@ -27,8 +34,6 @@ import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.http.HttpHeaders;
-import org.apache.http.HttpResponse;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
@@ -36,10 +41,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.servlet.view.RedirectView;
+
 import java.io.IOException;
+import java.net.URL;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.text.ParseException;
+import java.time.Instant;
 import java.util.*;
 
 import static gov.cabinetofice.gapuserservice.util.HelperUtils.generateSecureRandomString;
@@ -298,40 +308,70 @@ public class OneLoginService {
                 .block();
     }
 
+    public RedirectView logoutUser(final Cookie customJWTCookie, final HttpServletResponse response) {
+        final DecodedJWT decodedJwt = customJwtService.decodedJwt(customJWTCookie.getValue());
+        final JwtPayload payload = customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJwt);
+        oneLoginUserService.invalidateUserJwt(customJWTCookie, response);
+        return new RedirectView(oneLoginLogoutEndpoint + "?id_token_hint=" + sanitizeCode(payload.getIdToken()) +
+                "&post_logout_redirect_uri=" + postLogoutRedirectUri);
+    }
+
+
+    public void validateIdToken(IdTokenDto decodedIdToken) {
+
+        long currentEpochSeconds = Instant.now().getEpochSecond();
+
+        if (!decodedIdToken.getIss().equals(oneLoginBaseUrl.concat("/")) ||
+                !decodedIdToken.getAud().equals(clientId) ||
+                currentEpochSeconds > decodedIdToken.getExp() ||
+                currentEpochSeconds < decodedIdToken.getIat()) {
+            log.error("Invalid id token {}", decodedIdToken);
+            throw new UnauthorizedException("Invalid id token");
+        }
+    }
+
+    public void validateUserSub(String IdTokenSub, String userInfoStub) {
+        if (!IdTokenSub.equals(userInfoStub)) {
+            log.error("User subs do not match {} {}", IdTokenSub, userInfoStub);
+            throw new UnauthorizedException("Invalid User sub");
+        }
+    }
+
+
+    public void validateAuthTokenSignatureAndAlgorithm(String authToken) {
+
+        try {
+            SignedJWT signedAuthToken = SignedJWT.parse(authToken);
+            JWSAlgorithm jwtAlgorithm = JWSAlgorithm.parse(signedAuthToken.getHeader().getAlgorithm().getName());
+            String keyId = signedAuthToken.getHeader().getKeyID();
+
+            JWKSet jwkSet = JWKSet.load(new URL(oneLoginBaseUrl.concat("/.well-known/jwks.json")));
+            Optional<JWK> optionalMatchingJwk = Optional.ofNullable(jwkSet.getKeyByKeyId(keyId));
+            JWK matchingJwk = optionalMatchingJwk.orElseThrow(() -> new UnauthorizedException
+                    ("Matching JWK not found for key ID: " + keyId));
+
+            ECDSAVerifier verifier = new ECDSAVerifier((ECKey) matchingJwk);
+
+            if (!matchingJwk.getAlgorithm().equals(jwtAlgorithm)) {
+                log.error("Invalid id token algorithm {}", jwtAlgorithm);
+                throw new UnauthorizedException("Invalid id token algorithm");
+            }
+
+            if (!signedAuthToken.verify(verifier)) {
+                log.error("Invalid id token signature {}", signedAuthToken);
+                throw new UnauthorizedException("Invalid id token signature");
+            }
+
+        } catch (IOException | ParseException | JOSEException e) {
+            log.error("Unable to validate access token {} due to {}", authToken, e);
+            throw new UnauthorizedException("Unable to validate access token {}", e);
+        }
+    }
+
     private String decodeJWT(final String token) {
         String[] chunks = token.split("\\.");
         Base64.Decoder decoder = Base64.getUrlDecoder();
         return new String(decoder.decode(chunks[1]));
-    }
-    private String sanitizeCode(String code) {
-        return Jsoup.clean(
-                StringEscapeUtils.escapeHtml4(
-                        StringEscapeUtils.escapeEcmaScript(StringUtils.replace(code, "'", "''"))
-                ),
-                Safelist.basic()
-        );
-    }
-
-    public HttpResponse logoutUser(final Cookie customJWTCookie, final HttpServletResponse response) {
-        try {
-
-            final DecodedJWT decodedJwt = customJwtService.decodedJwt(customJWTCookie.getValue());
-            final JwtPayload payload = customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJwt);
-
-            HttpResponse res = RestUtils.getRequest(oneLoginLogoutEndpoint + "?id_token_hint=" + sanitizeCode(payload.getIdToken()) +
-                    "&post_logout_redirect_uri=" + postLogoutRedirectUri);
-
-            if(res.getStatusLine().getStatusCode() == 401 || res.getStatusLine().getStatusCode() == 403) {
-                log.error("One Login's logout endpoint returned 401 or 403 with jwt: " + customJWTCookie.getValue());
-            }
-
-            oneLoginUserService.invalidateUserJwt(customJWTCookie, response);
-            return res;
-        } catch (IOException e) {
-            throw new InvalidRequestException("invalid request");
-        } catch (JSONException e) {
-            throw new AuthenticationException("unable to retrieve tokenHint");
-        }
     }
 
     public IdTokenDto decodeTokenId(final String idToken) {
@@ -343,6 +383,15 @@ public class OneLoginService {
             e.printStackTrace();
         }
         return decodedIdToken;
+    }
+
+    private String sanitizeCode(String code) {
+        return Jsoup.clean(
+                StringEscapeUtils.escapeHtml4(
+                        StringEscapeUtils.escapeEcmaScript(StringUtils.replace(code, "'", "''"))
+                ),
+                Safelist.basic()
+        );
     }
 }
 

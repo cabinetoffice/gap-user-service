@@ -372,6 +372,7 @@ class LoginControllerV2Test {
 
         @Test
         void shouldRedirectToTechSupportDashboard_whenUserIsTechSupport() throws JSONException {
+
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final User user = userBuilder
                     .roles(List.of(Role.builder().name(RoleEnum.TECHNICAL_SUPPORT).build()))
@@ -380,7 +381,13 @@ class LoginControllerV2Test {
             final JSONObject tokenResponse = new JSONObject();
             tokenResponse.put("id_token", idToken).put("access_token", accessToken);
 
+            final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
+                    .emailAddress("email")
+                    .sub("sub")
+                    .build();
+
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
+            when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
             when(oneLoginService.createOrGetUserFromInfo(any())).thenReturn(user);
             when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
@@ -396,7 +403,9 @@ class LoginControllerV2Test {
         void shouldRequireReauthentication_ifNonceIsExpired() throws JSONException {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final JSONObject tokenResponse = new JSONObject();
-            tokenResponse.put("id_token", idToken);
+            tokenResponse.put("id_token", idToken).put("access_token", accessToken);
+
+            when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
                     .nonceId(1)
                     .nonceString(nonce)
@@ -418,7 +427,8 @@ class LoginControllerV2Test {
         void shouldRequireReauthentication_ifNonceDoesNotMatch() throws JSONException {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final JSONObject tokenResponse = new JSONObject();
-            tokenResponse.put("id_token", idToken);
+            tokenResponse.put("id_token", idToken).put("access_token", accessToken);
+
             final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
                     .nonceId(1)
                     .nonceString("invalid_nonce")
@@ -440,7 +450,7 @@ class LoginControllerV2Test {
         void shouldRequireReauthentication_ifStateDoesNotMatch() throws JSONException {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final JSONObject tokenResponse = new JSONObject();
-            tokenResponse.put("id_token", idToken);
+            tokenResponse.put("id_token", idToken).put("access_token", accessToken);;
             final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
                     .nonceId(1)
                     .nonceString(nonce)
@@ -474,7 +484,7 @@ class LoginControllerV2Test {
                     .thenReturn(new Cookie("userServiceCookieName", mockJwt));
             when(result.hasErrors()).thenReturn(true);
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, Optional.of(redirectUrl));
             assertThat(methodResponse.getViewName()).isEqualTo(LoginControllerV2.PRIVACY_POLICY_PAGE_VIEW);
             verify(oneLoginService,  times(0)).setUsersLoginJourneyState(any(), any());
         }
@@ -496,7 +506,8 @@ class LoginControllerV2Test {
             when(result.hasErrors()).thenReturn(false);
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result,
+                    request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:" + redirectUrl);
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -520,7 +531,8 @@ class LoginControllerV2Test {
             when(result.hasErrors()).thenReturn(false);
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result,
+                    request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/adminBaseUrl?redirectUrl=/dashboard");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -544,7 +556,8 @@ class LoginControllerV2Test {
             when(result.hasErrors()).thenReturn(false);
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result,
+                    request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/adminBaseUrl?redirectUrl=/super-admin-dashboard");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -568,7 +581,8 @@ class LoginControllerV2Test {
             when(result.hasErrors()).thenReturn(false);
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result,
+                    request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/techSupportAppBaseUrl");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -594,7 +608,8 @@ class LoginControllerV2Test {
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
             doNothing().when(oneLoginService).migrateUser(user, mockJwt);
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto,
+                    result, request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/adminBaseUrl?redirectUrl=/dashboard?migrationStatus=success");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -622,7 +637,8 @@ class LoginControllerV2Test {
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
             doThrow(new RuntimeException()).when(oneLoginService).migrateUser(user, mockJwt);
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto,
+                    result, request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/adminBaseUrl?redirectUrl=/dashboard?migrationStatus=error");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -650,7 +666,8 @@ class LoginControllerV2Test {
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
             doNothing().when(oneLoginService).migrateUser(user, mockJwt);
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result,
+                    request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/redirectUrl?migrationStatus=success");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -678,7 +695,8 @@ class LoginControllerV2Test {
             when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
             doThrow(new RuntimeException()).when(oneLoginService).migrateUser(user, mockJwt);
 
-            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, redirectUrl);
+            final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto,
+                    result, request, Optional.of(redirectUrl));
 
             assertThat(methodResponse.getViewName()).isEqualTo("redirect:/applicantBaseUrl/dashboard?migrationStatus=error");
             verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
@@ -711,6 +729,7 @@ class LoginControllerV2Test {
                 HttpServletRequest request = mock(HttpServletRequest.class);
                 HttpServletResponse response = mock(HttpServletResponse.class);
                 mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName")).thenReturn( new Cookie(userServiceCookieName, "ba") );
+                when(oneLoginService.logoutUser(any(), any())).thenReturn(new RedirectView(applicantBaseUrl));
 
                 RedirectView methodResponse = loginController.logout(request, response);
 
