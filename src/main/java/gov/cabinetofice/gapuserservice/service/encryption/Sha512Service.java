@@ -1,6 +1,5 @@
 package gov.cabinetofice.gapuserservice.service.encryption;
 
-import gov.cabinetofice.gapuserservice.dto.SaltHashDto;
 import gov.cabinetofice.gapuserservice.exceptions.NonceExpiredException;
 import gov.cabinetofice.gapuserservice.model.Salt;
 import gov.cabinetofice.gapuserservice.repository.SaltRepository;
@@ -10,11 +9,10 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.Optional;
-import java.util.UUID;
 
 import static gov.cabinetofice.gapuserservice.util.HelperUtils.generateSecureRandomString;
+import static gov.cabinetofice.gapuserservice.util.HelperUtils.generateUUID;
 
 @RequiredArgsConstructor
 @Service
@@ -27,7 +25,7 @@ public class Sha512Service {
     }
 
     private String storeSalt(String salt) {
-        String saltId = UUID.randomUUID().toString();
+        String saltId = generateUUID();
         final Salt saltModel = Salt.builder().salt(salt).saltId(saltId).build();
         this.saltRepository.save(saltModel);
         return saltId;

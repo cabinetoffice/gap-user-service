@@ -427,14 +427,14 @@ public class OneLoginServiceTest {
         final String redirectUrl = "redirectUrl";
         final String state = "state";
         final String saltId = "saltId";
-        final String expected = "eyJyZWRpcmVjdFVybCI6InJlZGlyZWN0VXJsIiwic3RhdGUiOiJzdGF0ZSJ9";
+        final String expected = "eyJyZWRpcmVjdFVybCI6InJlZGlyZWN0VXJsIiwic2FsdElkIjoic2FsdElkIiwic3RhdGUiOiJzdGF0ZSJ9";
         final String result = oneLoginService.buildEncodedStateJson(redirectUrl, state, saltId);
         Assertions.assertEquals(result, expected);
     }
 
     @Test
     void decodeStateCookie() {
-        final String encodedStateCookie = "eyJyZWRpcmVjdFVybCI6InJlZGlyZWN0VXJsIiwic3RhdGUiOiJzdGF0ZSJ9";
+        final String encodedStateCookie = "eyJyZWRpcmVjdFVybCI6InJlZGlyZWN0VXJsIiwic2FsdElkIjoic2FsdElkIiwic3RhdGUiOiJzdGF0ZSJ9";
         final StateCookieDto.StateCookieDtoBuilder stateCookieDtoBuilder = StateCookieDto.builder()
                 .state("state")
                 .redirectUrl("redirectUrl")
