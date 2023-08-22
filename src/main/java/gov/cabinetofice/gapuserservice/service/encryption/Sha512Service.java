@@ -1,28 +1,60 @@
 package gov.cabinetofice.gapuserservice.service.encryption;
 
+import gov.cabinetofice.gapuserservice.dto.SaltHashDto;
+import gov.cabinetofice.gapuserservice.exceptions.NonceExpiredException;
+import gov.cabinetofice.gapuserservice.model.Salt;
+import gov.cabinetofice.gapuserservice.repository.SaltRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.Optional;
+import java.util.UUID;
 
+import static gov.cabinetofice.gapuserservice.util.HelperUtils.generateSecureRandomString;
+
+@RequiredArgsConstructor
 @Service
 public class Sha512Service {
-    private String systemSalt;
+    private final SaltRepository saltRepository;
     private final int SALT_LENGTH = 255;
 
-    public Sha512Service() {
-        SecureRandom random = new SecureRandom();
-        byte[] salt = new byte[SALT_LENGTH];
-        random.nextBytes(salt);
-        systemSalt = new String(salt);
+    private String generateSalt() {
+        return generateSecureRandomString(SALT_LENGTH);
     }
 
-    public String getSHA512SecurePassword(String passwordToHash) {
+    private String storeSalt(String salt) {
+        String saltId = UUID.randomUUID().toString();
+        final Salt saltModel = Salt.builder().salt(salt).saltId(saltId).build();
+        this.saltRepository.save(saltModel);
+        return saltId;
+    }
+
+    public String generateAndStoreSalt() {
+        return storeSalt(generateSalt());
+    }
+
+    private String getSalt(String saltId) {
+        final Optional<Salt> saltModel = this.saltRepository.findFirstBySaltIdOrderBySaltIdAsc(saltId);
+        if (!saltModel.isPresent()) {
+            throw new NonceExpiredException("Salt not found");
+        }
+        return saltModel.get().getSalt();
+    }
+
+    public void deleteSalt(String saltId) {
+        final Optional<Salt> saltModel = this.saltRepository.findFirstBySaltIdOrderBySaltIdAsc(saltId);
+        saltModel.ifPresent(this.saltRepository::delete);
+    }
+
+    public String getSHA512SecurePassword(String passwordToHash, String saltId) {
+        String salt = getSalt(saltId);
         String generatedPassword = null;
         try {
-            passwordToHash += systemSalt;
+            passwordToHash += salt;
             passwordToHash += getUserPepper(passwordToHash);
             MessageDigest md = MessageDigest.getInstance("SHA-512");
             byte[] bytes = md.digest(passwordToHash.getBytes(StandardCharsets.UTF_8));

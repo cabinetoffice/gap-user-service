@@ -5,6 +5,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.FindAGrantConfigProperties;
 import gov.cabinetofice.gapuserservice.dto.*;
+import gov.cabinetofice.gapuserservice.exceptions.NonceExpiredException;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.model.Nonce;
@@ -71,6 +72,32 @@ public class LoginControllerV2 {
 
     @Value("${feature.onelogin.migration.enabled}")
     public String migrationEnabled;
+    private static final String[] IP_HEADERS = {
+            "X-Forwarded-For",
+            "Proxy-Client-IP",
+            "WL-Proxy-Client-IP",
+            "HTTP_X_FORWARDED_FOR",
+            "HTTP_X_FORWARDED",
+            "HTTP_X_CLUSTER_CLIENT_IP",
+            "HTTP_CLIENT_IP",
+            "HTTP_FORWARDED_FOR",
+            "HTTP_FORWARDED",
+            "HTTP_VIA",
+            "REMOTE_ADDR"
+
+            // you can add more matching headers here ...
+    };
+    public static String getRequestIP(HttpServletRequest request) {
+        for (String header: IP_HEADERS) {
+            String value = request.getHeader(header);
+            if (value == null || value.isEmpty()) {
+                continue;
+            }
+            String[] parts = value.split("\\s*,\\s*");
+            return parts[0];
+        }
+        return request.getRemoteAddr();
+    }
 
     @GetMapping("/login")
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -81,17 +108,17 @@ public class LoginControllerV2 {
         final boolean isTokenValid = customJWTCookie != null
                 && customJWTCookie.getValue() != null
                 && customJwtService.isTokenValid(customJWTCookie.getValue());
-
+        final String redirectUrl = redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl());
         if (!isTokenValid) {
-            final String state = encryptionService.getSHA512SecurePassword(
-                    oneLoginService.generateAndStoreState(response, redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl()))
-            );
+            String saltId = encryptionService.generateAndStoreSalt();
+            final String encodedState = oneLoginService.generateAndStoreState(response, redirectUrl, saltId);
+            final String state = encryptionService.getSHA512SecurePassword(encodedState, saltId);
             final String nonce = oneLoginService.generateAndStoreNonce();
 
             return new RedirectView(oneLoginService.getOneLoginAuthorizeUrl(state, nonce));
         }
 
-        return new RedirectView(redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl()));
+        return new RedirectView(redirectUrl);
     }
 
     @GetMapping("/redirect-after-login")
@@ -173,11 +200,14 @@ public class LoginControllerV2 {
 
     private void verifyStateAndNonce(final String nonce, final StateCookieDto stateCookieDto, final String state) {
         // Validate that state returned is the same as the one stored in the cookie
+        final String saltId = stateCookieDto.getSaltId();
         final String encodedStateJson = oneLoginService.buildEncodedStateJson(
                 stateCookieDto.getRedirectUrl(),
-                stateCookieDto.getState()
+                stateCookieDto.getState(),
+                saltId
         );
-        final String hashedStateCookie = encryptionService.getSHA512SecurePassword(encodedStateJson);
+        final String hashedStateCookie = encryptionService.getSHA512SecurePassword(encodedStateJson, saltId);
+        encryptionService.deleteSalt(saltId);
         final boolean isStateVerified = state.equals(hashedStateCookie);
 
         // Validate that nonce is stored in the DB
@@ -193,7 +223,7 @@ public class LoginControllerV2 {
                             "state from response: {}, hashed state from cookie: {}, plaintext state from cookie: {}",
                     nonce, storedNonce.getNonceString(), storedNonce.getCreatedAt(), new Date(),
                     state, hashedStateCookie, encodedStateJson);
-            throw new AccessDeniedException("User authorization failed, please try again");
+            throw new NonceExpiredException("User authorization failed, please try again");
         } else if (!(isStateVerified && isNonceVerified)) {
             log.warn("/redirect-after-login unauthorized user; nonce verified: {}, state verified: {}",
                     isNonceVerified, isStateVerified);
