@@ -187,8 +187,10 @@ public class LoginControllerV2 {
                 saltId
         );
         final String hashedStateCookie = encryptionService.getSHA512SecurePassword(encodedStateJson, saltId);
-        encryptionService.deleteSalt(saltId);
         final boolean isStateVerified = state.equals(hashedStateCookie);
+        // by only deleting the salt if the state matches we can ensure that an attacker can't arbitrarily delete salts
+        // as we know they haven't changed the saltId
+        if (isStateVerified) encryptionService.deleteSalt(saltId);
 
         // Validate that nonce is stored in the DB
         final Nonce storedNonce = oneLoginService.readAndDeleteNonce(nonce);
