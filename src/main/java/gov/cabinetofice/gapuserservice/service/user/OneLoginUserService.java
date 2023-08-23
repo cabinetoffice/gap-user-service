@@ -18,11 +18,13 @@ import gov.cabinetofice.gapuserservice.util.UserQueryCondition;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
 import java.util.Map;
@@ -43,6 +45,10 @@ public class OneLoginUserService {
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
+    private final WebClient.Builder webClientBuilder;
+
+    @Value("${admin-backend}")
+    private String adminBackend;
 
     public Page<User> getPaginatedUsers(Pageable pageable, UserQueryDto userQueryDto) {
         final Map<UserQueryCondition, BiFunction<UserQueryDto, Pageable, Page<User>>> conditionMap = createUserQueryConditionMap();
@@ -117,10 +123,17 @@ public class OneLoginUserService {
         }
     }
 
-    public User deleteUser(Integer id) {
-        User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User not found"));
-        userRepository.delete(user);
-        return user;
+    @Transactional
+    public void deleteUser(Integer id, String jwt) {
+        final User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("user with id: " + id + "not found"));
+        webClientBuilder.build()
+                .delete()
+                .uri(adminBackend + "/users/delete/" + user.getSub() + (user.hasColaSub() ? "?colaSub=" + user.getColaSub() : ""))
+                .header("Authorization", "Bearer " + jwt)
+                .retrieve()
+                .bodyToMono(Void.class)
+                .block();
+        userRepository.deleteById(id);
     }
 
     public void invalidateUserJwt(final Cookie customJWTCookie, final HttpServletResponse response) {

@@ -4,8 +4,12 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.WebUtils;
 
 import java.security.SecureRandom;
 import java.util.Objects;
@@ -67,5 +71,12 @@ public class HelperUtils {
                 .mapToObj(chrs::charAt)
                 .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
                 .toString();
+    }
+
+    public static Cookie getCustomJwtCookieFromRequest(final HttpServletRequest request, final String userServiceCookieName) {
+        final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
+        if (customJWTCookie == null)
+            throw new UnauthorizedException(userServiceCookieName + " cookie not found");
+        return customJWTCookie;
     }
 }

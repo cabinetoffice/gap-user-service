@@ -8,14 +8,18 @@ import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
+import static gov.cabinetofice.gapuserservice.util.HelperUtils.getCustomJwtCookieFromRequest;
 
 
 @RequiredArgsConstructor
@@ -26,6 +30,9 @@ public class UserController {
     private final OneLoginUserService oneLoginUserService;
     private final DepartmentService departmentService;
     private final RoleService roleService;
+
+    @Value("${jwt.cookie-name}")
+    public String userServiceCookieName;
 
     @GetMapping("/isSuperAdmin")
     public ResponseEntity<String> isSuperAdmin(HttpServletRequest httpRequest) {
@@ -85,8 +92,9 @@ public class UserController {
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
+        final Cookie customJWTCookie = getCustomJwtCookieFromRequest(httpRequest, userServiceCookieName);
 
-        oneLoginUserService.deleteUser(id);
+        oneLoginUserService.deleteUser(id, customJWTCookie.getValue());
         return ResponseEntity.ok("success");
     }
 }
