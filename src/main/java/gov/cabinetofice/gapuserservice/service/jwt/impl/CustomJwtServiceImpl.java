@@ -123,7 +123,7 @@ public class CustomJwtServiceImpl implements JwtService {
         final String payloadJson = decodeBase64ToJson(jwt.getPayload());
         final JSONObject jsonObject = new JSONObject(payloadJson);
         final String sub = jwt.getSubject();
-        final String roles = jsonObject.getString("roles");
+        final String roles = jsonObject.has("roles") ? jsonObject.getString("roles") : "";
         final String iss = jsonObject.getString("iss");
         final String idToken = jsonObject.getString("idToken");
         final String aud = jsonObject.getString("aud");
