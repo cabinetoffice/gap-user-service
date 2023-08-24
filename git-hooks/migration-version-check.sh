@@ -1,11 +1,11 @@
 #!/bin/sh
 
-set -- ../../src/main/resources/db/migration/*'__'*''
+set -- ./src/main/resources/db/migration/*'__'*''
 
 FAILED="false"
 
 printf 'Checking for duplicate migration script versions...\n'
-printf pwd
+
 for name do
   printf 'name: %s\n' $name
   shift
