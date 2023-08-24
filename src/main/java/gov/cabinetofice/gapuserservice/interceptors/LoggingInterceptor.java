@@ -8,6 +8,7 @@ import static net.logstash.logback.argument.StructuredArguments.*;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -21,6 +22,9 @@ import java.util.stream.Collectors;
 @Slf4j
 @RequiredArgsConstructor
 public class LoggingInterceptor implements HandlerInterceptor {
+
+    @Value("${jwt.cookie-name}")
+    private String userServiceCookieName;
 
     private final LoggingUtils loggingUtils;
 
@@ -57,6 +61,7 @@ public class LoggingInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        if (request.getRequestURL().toString().endsWith("/health")) return true;
         String event = "Incoming request";
         log.info(
             loggingUtils.getJsonLogMessage(event, 4),
@@ -72,6 +77,7 @@ public class LoggingInterceptor implements HandlerInterceptor {
     @Override
     public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler,
                            @Nullable ModelAndView modelAndView) {
+        if (request.getRequestURL().toString().endsWith("/health")) return;
         String event = "Outgoing response";
         log.info(
             loggingUtils.getJsonLogMessage(event, 4),
