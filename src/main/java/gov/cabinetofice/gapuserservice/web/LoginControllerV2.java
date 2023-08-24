@@ -206,26 +206,26 @@ public class LoginControllerV2 {
 
         if (isNonceExpired) {
             log.error(
-                loggingUtils.getLogMessage("/redirect-after-login encountered unauthorized user - nonce expired", 7),
-                keyValue("nonceFromToken", nonce),
-                keyValue("nonceFromDB", storedNonce.getNonceString()),
-                keyValue("nonceCreatedAt", storedNonce.getCreatedAt()),
-                keyValue("now", new Date()),
-                keyValue("stateFromResponse", state),
-                keyValue("hashedStateFromCookie", hashedStateCookie),
-                keyValue("stateFromCookie", encodedStateJson)
+                    loggingUtils.getLogMessage("/redirect-after-login encountered unauthorized user - nonce expired", 7),
+                    keyValue("nonceFromToken", nonce),
+                    keyValue("nonceFromDB", storedNonce.getNonceString()),
+                    keyValue("nonceCreatedAt", storedNonce.getCreatedAt()),
+                    keyValue("now", new Date()),
+                    keyValue("stateFromResponse", state),
+                    keyValue("hashedStateFromCookie", hashedStateCookie),
+                    keyValue("stateFromCookie", encodedStateJson)
             );
             throw new AccessDeniedException("User authorization failed, please try again");
         } else if (!isStateVerified || !isNonceVerified) {
             log.error(
-                loggingUtils.getLogMessage("/redirect-after-login encountered unauthorised user", 7),
-                keyValue("nonceVerified", isNonceVerified),
-                keyValue("stateVerified", isStateVerified),
-                keyValue("nonceFromToken", nonce),
-                keyValue("nonceFromDB", storedNonce.getNonceString()),
-                keyValue("stateFromResponse", state),
-                keyValue("hashedStateFromCookie", hashedStateCookie),
-                keyValue("stateFromCookie", encodedStateJson)
+                    loggingUtils.getLogMessage("/redirect-after-login encountered unauthorised user", 7),
+                    keyValue("nonceVerified", isNonceVerified),
+                    keyValue("stateVerified", isStateVerified),
+                    keyValue("nonceFromToken", nonce),
+                    keyValue("nonceFromDB", storedNonce.getNonceString()),
+                    keyValue("stateFromResponse", state),
+                    keyValue("hashedStateFromCookie", hashedStateCookie),
+                    keyValue("stateFromCookie", encodedStateJson)
             );
             // TODO take action against malicious activity e.g. temp block user and send email
             throw new AccessDeniedException("User authorization failed");
