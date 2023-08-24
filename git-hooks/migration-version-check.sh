@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -- ./src/main/resources/db/migration/*'__'*''
+set -- ../src/main/resources/db/migration/*'__'*''
 
 FAILED="false"
 
