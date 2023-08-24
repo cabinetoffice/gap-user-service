@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Migration Version Check
-        run: bash ./git-hooks/migration-version-check.sh
+        run: bash ./migration-version-check.sh
         working-directory: ./git-hooks
 
       - name: Set up JDK 17
