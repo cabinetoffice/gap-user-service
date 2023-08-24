@@ -38,7 +38,7 @@ public enum LoginJourneyRedirect {
     APPLICANT_APP_MIGRATION_FAIL {
         @Override
         public String getRedirectUrl(String adminBaseUrl, String applicantBaseUrl, String techSupportBaseUrl, String redirectUrlCookie) {
-            return applicantBaseUrl + "/api/isNewApplicant?migrationStatus=success";
+            return applicantBaseUrl + "/api/isNewApplicant?migrationStatus=error";
         }
     },
 
