@@ -31,8 +31,9 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
 import static net.logstash.logback.argument.StructuredArguments.*;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.http.HttpHeaders;
@@ -59,7 +60,7 @@ import static gov.cabinetofice.gapuserservice.util.HelperUtils.generateSecureRan
 
 @RequiredArgsConstructor
 @Service
-@Log4j2
+@Slf4j
 public class OneLoginService {
 
     @Value("${onelogin.client-id}")
@@ -335,7 +336,7 @@ public class OneLoginService {
                     keyValue("expectedIss", oneLoginBaseUrl.concat("/")),
                     keyValue("idToken", decodedIdToken)
             );
-            throw new UnauthorizedException(message);
+            throw new UnauthorizedClientException(message);
         }
         if (!decodedIdToken.getAud().equals(clientId)) {
             String message = "invalid iss property in One Login ID token";
@@ -345,7 +346,7 @@ public class OneLoginService {
                     keyValue("expectedIss", oneLoginBaseUrl.concat("/")),
                     keyValue("idToken", decodedIdToken)
             );
-            throw new UnauthorizedException(message);
+            throw new UnauthorizedClientException(message);
         }
         if (currentEpochSeconds > decodedIdToken.getExp())  {
             String message = "One Login ID token expired";
@@ -355,7 +356,7 @@ public class OneLoginService {
                     keyValue("tokenExpiry", decodedIdToken.getExp()),
                     keyValue("idToken", decodedIdToken)
             );
-            throw new UnauthorizedException(message);
+            throw new UnauthorizedClientException(message);
         }
         if (currentEpochSeconds < decodedIdToken.getIat()) {
             String message = "One Login ID token issue date in future";
@@ -365,7 +366,7 @@ public class OneLoginService {
                     keyValue("tokenIat", decodedIdToken.getIat()),
                     keyValue("idToken", decodedIdToken)
             );
-            throw new UnauthorizedException(message);
+            throw new UnauthorizedClientException(message);
         }
     }
 
@@ -377,7 +378,7 @@ public class OneLoginService {
                     keyValue("subFromIDToken", idTokenSub),
                     keyValue("subFromUserInfo", userInfoSub)
             );
-            throw new UnauthorizedException(message);
+            throw new UnauthorizedClientException(message);
 
         }
     }
@@ -390,25 +391,24 @@ public class OneLoginService {
 
             JWKSet jwkSet = JWKSet.load(new URL(oneLoginBaseUrl.concat("/.well-known/jwks.json")));
             Optional<JWK> optionalMatchingJwk = Optional.ofNullable(jwkSet.getKeyByKeyId(keyId));
-            JWK matchingJwk = optionalMatchingJwk.orElseThrow(() -> new UnauthorizedException
+            JWK matchingJwk = optionalMatchingJwk.orElseThrow(() -> new UnauthorizedClientException
                     ("Matching JWK not found for key ID: " + keyId));
 
             ECDSAVerifier verifier = new ECDSAVerifier((ECKey) matchingJwk);
 
             if (!matchingJwk.getAlgorithm().equals(jwtAlgorithm)) {
                 log.error("Invalid alg property in ID token header: {}", jwtAlgorithm);
-                throw new UnauthorizedException("Invalid alg property in ID token header");
+                throw new UnauthorizedClientException("Invalid alg property in ID token header");
             }
 
             if (!signedAuthToken.verify(verifier)) {
                 log.error("Invalid signature in ID token: {}", signedAuthToken);
-                throw new UnauthorizedException("Invalid signature in ID token");
+                throw new UnauthorizedClientException("Invalid signature in ID token");
             }
 
         } catch (IOException | ParseException | JOSEException e) {
-            // does the error make it into the logged JSON?
             log.error("Unable to validate access token {}", authToken, e);
-            throw new UnauthorizedException("Unable to validate access token");
+            throw new UnauthorizedClientException("Unable to validate access token");
         }
     }
 

@@ -23,53 +23,20 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class LoggingInterceptor implements HandlerInterceptor {
 
-    @Value("${jwt.cookie-name}")
-    private String userServiceCookieName;
-
     private final LoggingUtils loggingUtils;
-
-    private Map<String, ArrayList<String>> getHeadersFromRequest(HttpServletRequest request) {
-        Function<String, Enumeration<String>> getHeaders = request::getHeaders;
-        Function<Enumeration<String>, ArrayList<String>> list = Collections::list;
-
-        return Collections.list(request.getHeaderNames())
-                .stream()
-                .filter(h -> !h.equals("cookie"))
-                .collect(Collectors.toMap(h -> h, getHeaders.andThen(list)));
-    }
-
-    private Map<String, Collection<String>> getHeadersFromResponse(HttpServletResponse response) {
-        return new HashSet<>(response.getHeaderNames())
-                .stream()
-                .collect(Collectors.toMap(h -> h, response::getHeaders));
-    }
-
-    private List<String> removeJWTFromCookies(Cookie[] cookies) {
-        return Arrays.stream(cookies)
-                .filter(c -> !c.getName().equals(userServiceCookieName))
-                .map(c -> c.getName() + "=" + c.getValue())
-                .collect(Collectors.toList());
-    }
-
-    private List<String> getCookiesFromRequest(HttpServletRequest request) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies == null) {
-            return new ArrayList<>();
-        }
-        return removeJWTFromCookies(cookies);
-    }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         if (request.getRequestURL().toString().endsWith("/health")) return true;
         String event = "Incoming request";
         log.info(
-            loggingUtils.getJsonLogMessage(event, 4),
-            value("event", event),
-            keyValue("URL", request.getRequestURL()),
-            keyValue("method", request.getMethod()),
-            keyValue("headers", getHeadersFromRequest(request)),
-            keyValue("cookies", getCookiesFromRequest(request))
+                loggingUtils.getJsonLogMessage(event, 6),
+                value("event", event),
+                keyValue("URL", request.getRequestURL()),
+                keyValue("query", request.getQueryString()),
+                keyValue("method", request.getMethod()),
+                keyValue("headers", loggingUtils.getHeadersFromRequest(request)),
+                keyValue("cookies", loggingUtils.getCookiesFromRequest(request))
         );
         return true;
     }
@@ -80,12 +47,13 @@ public class LoggingInterceptor implements HandlerInterceptor {
         if (request.getRequestURL().toString().endsWith("/health")) return;
         String event = "Outgoing response";
         log.info(
-            loggingUtils.getJsonLogMessage(event, 4),
-            value("event", event),
-            keyValue("requestURL", request.getRequestURL()),
-            keyValue("requestMethod", request.getMethod()),
-            keyValue("status", response.getStatus()),
-            keyValue("headers", getHeadersFromResponse(response))
+                loggingUtils.getJsonLogMessage(event, 6),
+                value("event", event),
+                keyValue("requestURL", request.getRequestURL()),
+                keyValue("requestQuery", request.getQueryString()),
+                keyValue("requestMethod", request.getMethod()),
+                keyValue("status", response.getStatus()),
+                keyValue("headers", loggingUtils.getHeadersFromResponse(response))
         );
     }
 }

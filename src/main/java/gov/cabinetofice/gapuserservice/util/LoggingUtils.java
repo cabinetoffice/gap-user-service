@@ -1,14 +1,23 @@
 package gov.cabinetofice.gapuserservice.util;
 
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.Objects;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Component
 public class LoggingUtils {
+
+    @Value("${jwt.cookie-name}")
+    private String userServiceCookieName;
 
     private final ApplicationConfigProperties configProperties;
 
@@ -63,8 +72,39 @@ public class LoggingUtils {
     public String getJsonLogMessage(String message, int noOfArguments) {
         // In local dev display request/response info in message
         if (Objects.equals(this.configProperties.getProfile(), "LOCAL"))
-            return "{}:\n\t{" + getInterpolationString(noOfArguments, "\n\t\t") + "\n\t}";
+            return message + ":\n\t{" + getInterpolationString(noOfArguments, "\n\t\t") + "\n\t}";
         // In prod display simple message
         return message;
+    }
+
+    public static Map<String, ArrayList<String>> getHeadersFromRequest(HttpServletRequest request) {
+        Function<String, Enumeration<String>> getHeaders = request::getHeaders;
+        Function<Enumeration<String>, ArrayList<String>> list = Collections::list;
+
+        return Collections.list(request.getHeaderNames())
+                .stream()
+                .filter(h -> !h.equals("cookie"))
+                .collect(Collectors.toMap(h -> h, getHeaders.andThen(list)));
+    }
+
+    public static Map<String, Collection<String>> getHeadersFromResponse(HttpServletResponse response) {
+        return new HashSet<>(response.getHeaderNames())
+                .stream()
+                .collect(Collectors.toMap(h -> h, response::getHeaders));
+    }
+
+    private List<String> removeJWTFromCookies(Cookie[] cookies) {
+        return Arrays.stream(cookies)
+                .filter(c -> !c.getName().equals(userServiceCookieName))
+                .map(c -> c.getName() + "=" + c.getValue())
+                .collect(Collectors.toList());
+    }
+
+    public List<String> getCookiesFromRequest(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return new ArrayList<>();
+        }
+        return removeJWTFromCookies(cookies);
     }
 }

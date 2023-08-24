@@ -8,7 +8,7 @@ import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
-import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
+import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedClientException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.model.Nonce;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -29,7 +29,6 @@ import static net.logstash.logback.argument.StructuredArguments.*;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -184,7 +183,7 @@ public class LoginControllerV2 {
     private Cookie getCustomJwtCookieFromRequest(final HttpServletRequest request) {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
         if (customJWTCookie == null)
-            throw new UnauthorizedException(userServiceCookieName + " cookie not found");
+            throw new UnauthorizedClientException(userServiceCookieName + " cookie not found");
         return customJWTCookie;
     }
 
@@ -215,7 +214,7 @@ public class LoginControllerV2 {
                     keyValue("hashedStateFromCookie", hashedStateCookie),
                     keyValue("stateFromCookie", encodedStateJson)
             );
-            throw new AccessDeniedException("User authorization failed, please try again");
+            throw new UnauthorizedClientException("User authorization failed, please try again");
         } else if (!isStateVerified || !isNonceVerified) {
             log.error(
                     loggingUtils.getLogMessage("/redirect-after-login encountered unauthorised user", 7),
@@ -228,7 +227,7 @@ public class LoginControllerV2 {
                     keyValue("stateFromCookie", encodedStateJson)
             );
             // TODO take action against malicious activity e.g. temp block user and send email
-            throw new AccessDeniedException("User authorization failed");
+            throw new UnauthorizedClientException("User authorization failed");
         }
     }
 
