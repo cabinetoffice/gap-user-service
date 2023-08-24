@@ -7,10 +7,8 @@ FAILED="false"
 printf 'Checking for duplicate migration script versions...\n'
 
 for name do
-  printf 'name: %s\n' $name
   shift
   for dup do
-    printf 'comparing %s and %s\n' $name $dup
      if [ "${name%%__*}" = "${dup%%__*}" ]; then
         if [ "$FAILED" = "false" ]; then
            printf 'Found duplication migration script version(s) - please bump your script version(s)\n'
