@@ -17,10 +17,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -41,6 +43,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class CustomJwtServiceImplTest {
 
+    @InjectMocks
     private CustomJwtServiceImpl serviceUnderTest;
 
     @Mock
@@ -78,6 +81,7 @@ public class CustomJwtServiceImplTest {
         void ReturnsTrue_IfValid() {
             final Algorithm mockAlgorithm = mock(Algorithm.class);
             final Verification spiedVerification = spy(verification);
+            ReflectionTestUtils.setField(serviceUnderTest, "oneLoginEnabled", true);
 
             try (MockedStatic<Algorithm> staticAlgorithm = Mockito.mockStatic(Algorithm.class)) {
                 staticAlgorithm.when(() -> RSA256(any(), any())).thenReturn(mockAlgorithm);
@@ -118,6 +122,7 @@ public class CustomJwtServiceImplTest {
         void ReturnsFalse_IfBlacklisted() {
             final Algorithm mockAlgorithm = mock(Algorithm.class);
             final Verification spiedVerification = spy(verification);
+            ReflectionTestUtils.setField(serviceUnderTest, "oneLoginEnabled", true);
 
             try (MockedStatic<Algorithm> staticAlgorithm = Mockito.mockStatic(Algorithm.class)) {
                 staticAlgorithm.when(() -> RSA256(any(), any())).thenReturn(mockAlgorithm);
@@ -141,6 +146,7 @@ public class CustomJwtServiceImplTest {
         void SignsWithCorrectAlgorithm() {
             final Algorithm mockAlgorithm = mock(Algorithm.class);
             final Verification spiedVerification = spy(verification);
+            ReflectionTestUtils.setField(serviceUnderTest, "oneLoginEnabled", true);
 
             try (MockedStatic<Algorithm> staticAlgorithm = Mockito.mockStatic(Algorithm.class)) {
                 try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {

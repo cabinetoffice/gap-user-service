@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.codec.binary.Base64;
 import org.apache.tomcat.util.codec.binary.StringUtils;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
@@ -40,6 +41,9 @@ public class CustomJwtServiceImpl implements JwtService {
     private final UserRepository userRepository;
     private final Clock clock;
     private final RSAKey rsaKey;
+
+    @Value("${feature.onelogin.enabled}")
+    public boolean oneLoginEnabled;
 
     public CustomJwtServiceImpl(JwtProperties jwtProperties, JwtBlacklistRepository jwtBlacklistRepository, UserRepository userRepository, Clock clock) throws JOSEException {
         this.jwtProperties = jwtProperties;
@@ -67,12 +71,14 @@ public class CustomJwtServiceImpl implements JwtService {
 
             verifier.verify(customJwt);
 
-            final DecodedJWT decodedToken = decodedJwt(customJwt);
-            final JwtPayload jwtPayload = decodeTheTokenPayloadInAReadableFormat(decodedToken);
-            Optional<User> user = userRepository.findBySub(jwtPayload.getSub());
-            if (user.isEmpty()) user = userRepository.findByEmailAddress(jwtPayload.getEmail());
-            if (user.isEmpty()) return false;
-            if (user.get().getLoginJourneyState().equals(LoginJourneyState.PRIVACY_POLICY_PENDING)) return false;
+            if (oneLoginEnabled) {
+                final DecodedJWT decodedToken = decodedJwt(customJwt);
+                final JwtPayload jwtPayload = decodeTheTokenPayloadInAReadableFormat(decodedToken);
+                Optional<User> user = userRepository.findBySub(jwtPayload.getSub());
+                if (user.isEmpty()) user = userRepository.findByEmailAddress(jwtPayload.getEmail());
+                if (user.isEmpty()) return false;
+                if (user.get().getLoginJourneyState().equals(LoginJourneyState.PRIVACY_POLICY_PENDING)) return false;
+            }
 
             return !isTokenInBlacklist(customJwt);
         } catch (JWTVerificationException exception) {
