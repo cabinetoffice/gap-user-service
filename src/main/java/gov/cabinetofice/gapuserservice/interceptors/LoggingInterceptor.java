@@ -1,7 +1,6 @@
 package gov.cabinetofice.gapuserservice.interceptors;
 
-
-import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
+import gov.cabinetofice.gapuserservice.util.LoggingUtils;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -9,7 +8,6 @@ import static net.logstash.logback.argument.StructuredArguments.*;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -24,17 +22,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class LoggingInterceptor implements HandlerInterceptor {
 
-    @Value("${jwt.cookie-name}")
-    private String userServiceCookieName;
-
-    private final ApplicationConfigProperties configProperties;
-
-    private String getLogMessage(String logMessage) {
-        // In local dev display request/response info in message
-        if (Objects.equals(this.configProperties.getProfile(), "LOCAL")) return "{}:\n\t{\n\t\t{}\n\t\t{}\n\t\t{}\n\t\t{}\n\t}";
-        // In prod display simple message
-        return logMessage;
-    }
+    private final LoggingUtils loggingUtils;
 
     private Map<String, ArrayList<String>> getHeadersFromRequest(HttpServletRequest request) {
         Function<String, Enumeration<String>> getHeaders = request::getHeaders;
@@ -71,7 +59,7 @@ public class LoggingInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         String event = "Incoming request";
         log.info(
-            getLogMessage(event),
+            loggingUtils.getJsonLogMessage(event, 4),
             value("event", event),
             keyValue("URL", request.getRequestURL()),
             keyValue("method", request.getMethod()),
@@ -86,7 +74,7 @@ public class LoggingInterceptor implements HandlerInterceptor {
                            @Nullable ModelAndView modelAndView) {
         String event = "Outgoing response";
         log.info(
-            getLogMessage(event),
+            loggingUtils.getJsonLogMessage(event, 4),
             value("event", event),
             keyValue("requestURL", request.getRequestURL()),
             keyValue("requestMethod", request.getMethod()),

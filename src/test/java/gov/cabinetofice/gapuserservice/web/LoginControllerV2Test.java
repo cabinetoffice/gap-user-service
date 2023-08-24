@@ -15,6 +15,7 @@ import gov.cabinetofice.gapuserservice.repository.NonceRepository;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
 import gov.cabinetofice.gapuserservice.service.encryption.Sha512Service;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.util.LoggingUtils;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -69,6 +70,9 @@ class LoginControllerV2Test {
     @Mock
     private NonceRepository nonceRepository;
 
+    @Mock
+    private LoggingUtils loggingUtils;
+
     private static MockedStatic<WebUtils> mockedWebUtils;
 
     @BeforeEach
@@ -79,7 +83,7 @@ class LoginControllerV2Test {
                 .defaultRedirectUrl("https://www.find-government-grants.service.gov.uk/")
                 .build();
 
-        loginController = new LoginControllerV2(oneLoginService, customJwtService, configProperties, encryptionService, nonceRepository, findProperties);
+        loginController = new LoginControllerV2(oneLoginService, customJwtService, configProperties, encryptionService, nonceRepository, findProperties, loggingUtils);
         ReflectionTestUtils.setField(loginController, "userServiceCookieName", "userServiceCookieName");
         ReflectionTestUtils.setField(loginController, "adminBaseUrl", "/adminBaseUrl");
         ReflectionTestUtils.setField(loginController, "applicantBaseUrl", "/applicantBaseUrl");
