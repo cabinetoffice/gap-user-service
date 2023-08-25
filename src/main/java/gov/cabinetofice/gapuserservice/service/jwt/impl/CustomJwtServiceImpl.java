@@ -1,10 +1,10 @@
 package gov.cabinetofice.gapuserservice.service.jwt.impl;
 
 import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.auth0.jwt.interfaces.JWTVerifier;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.KeyUse;
@@ -13,23 +13,27 @@ import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
 import gov.cabinetofice.gapuserservice.dto.JwtPayload;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
+import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
+import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
+import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.JwtBlacklistRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.JwtService;
+import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.codec.binary.Base64;
 import org.apache.tomcat.util.codec.binary.StringUtils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.WebUtils;
 
 import java.time.Clock;
 import java.time.ZonedDateTime;
-import java.util.Date;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -39,13 +43,20 @@ public class CustomJwtServiceImpl implements JwtService {
     private final JwtBlacklistRepository jwtBlacklistRepository;
 
     private final UserRepository userRepository;
+    private final OneLoginUserService oneLoginUserService;
+    private final RoleMapper roleMapper;
     private final Clock clock;
     private final RSAKey rsaKey;
+
+    @Value("${jwt.cookie-name}")
+    public String userServiceCookieName;
 
     @Value("${feature.onelogin.enabled}")
     public boolean oneLoginEnabled;
 
-    public CustomJwtServiceImpl(JwtProperties jwtProperties, JwtBlacklistRepository jwtBlacklistRepository, UserRepository userRepository, Clock clock) throws JOSEException {
+    public CustomJwtServiceImpl(RoleMapper roleMapper, OneLoginUserService oneLoginUserService, JwtProperties jwtProperties, JwtBlacklistRepository jwtBlacklistRepository, UserRepository userRepository, Clock clock) throws JOSEException {
+        this.roleMapper = roleMapper;
+        this.oneLoginUserService = oneLoginUserService;
         this.jwtProperties = jwtProperties;
         this.jwtBlacklistRepository = jwtBlacklistRepository;
         this.userRepository = userRepository;
@@ -77,6 +88,7 @@ public class CustomJwtServiceImpl implements JwtService {
                 Optional<User> user = userRepository.findBySub(jwtPayload.getSub());
                 if (user.isEmpty()) user = userRepository.findByEmailAddress(jwtPayload.getEmail());
                 if (user.isEmpty()) return false;
+                verifyThatRolesInPayloadMatchRolesInDB(jwtPayload);
                 if (user.get().getLoginJourneyState().equals(LoginJourneyState.PRIVACY_POLICY_PENDING)) return false;
             }
 
@@ -87,6 +99,9 @@ public class CustomJwtServiceImpl implements JwtService {
         } catch (JOSEException exception) {
             log.error("isTokenValid failed", exception);
             throw new RuntimeException(exception);
+        } catch (UnauthorizedException exception) {
+            log.error("JWT payload verification failed", exception);
+            return false;
         }
     }
 
@@ -146,5 +161,31 @@ public class CustomJwtServiceImpl implements JwtService {
                 .iat(iat)
                 .email(email)
                 .build();
+    }
+
+    public User getUserFromJwt(final HttpServletRequest request) {
+        final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
+        if (customJWTCookie == null || customJWTCookie.getValue() == null) {
+            throw new UnauthorizedException("No JWT token provided");
+        }
+        final DecodedJWT decodedJwt = decodedJwt(customJWTCookie.getValue());
+        final JwtPayload payload = decodeTheTokenPayloadInAReadableFormat(decodedJwt);
+        return  userRepository.findBySub(payload.getSub()).get();
+    }
+
+    public JwtPayload verifyThatRolesInPayloadMatchRolesInDB(JwtPayload payload) throws UnauthorizedException {
+        final List<Role> userRoles = oneLoginUserService.getUserBySub(payload.getSub()).getRoles();
+
+        final boolean sameNumberOfRoles = payload.getRoles().split(",").length == userRoles.size();
+
+        if(!sameNumberOfRoles){
+            throw new UnauthorizedException("Roles in payload do not match roles in database");
+        }
+
+        final boolean allRolesMatch = userRoles.stream().allMatch(role -> payload.getRoles().contains(roleMapper.roleToRoleDto(role).getName()));
+        if(!allRolesMatch){
+            throw new UnauthorizedException("Roles in payload do not match roles in database");
+        }
+        return payload;
     }
 }

@@ -7,6 +7,7 @@ import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
+import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,16 @@ public class UserController {
     private final OneLoginUserService oneLoginUserService;
     private final DepartmentService departmentService;
     private final RoleService roleService;
+    private final CustomJwtServiceImpl jwtService;
+
+    @GetMapping("/user")
+    public ResponseEntity<User> getUserFromJwt(HttpServletRequest httpRequest) {
+        if (!roleService.isSuperAdmin(httpRequest)) {
+            throw new ForbiddenException();
+        }
+
+        return ResponseEntity.ok(jwtService.getUserFromJwt(httpRequest));
+    }
 
     @GetMapping("/isSuperAdmin")
     public ResponseEntity<String> isSuperAdmin(HttpServletRequest httpRequest) {
@@ -88,5 +99,7 @@ public class UserController {
 
         oneLoginUserService.deleteUser(id);
         return ResponseEntity.ok("success");
+
     }
 }
+
