@@ -30,12 +30,12 @@ public class UserController {
     private final CustomJwtServiceImpl jwtService;
 
     @GetMapping("/user")
-    public ResponseEntity<User> getUserFromJwt(HttpServletRequest httpRequest) {
+    public ResponseEntity<UserDto> getUserFromJwt(HttpServletRequest httpRequest) {
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
 
-        return ResponseEntity.ok(jwtService.getUserFromJwt(httpRequest));
+        return ResponseEntity.ok(new UserDto(jwtService.getUserFromJwt(httpRequest)));
     }
 
     @GetMapping("/isSuperAdmin")
@@ -87,6 +87,12 @@ public class UserController {
             throw new ForbiddenException();
         }
 
+        boolean requestToBlockUser = roleIds.size() == 0;
+
+        if (requestToBlockUser && id == jwtService.getUserFromJwt(httpRequest).getGapUserId()){
+            throw new UnsupportedOperationException("You can't block yourself");
+        }
+
         oneLoginUserService.updateRoles(id, roleIds);
         return ResponseEntity.ok("success");
     }
@@ -95,6 +101,10 @@ public class UserController {
     public ResponseEntity<String> deleteUser(HttpServletRequest httpRequest, @PathVariable("id") Integer id) {
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
+        }
+
+        if(jwtService.getUserFromJwt(httpRequest).getGapUserId() == id) {
+            throw new UnsupportedOperationException("You can't delete yourself");
         }
 
         oneLoginUserService.deleteUser(id);

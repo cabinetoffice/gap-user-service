@@ -1,3 +1,5 @@
+
+
 package gov.cabinetofice.gapuserservice.service.user;
 
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
@@ -67,6 +69,10 @@ public class OneLoginUserService {
     public User getUserById(int id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("user with id: " + id + "not found"));
+    }
+    public User getUserBySub(String sub) {
+        return userRepository.findBySub(sub)
+                .orElseThrow(() -> new UserNotFoundException("user with sub: " + sub + "not found"));
     }
 
     public User updateDepartment(Integer id, Integer departmentId) {
