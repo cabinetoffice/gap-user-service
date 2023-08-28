@@ -104,6 +104,7 @@ public class OneLoginUserService {
 
         addRoleIfNotPresent(user, RoleEnum.FIND);
         addRoleIfNotPresent(user, RoleEnum.APPLICANT);
+        deleteDepartmentIfPresentAndUserIsNotAdminOrSuperAdmin(user);
         userRepository.save(user);
 
         return user;
@@ -114,6 +115,12 @@ public class OneLoginUserService {
             Role role = roleRepository.findByName(roleName).orElseThrow(() -> new RoleNotFoundException(
                     "Update Roles failed: ".concat(roleName.name()).concat(" role not found")));
             user.addRole(role);
+        }
+    }
+
+    private void deleteDepartmentIfPresentAndUserIsNotAdminOrSuperAdmin(User user) {
+        if (user.getDepartment() != null && user.getRoles().stream().noneMatch(role -> role.getName().equals(RoleEnum.ADMIN) || role.getName().equals(RoleEnum.SUPER_ADMIN))) {
+            user.setDepartment(null);
         }
     }
 
