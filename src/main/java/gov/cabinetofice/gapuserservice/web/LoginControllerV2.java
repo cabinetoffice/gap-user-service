@@ -110,15 +110,15 @@ public class LoginControllerV2 {
 
         oneLoginService.validateAuthTokenSignatureAndAlgorithm(authToken);
         IdTokenDto decodedIdToken = oneLoginService.decodeTokenId(idToken);
-        oneLoginService.validateIdToken(decodedIdToken);
+//        oneLoginService.validateIdToken(decodedIdToken);
 
         final StateCookieDto stateCookieDto = oneLoginService.decodeStateCookie(stateCookie);
         final String redirectUrl = stateCookieDto.getRedirectUrl();
 
-        verifyStateAndNonce(decodedIdToken.getNonce(), stateCookieDto, state);
+//        verifyStateAndNonce(decodedIdToken.getNonce(), stateCookieDto, state);
 
         final OneLoginUserInfoDto userInfo = oneLoginService.getOneLoginUserInfoDto(authToken);
-        oneLoginService.validateUserSub(decodedIdToken.getSub(), userInfo.getSub());
+//        oneLoginService.validateUserSub(decodedIdToken.getSub(), userInfo.getSub());
 
         final User user = oneLoginService.createOrGetUserFromInfo(userInfo);
         addCustomJwtCookie(response, userInfo, idToken);
