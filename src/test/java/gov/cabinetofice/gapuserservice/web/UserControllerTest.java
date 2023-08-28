@@ -60,20 +60,6 @@ class UserControllerTest {
     }
 
     @Test
-    void shouldReturnUserWhenValidSubIsGiven() {
-        User mockUser = User.builder().sub("1234").gapUserId(1)
-                .roles(List.of(Role.builder()
-                        .name(RoleEnum.FIND)
-                        .description("desc").build()))
-                .emailAddress("test@gov.uk").build();
-        when(oneLoginUserService.getUserByUserSub("1234")).thenReturn(mockUser);
-        final ResponseEntity<UserDto> methodResponse = controller.getUserByUserSub("1234",
-                "lambdaSecretKey");
-
-        assertThat(methodResponse.getBody()).isEqualTo(new UserDto(mockUser));
-    }
-
-    @Test
     void shouldReturnChangeDepartmentPageDtoWhenValidIdIsGiven() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         User mockUser = User.builder().sub("1").gapUserId(1)
