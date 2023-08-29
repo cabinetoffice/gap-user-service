@@ -342,8 +342,8 @@ public class OneLoginService {
             String message = "invalid iss property in One Login ID token";
             log.error(
                     loggingUtils.getLogMessage(message + ": ", 3),
-                    keyValue("issFromToken", decodedIdToken.getIss()),
-                    keyValue("expectedIss", oneLoginBaseUrl.concat("/")),
+                    keyValue("audFromToken", decodedIdToken.getAud()),
+                    keyValue("expectedAud", clientId),
                     keyValue("idToken", decodedIdToken)
             );
             throw new UnauthorizedClientException(message);
