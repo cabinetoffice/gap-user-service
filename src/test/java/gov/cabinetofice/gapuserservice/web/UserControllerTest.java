@@ -4,6 +4,7 @@ import gov.cabinetofice.gapuserservice.dto.ChangeDepartmentPageDto;
 import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
 import gov.cabinetofice.gapuserservice.dto.UserDto;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
+import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -102,9 +103,10 @@ class UserControllerTest {
                         .description("desc").build()))
                 .emailAddress("test@test.com").build();
         when(oneLoginUserService.getUserById(1)).thenReturn(mockUser);
-        when(oneLoginUserService.isUserApplicantAndFindOnly(mockUser)).thenReturn(false);
+        when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
+        when(oneLoginUserService.isUserApplicantAndFindOnly(mockUser)).thenReturn(true);
 
-        assertThrows(ForbiddenException.class, () -> controller.updateDepartment(httpRequest, 1, 1));
+        assertThrows(InvalidRequestException.class, () -> controller.updateDepartment(httpRequest, 1, 1));
 
     }
 

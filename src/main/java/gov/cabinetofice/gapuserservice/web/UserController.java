@@ -4,6 +4,7 @@ import gov.cabinetofice.gapuserservice.dto.ChangeDepartmentPageDto;
 import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
 import gov.cabinetofice.gapuserservice.dto.UserDto;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
+import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
@@ -47,12 +48,12 @@ public class UserController {
     public ResponseEntity<User> updateDepartment(HttpServletRequest httpRequest, @PathVariable("userId") Integer userId,
                                                    @RequestParam(value = "departmentId", required = false) Integer departmentId) {
 
-        if(oneLoginUserService.isUserApplicantAndFindOnly(oneLoginUserService.getUserById(userId))) {
+        if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
 
-        if (!roleService.isSuperAdmin(httpRequest)) {
-            throw new ForbiddenException();
+        if(oneLoginUserService.isUserApplicantAndFindOnly(oneLoginUserService.getUserById(userId))) {
+            throw new InvalidRequestException("User only has find and applicant roles");
         }
 
         if(departmentId == null) return ResponseEntity.ok().build();
