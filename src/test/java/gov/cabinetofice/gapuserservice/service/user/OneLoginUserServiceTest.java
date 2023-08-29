@@ -365,6 +365,35 @@ public class OneLoginUserServiceTest {
         assertThat(updatedUser.getDepartment()).isNull();
     }
 
+    @Test
+    void updateRolesShouldNotSetDepartmentToNullIfUserHasMoreThanTwoRoles() {
+        Integer userId = 1;
+        List<Integer> newRoles = List.of(1, 2, 3);
+        User user = User.builder().gapUserId(userId).department(Department.builder().name("test").build()).build();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(roleRepository.findById(1)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
+        when(roleRepository.findById(2)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).build()));
+        when(roleRepository.findById(3)).thenReturn(Optional.of(Role.builder().name(RoleEnum.ADMIN).build()));
+        User updatedUser = oneLoginUserService.updateRoles(1 , newRoles);
+
+        assertThat(updatedUser.getDepartment()).isNotNull();
+    }
+
+    @Test
+    void updateRolesShouldNotSetDepartmentToNullIfUserIsAdminOrSuperAdmin() {
+        Integer userId = 1;
+        List<Integer> newRoles = List.of( 3, 4);
+        User user = User.builder().gapUserId(userId).department(Department.builder().name("test").build()).build();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(roleRepository.findById(3)).thenReturn(Optional.of(Role.builder().name(RoleEnum.ADMIN).build()));
+        when(roleRepository.findById(4)).thenReturn(Optional.of(Role.builder().name(RoleEnum.SUPER_ADMIN).build()));
+        when(roleRepository.findByName(RoleEnum.FIND)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).id(1).build()));
+        when(roleRepository.findByName(RoleEnum.APPLICANT)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).id(2).build()));
+        User updatedUser = oneLoginUserService.updateRoles(1 , newRoles);
+
+        assertThat(updatedUser.getDepartment()).isNotNull();
+    }
+
 }
 
 

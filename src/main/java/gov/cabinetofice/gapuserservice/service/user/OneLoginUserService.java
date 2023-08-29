@@ -104,7 +104,7 @@ public class OneLoginUserService {
 
         addRoleIfNotPresent(user, RoleEnum.FIND);
         addRoleIfNotPresent(user, RoleEnum.APPLICANT);
-        deleteDepartmentIfPresentAndUserIsNotAdminOrSuperAdmin(user);
+        deleteDepartmentIfPresentAndUserIsOnlyApplicantOrFind(user);
         userRepository.save(user);
 
         return user;
@@ -118,10 +118,16 @@ public class OneLoginUserService {
         }
     }
 
-    private void deleteDepartmentIfPresentAndUserIsNotAdminOrSuperAdmin(User user) {
-        if (user.getDepartment() != null && user.getRoles().stream().noneMatch(role -> role.getName().equals(RoleEnum.ADMIN) || role.getName().equals(RoleEnum.SUPER_ADMIN))) {
-            user.setDepartment(null);
-        }
+    private void deleteDepartmentIfPresentAndUserIsOnlyApplicantOrFind(User user) {
+           if (isUserOnlyApplicantOrFindWithADepartment(user)) {
+               user.setDepartment(null);
+            }
+    }
+
+    private boolean isUserOnlyApplicantOrFindWithADepartment(User user) {
+        return user.getRoles().size() == 2
+                && user.getDepartment() != null
+                && user.getRoles().stream().anyMatch(role -> role.getName().equals(RoleEnum.FIND) || role.getName().equals(RoleEnum.APPLICANT));
     }
 
     public User deleteUser(Integer id) {
