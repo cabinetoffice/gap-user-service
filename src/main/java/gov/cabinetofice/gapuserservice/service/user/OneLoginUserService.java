@@ -119,15 +119,17 @@ public class OneLoginUserService {
     }
 
     private void deleteDepartmentIfPresentAndUserIsOnlyApplicantOrFind(User user) {
-           if (isUserOnlyApplicantOrFindWithADepartment(user)) {
+           if (isUserApplicantAndFindOnly(user) && doesUserHaveDepartment(user)) {
                user.setDepartment(null);
             }
     }
+    public boolean isUserApplicantAndFindOnly (User user) {
+        final List<Role> roles = user.getRoles();
+        return !roles.isEmpty() && roles.stream().allMatch(role -> role.getName().equals(RoleEnum.FIND) || role.getName().equals(RoleEnum.APPLICANT));
+    }
 
-    private boolean isUserOnlyApplicantOrFindWithADepartment(User user) {
-        return user.getRoles().size() == 2
-                && user.getDepartment() != null
-                && user.getRoles().stream().anyMatch(role -> role.getName().equals(RoleEnum.FIND) || role.getName().equals(RoleEnum.APPLICANT));
+    private boolean doesUserHaveDepartment(User user) {
+        return user.getDepartment() != null;
     }
 
     public User deleteUser(Integer id) {

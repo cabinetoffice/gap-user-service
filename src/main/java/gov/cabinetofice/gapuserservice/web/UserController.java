@@ -46,6 +46,11 @@ public class UserController {
     @PatchMapping("/user/{userId}/department")
     public ResponseEntity<User> updateDepartment(HttpServletRequest httpRequest, @PathVariable("userId") Integer userId,
                                                    @RequestParam(value = "departmentId", required = false) Integer departmentId) {
+
+        if(oneLoginUserService.isUserApplicantAndFindOnly(oneLoginUserService.getUserById(userId))) {
+            throw new ForbiddenException();
+        }
+
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
