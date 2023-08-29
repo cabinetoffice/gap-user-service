@@ -350,5 +350,22 @@ public class OneLoginUserServiceTest {
         assertThat(updatedUser.getRoles().size()).isEqualTo(4);
         assertThat(updatedUser.getRoles().stream().anyMatch(role -> role.getName().equals(RoleEnum.APPLICANT))).isTrue();
         assertThat(updatedUser.getRoles().stream().anyMatch(role -> role.getName().equals(RoleEnum.FIND))).isTrue();
-    }}
+    }
+
+    @Test
+    void updateRolesShouldSetDepartmentToNullIfNotSuperAdminOrAdmin() {
+        Integer userId = 1;
+        List<Integer> newRoles = List.of(1, 2);
+        User user = User.builder().gapUserId(userId).department(Department.builder().name("test").build()).build();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(roleRepository.findById(1)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
+        when(roleRepository.findById(2)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).build()));
+        User updatedUser = oneLoginUserService.updateRoles(1 , newRoles);
+
+        assertThat(updatedUser.getDepartment()).isNull();
+    }
+
+}
+
+
 
