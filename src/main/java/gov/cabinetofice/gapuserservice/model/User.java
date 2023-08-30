@@ -42,9 +42,12 @@ public class User {
     @Column(name = "created")
     private Instant created;
 
-    @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY, mappedBy = "users")
+    @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JoinTable(name = "roles_users",
+            joinColumns = { @JoinColumn(name = "users_gap_user_id", referencedColumnName = "gap_user_id") },
+            inverseJoinColumns = { @JoinColumn(name = "roles_id", referencedColumnName = "id") }
+    )
     @ToString.Exclude
-    @JsonIgnoreProperties({ "hibernateLazyInitializer" })
     @JsonManagedReference
     @Builder.Default
     private List<Role> roles = new ArrayList<>();
@@ -64,7 +67,6 @@ public class User {
 
     public void addRole(final Role role) {
         this.roles.add(role);
-        role.addUser(this);
     }
 
     public boolean hasSub() {
