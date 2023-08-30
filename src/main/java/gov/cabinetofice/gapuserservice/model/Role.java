@@ -33,7 +33,7 @@ public class Role {
     @Column(name = "description")
     private String description;
 
-    @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY)
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinColumn(name = "id", nullable = false)
     @ToString.Exclude
     @JsonIgnoreProperties({ "hibernateLazyInitializer" })
