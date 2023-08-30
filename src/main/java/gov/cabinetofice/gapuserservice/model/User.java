@@ -42,7 +42,7 @@ public class User {
     @Column(name = "created")
     private Instant created;
 
-    @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ManyToMany(cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY)
     @JoinTable(name = "roles_users",
             joinColumns = { @JoinColumn(name = "users_gap_user_id", referencedColumnName = "gap_user_id") },
             inverseJoinColumns = { @JoinColumn(name = "roles_id", referencedColumnName = "id") }
