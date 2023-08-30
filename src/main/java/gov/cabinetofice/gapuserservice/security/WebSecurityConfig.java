@@ -45,11 +45,15 @@ public class WebSecurityConfig {
                 "/register/**",
                 "/health",
                 "/login",
+                "/v2/redirect-after-login",
+                "/v2/login",
+                "/v2/notice-page",
+                "/v2/privacy-policy",
                 "/is-user-logged-in",
                 "/redirect-after-cola-login",
                 "/error/**",
                 "/.well-known/jwks.json",
-                "/logout"
+                "/user"
                 );
     }
 

@@ -17,7 +17,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * This class cannot be a Spring bean, otherwise Spring will automatically apply it to all
@@ -65,12 +68,12 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         }
 
         //TODO set the Security context, so we can access user details in rest of app
-        final UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+        final UsernamePasswordAuthenticationToken user_authentication = new UsernamePasswordAuthenticationToken(
                 "Placeholder",
                 null,
                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+        SecurityContextHolder.getContext().setAuthentication(user_authentication);
         chain.doFilter(request, response);
     }
 

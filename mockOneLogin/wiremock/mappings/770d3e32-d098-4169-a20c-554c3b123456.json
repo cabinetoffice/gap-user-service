@@ -1,0 +1,18 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/token",
+    "headers" : {
+      "Content-Type" : {
+        "contains" : "application/x-www-form-urlencoded"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "bodyFileName": "onelogin-token-response-post.json",
+    "headers": {
+      "Content-Type": "text/plain"
+    }
+  }
+}

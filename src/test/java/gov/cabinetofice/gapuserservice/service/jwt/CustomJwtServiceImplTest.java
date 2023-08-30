@@ -1,32 +1,28 @@
 package gov.cabinetofice.gapuserservice.service.jwt;
 
 import com.auth0.jwt.JWT;
-import static com.auth0.jwt.JWT.require;
 import com.auth0.jwt.JWTCreator;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
-import static com.auth0.jwt.algorithms.Algorithm.HMAC256;
 import com.auth0.jwt.exceptions.JWTVerificationException;
-import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.Verification;
 import com.nimbusds.jose.JOSEException;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
+import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
+import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.JwtBlacklistRepository;
+import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
-
-import static com.auth0.jwt.algorithms.Algorithm.RSA256;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import static org.mockito.Mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -35,15 +31,26 @@ import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+
+import static com.auth0.jwt.JWT.decode;
+import static com.auth0.jwt.JWT.require;
+import static com.auth0.jwt.algorithms.Algorithm.RSA256;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
 
 
 @ExtendWith(MockitoExtension.class)
 public class CustomJwtServiceImplTest {
 
+    @InjectMocks
     private CustomJwtServiceImpl serviceUnderTest;
 
     @Mock
     private JwtBlacklistRepository jwtBlacklistRepository;
+
+    @Mock
+    private UserRepository userRepository;
 
     private final String CHRISTMAS_2022_MIDDAY = "2022-12-25T12:00:00.00z";
     private final Clock clock = Clock.fixed(Instant.parse(CHRISTMAS_2022_MIDDAY), ZoneId.of("UTC"));
@@ -57,7 +64,7 @@ public class CustomJwtServiceImplTest {
                 .expiresAfter(60)
                 .build();
 
-        serviceUnderTest = spy(new CustomJwtServiceImpl(jwtProperties, jwtBlacklistRepository, clock));
+        serviceUnderTest = spy(new CustomJwtServiceImpl(jwtProperties, jwtBlacklistRepository, userRepository, clock));
     }
 
     @Nested
@@ -67,17 +74,22 @@ public class CustomJwtServiceImplTest {
         final Algorithm mockAlgorithm = mock(Algorithm.class);
         private final Verification verification = JWT.require(mockAlgorithm);
 
+        final String jwt = "eyJraWQiOiIxODNjZTQ5YS0xYjExLTRiYjgtOWExMi1iYTViNzVmNGVmZjQiLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1cm46ZmRjOmdvdi51azoyMDIyOmliZDJyejJDZ3lpZG5kWHlxMnp5ZmNuUXd5WUk1N2gzNHZNbFNyODdDRGYiLCJhdWQiOiJGR1AiLCJpZFRva2VuIjoienFybiIsInJvbGVzIjoiW0FQUExJQ0FOVCwgRklORCwgQURNSU4sIFNVUEVSX0FETUlOXSIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MiIsImRlcGFydG1lbnQiOiJDYWJpbmV0IE9mZmljZSIsImV4cCI6MTY5MDQ1MjkzNCwiaWF0IjoxNjkwNDQ5MzM0LCJlbWFpbCI6InRlc3QudXNlckBnb3YudWsiLCJqdGkiOiIxOWQyMGYzMi0xZDIyLTQ0NzgtYjkwNi0wMzc5Mzg5ODUxODMifQ.H0xj5yob8u7eJs8zaCgjlTm_pt4fKrNhzFsmMcBNHghUaK3SQUoJcjUea31rKFppl5Dju90lq7n1fmNhVAk3Hpli6KvU2KNSgJZbCiMU5PbjJRZ3ogssjYjhOvor7fQrpComwZqA5-1I2jq9bQEIBwMyoSIpEJh1XFnk_GexedhlTY3ws0C9pX5gev7TL13cuc7xMRDRQE2G6-0sSOdTc5z0ib-Xjqz7D6tkLSOZJ4EKrbNnXpfar8KTSAUX6bO8Huj8q-FousOTpnlgOuUtNWXgdL928wP3fHgaCKsiALCDoHfoRSK2-0do0rsMmFHIrnIeZkJqvULgjgd55FLsAg";
+
+
         @Test
         void ReturnsTrue_IfValid() {
-            final String jwt = "a-valid-jwt";
             final Algorithm mockAlgorithm = mock(Algorithm.class);
             final Verification spiedVerification = spy(verification);
+            ReflectionTestUtils.setField(serviceUnderTest, "oneLoginEnabled", true);
 
             try (MockedStatic<Algorithm> staticAlgorithm = Mockito.mockStatic(Algorithm.class)) {
                 staticAlgorithm.when(() -> RSA256(any(), any())).thenReturn(mockAlgorithm);
                 try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
                     staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
+                    staticJwt.when(() -> decode(any())).thenCallRealMethod();
                     when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
+                    when(userRepository.findBySub(any())).thenReturn(Optional.of(User.builder().loginJourneyState(LoginJourneyState.USER_READY).build()));
 
                     final boolean response = serviceUnderTest.isTokenValid(jwt);
                     assertThat(response).isTrue();
@@ -88,7 +100,6 @@ public class CustomJwtServiceImplTest {
 
         @Test
         void ReturnsFalse_IfInvalid() {
-            final String jwt = "an-invalid-jwt";
             final Algorithm mockAlgorithm = mock(Algorithm.class);
             final Verification spiedVerification = spy(verification);
 
@@ -96,6 +107,7 @@ public class CustomJwtServiceImplTest {
                 staticAlgorithm.when(() -> RSA256(any(), any())).thenReturn(mockAlgorithm);
                 try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
                     staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
+                    staticJwt.when(() -> decode(any())).thenCallRealMethod();
                     when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
                     when(mockedJwtVerifier.verify(jwt)).thenThrow(new JWTVerificationException("An error"));
 
@@ -108,16 +120,18 @@ public class CustomJwtServiceImplTest {
 
         @Test
         void ReturnsFalse_IfBlacklisted() {
-            final String jwt = "a-valid-jwt";
             final Algorithm mockAlgorithm = mock(Algorithm.class);
             final Verification spiedVerification = spy(verification);
+            ReflectionTestUtils.setField(serviceUnderTest, "oneLoginEnabled", true);
 
             try (MockedStatic<Algorithm> staticAlgorithm = Mockito.mockStatic(Algorithm.class)) {
                 staticAlgorithm.when(() -> RSA256(any(), any())).thenReturn(mockAlgorithm);
                 try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
                     staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
+                    staticJwt.when(() -> decode(any())).thenCallRealMethod();
                     when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
                     when(jwtBlacklistRepository.existsByJwtIs(jwt)).thenReturn(true);
+                    when(userRepository.findBySub(any())).thenReturn(Optional.of(User.builder().loginJourneyState(LoginJourneyState.USER_READY).build()));
 
                     final boolean response = serviceUnderTest.isTokenValid(jwt);
 
@@ -130,15 +144,17 @@ public class CustomJwtServiceImplTest {
 
         @Test
         void SignsWithCorrectAlgorithm() {
-            final String jwt = "a-jwt";
             final Algorithm mockAlgorithm = mock(Algorithm.class);
             final Verification spiedVerification = spy(verification);
+            ReflectionTestUtils.setField(serviceUnderTest, "oneLoginEnabled", true);
 
             try (MockedStatic<Algorithm> staticAlgorithm = Mockito.mockStatic(Algorithm.class)) {
                 try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
                     staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
+                    staticJwt.when(() -> decode(any())).thenCallRealMethod();
                     when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
                     staticAlgorithm.when(() -> RSA256(any(), any())).thenReturn(mockAlgorithm);
+                    when(userRepository.findBySub(any())).thenReturn(Optional.of(User.builder().loginJourneyState(LoginJourneyState.USER_READY).build()));
 
                     serviceUnderTest.isTokenValid(jwt);
 
@@ -152,9 +168,6 @@ public class CustomJwtServiceImplTest {
 
     @Nested
     class GenerateToken {
-
-        private final DecodedJWT thirdPartyToken = TestDecodedJwt.builder().build();
-
 
         @Test
         void WithCorrectIssuer() {

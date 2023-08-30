@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  wiremock:
+    image: wiremock/wiremock:2.35.0
+    ports:
+      - '8888:8080'
+    volumes:
+      - ./wiremock:/home/wiremock
+    command:
+      - "--global-response-templating"
