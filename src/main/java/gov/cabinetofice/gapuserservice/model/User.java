@@ -118,9 +118,6 @@ public class User {
     }
 
     public void removeAllRoles() {
-        for (Role role : this.roles) {
-            role.removeUser(this);
-        }
         this.roles.clear();
     }
 }
