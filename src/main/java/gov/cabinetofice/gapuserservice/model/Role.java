@@ -1,7 +1,6 @@
 package gov.cabinetofice.gapuserservice.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -38,7 +37,5 @@ public class Role {
     @JsonBackReference
     @Builder.Default
     private List<User> users = new ArrayList<>();
-
-    public void removeUser( User user) { this.users.remove(user); }
 }
 
