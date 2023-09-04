@@ -29,7 +29,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
@@ -77,7 +76,6 @@ public class LoginControllerV2 {
     public String migrationEnabled;
 
     @GetMapping("/login")
-    @Transactional
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public RedirectView login(final @RequestParam(name = REDIRECT_URL_NAME) Optional<String> redirectUrlParam,
             final HttpServletRequest request,
@@ -100,11 +98,10 @@ public class LoginControllerV2 {
     }
 
     @GetMapping("/redirect-after-login")
-    @Transactional
     public RedirectView redirectAfterLogin(
             final @CookieValue(name = STATE_COOKIE) String stateCookie,
             final HttpServletResponse response,
-             final @RequestParam String code,
+            final @RequestParam String code,
             final @RequestParam String state) {
 
         final JSONObject tokenResponse = oneLoginService.getOneLoginUserTokenResponse(code);
@@ -132,7 +129,6 @@ public class LoginControllerV2 {
     }
 
     @GetMapping("/privacy-policy")
-    @Transactional
     public ModelAndView submitToPrivacyPolicyPage(
             final @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto) {
         return new ModelAndView(PRIVACY_POLICY_PAGE_VIEW)
@@ -140,7 +136,6 @@ public class LoginControllerV2 {
     }
 
     @PostMapping("/privacy-policy")
-    @Transactional
     public ModelAndView submitToPrivacyPolicyPage(
             final @Valid @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto,
             final BindingResult result,
@@ -156,7 +151,6 @@ public class LoginControllerV2 {
     }
 
     @GetMapping("/logout")
-    @Transactional
     public RedirectView logout(final HttpServletRequest request, final HttpServletResponse response) {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
         if(customJWTCookie == null || customJWTCookie.getValue().isBlank()){
