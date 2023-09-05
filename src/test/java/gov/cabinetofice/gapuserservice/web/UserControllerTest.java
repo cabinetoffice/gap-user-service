@@ -8,6 +8,7 @@ import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
+import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,9 @@ class UserControllerTest {
 
     @Mock
     private DepartmentService departmentService;
+    
+    @Mock
+    private CustomJwtServiceImpl customJwtService;
 
     @Mock
     private RoleService roleService;
@@ -83,6 +87,7 @@ class UserControllerTest {
     void shouldDeleteUserWhenValidIdIsGiven() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
+        when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(User.builder().build());
         final ResponseEntity<String> methodResponse = controller.deleteUser(httpRequest, 1);
 
         assertThat(methodResponse).isEqualTo(ResponseEntity.ok("success"));
