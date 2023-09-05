@@ -8,10 +8,12 @@ import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.service.SecretAuthService;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +30,7 @@ public class UserController {
     private final DepartmentService departmentService;
     private final RoleService roleService;
     private final CustomJwtServiceImpl jwtService;
+    private final SecretAuthService secretAuthService;
 
     @GetMapping("/user")
     public ResponseEntity<UserDto> getUserFromJwt(HttpServletRequest httpRequest) {
@@ -54,6 +57,15 @@ public class UserController {
 
         return ResponseEntity.ok(new UserDto(oneLoginUserService.getUserById(id)));
     }
+
+    @GetMapping("/user")
+    public ResponseEntity<UserDto> getUserByUserSub(@RequestParam("userSub") String userSub,
+                                                    @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader) {
+        // authenticate request from lambda function
+        secretAuthService.authenticateSecret(authHeader);
+        return ResponseEntity.ok(new UserDto(oneLoginUserService.getUserByUserSub(userSub)));
+    }
+
     @PatchMapping("/user/{userId}/department")
     public ResponseEntity<User> updateDepartment(HttpServletRequest httpRequest, @PathVariable("userId") Integer userId,
                                                    @RequestParam(value = "departmentId", required = false) Integer departmentId) {
