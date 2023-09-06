@@ -172,9 +172,9 @@ public class CustomJwtServiceImpl implements JwtService {
     }
 
     public JwtPayload validateRolesInThePayload(JwtPayload payload) throws UnauthorizedException {
-        final List<Role> dbRoles = oneLoginUserService.getUserBySub(payload.getSub()).getRoles();
-        final String roles = payload.getRoles();
-        oneLoginUserService.validateRoles(dbRoles, roles);
+        final List<Role> userRoles = oneLoginUserService.getUserBySub(payload.getSub()).getRoles();
+        final String payloadRoles = payload.getRoles();
+        oneLoginUserService.validateRoles(userRoles, payloadRoles);
         return payload;
     }
 

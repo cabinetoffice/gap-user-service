@@ -29,7 +29,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 
 import static gov.cabinetofice.gapuserservice.util.HelperUtils.removeSquareBracketsAndTrim;
 
@@ -177,11 +176,11 @@ public class OneLoginUserService {
         response.addCookie(thirdPartyAuthToken);
     }
 
-    public void validateRoles(List<Role> dbRoles, String roles) {
-        final List<String> rolesList = removeSquareBracketsAndTrim(Arrays.asList(roles.split(",")));
-        final List<String> dbRolesList = dbRoles.stream().map(role -> roleMapper.roleToRoleDto(role).getName()).collect(Collectors.toList());
+    public void validateRoles(List<Role> userRoles, String payloadRoles) {
+        final List<String> formattedPayloadRoles = removeSquareBracketsAndTrim(Arrays.asList(payloadRoles.split(",")));
+        final List<String> formattedUserRoles = userRoles.stream().map(role -> roleMapper.roleToRoleDto(role).getName()).toList();
 
-        if(!new HashSet<>(dbRolesList).containsAll(rolesList)){
+        if(!new HashSet<>(formattedPayloadRoles).containsAll(formattedUserRoles)){
             throw new UnauthorizedException("Roles in payload do not match roles in database");
         }
     }
