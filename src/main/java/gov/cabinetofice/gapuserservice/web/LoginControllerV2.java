@@ -20,7 +20,6 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.json.JSONObject;
@@ -45,7 +44,6 @@ import static gov.cabinetofice.gapuserservice.util.HelperUtils.getCustomJwtCooki
 @RequestMapping("v2")
 @ConditionalOnProperty(value = "feature.onelogin.enabled", havingValue = "true")
 @Log4j2
-@Getter
 public class LoginControllerV2 {
     private final OneLoginService oneLoginService;
     private final CustomJwtServiceImpl customJwtService;

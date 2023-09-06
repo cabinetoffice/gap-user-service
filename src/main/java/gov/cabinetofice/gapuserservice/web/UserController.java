@@ -82,6 +82,7 @@ public class UserController {
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
+        final Cookie customJWTCookie = getCustomJwtCookieFromRequest(httpRequest, userServiceCookieName);
 
         oneLoginUserService.updateRoles(id, roleIds);
         return ResponseEntity.ok("success");

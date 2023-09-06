@@ -42,10 +42,10 @@ public class OneLoginUserService {
     private final JwtBlacklistService jwtBlacklistService;
     private final ApplicationConfigProperties configProperties;
     private final ThirdPartyAuthProviderProperties authenticationProvider;
+    private final WebClient.Builder webClientBuilder;
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
-    private final WebClient.Builder webClientBuilder;
 
     @Value("${admin-backend}")
     private String adminBackend;
