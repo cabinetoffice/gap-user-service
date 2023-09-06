@@ -14,7 +14,6 @@ import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.*;
-import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
 import gov.cabinetofice.gapuserservice.model.Nonce;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
@@ -97,7 +96,6 @@ public class OneLoginService {
     private final JwtBlacklistService jwtBlacklistService;
     private final CustomJwtServiceImpl customJwtService;
     private final OneLoginUserService oneLoginUserService;
-    private final RoleMapper roleMapper;
 
     public PrivateKey parsePrivateKey() {
         try {
