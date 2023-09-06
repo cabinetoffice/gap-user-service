@@ -1,5 +1,3 @@
-
-
 package gov.cabinetofice.gapuserservice.service.user;
 
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;

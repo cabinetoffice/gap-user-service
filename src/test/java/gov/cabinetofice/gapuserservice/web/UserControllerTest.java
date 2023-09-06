@@ -92,4 +92,17 @@ class UserControllerTest {
 
         assertThat(methodResponse).isEqualTo(ResponseEntity.ok("success"));
     }
+
+    @Test
+    public void testGetUserFromJwt() throws Exception {
+        User mockUser = User.builder().gapUserId(1).build();
+        when(roleService.isSuperAdmin(any(HttpServletRequest.class)))
+                .thenReturn(true);
+        when(customJwtService.getUserFromJwt(any(HttpServletRequest.class)))
+                .thenReturn(mockUser);
+        final ResponseEntity<UserDto> methodResponse = controller.getUserFromJwt(mock(HttpServletRequest.class));
+
+        assertThat(methodResponse.getBody()).isEqualTo(new UserDto(mockUser));
+
+    }
 }
