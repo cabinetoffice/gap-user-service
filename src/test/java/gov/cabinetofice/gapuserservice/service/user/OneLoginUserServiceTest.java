@@ -22,10 +22,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -84,6 +81,58 @@ public class OneLoginUserServiceTest {
         assertThat(result).isNotNull();
         assertThat(result).isEqualTo(mockedUser);
         verify(userRepository, times(1)).findById(1);
+    }
+
+    @Test
+    void shouldReturnUserWhenValidOneLoginSubIsGiven() {
+
+        User mockedUser = User.builder().gapUserId(1).build();
+        when(userRepository.findBySub("1234")).thenReturn(Optional.of(mockedUser));
+        User result = oneLoginUserService.getUserByUserSub("1234");
+
+        assertThat(result).isNotNull();
+        assertThat(result).isEqualTo(mockedUser);
+        verify(userRepository, times(1)).findBySub("1234");
+    }
+
+    @Test
+    void shouldReturnUserWhenValidColaSubIsGiven() {
+
+        UUID uuid = UUID.fromString("f1da81d1-375f-4693-b52e-60f38a253fc9");
+
+        User mockedUser = User.builder().gapUserId(1).build();
+        when(userRepository.findBySub("f1da81d1-375f-4693-b52e-60f38a253fc9")).thenReturn(Optional.empty());
+        when(userRepository.findByColaSub(uuid)).thenReturn(Optional.of(mockedUser));
+        User result = oneLoginUserService.getUserByUserSub("f1da81d1-375f-4693-b52e-60f38a253fc9");
+
+        assertThat(result).isNotNull();
+        assertThat(result).isEqualTo(mockedUser);
+        verify(userRepository, times(1)).findBySub("f1da81d1-375f-4693-b52e-60f38a253fc9");
+        verify(userRepository, times(1)).findByColaSub(uuid);
+    }
+
+    @Test
+    void shouldThrowNotFoundExceptionWhenInValidSubIsGiven() {
+
+        UUID uuid = UUID.fromString("f1da81d1-375f-4693-b52e-60f38a253fc9");
+
+        when(userRepository.findBySub("f1da81d1-375f-4693-b52e-60f38a253fc9")).thenReturn(Optional.empty());
+        when(userRepository.findByColaSub(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class, () ->
+                oneLoginUserService.getUserByUserSub("f1da81d1-375f-4693-b52e-60f38a253fc9"));
+        verify(userRepository, times(1)).findBySub("f1da81d1-375f-4693-b52e-60f38a253fc9");
+        verify(userRepository, times(1)).findByColaSub(uuid);
+    }
+
+    @Test
+    void shouldThrowNotFoundExceptionWhenInValidUUIDSubIsGiven() {
+
+        when(userRepository.findBySub("1234")).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class, () ->
+                oneLoginUserService.getUserByUserSub("1234"));
+        verify(userRepository, times(1)).findBySub("1234");
     }
 
     @Test

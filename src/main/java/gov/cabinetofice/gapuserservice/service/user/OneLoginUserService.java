@@ -19,19 +19,18 @@ import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.BiFunction;
 
 @RequiredArgsConstructor
 @Service
+@Slf4j
 public class OneLoginUserService {
 
     private final UserRepository userRepository;
@@ -67,6 +66,26 @@ public class OneLoginUserService {
     public User getUserById(int id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("user with id: " + id + "not found"));
+    }
+
+    public User getUserByUserSub(String userSub) {
+
+        // Get user by One Login sub first
+        Optional<User> user = userRepository.findBySub(userSub);
+
+        if (user.isEmpty()) {
+            // If user is not found by One Login sub, get user by Cola sub
+            try {
+                return userRepository.findByColaSub(UUID.fromString(userSub))
+                        .orElseThrow(() -> new UserNotFoundException("user with sub: " + userSub + "not found"));
+
+            } catch (IllegalArgumentException e) {
+                log.error("Invalid UUID: " + userSub);
+                throw new UserNotFoundException("Invalid UUID: " + userSub);
+            }
+        }
+
+        return user.get();
     }
 
     public User updateDepartment(Integer id, Integer departmentId) {
