@@ -7,7 +7,9 @@ import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.dto.UserQueryDto;
 import gov.cabinetofice.gapuserservice.exceptions.DepartmentNotFoundException;
 import gov.cabinetofice.gapuserservice.exceptions.RoleNotFoundException;
+import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
+import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
 import gov.cabinetofice.gapuserservice.model.Department;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
@@ -29,6 +31,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+
+import static gov.cabinetofice.gapuserservice.util.HelperUtils.removeSquareBracketsAndTrim;
 
 @RequiredArgsConstructor
 @Service
@@ -41,6 +46,7 @@ public class OneLoginUserService {
     private final JwtBlacklistService jwtBlacklistService;
     private final ApplicationConfigProperties configProperties;
     private final ThirdPartyAuthProviderProperties authenticationProvider;
+    private final RoleMapper roleMapper;
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
@@ -171,5 +177,19 @@ public class OneLoginUserService {
         );
         thirdPartyAuthToken.setMaxAge(0);
         response.addCookie(thirdPartyAuthToken);
+    }
+
+    public void validateRoles(List<Role> dbRoles, String roles) {
+        final List<String> rolesList = removeSquareBracketsAndTrim(Arrays.asList(roles.split(",")));
+        final List<String> dbRolesList = dbRoles.stream().map(role -> roleMapper.roleToRoleDto(role).getName()).collect(Collectors.toList());
+
+        if(!new HashSet<>(dbRolesList).containsAll(rolesList)){
+            throw new UnauthorizedException("Roles in payload do not match roles in database");
+        }
+    }
+
+    public void validateAdminSession(String emailAddress, String roles) throws UnauthorizedException {
+        final List<Role> dbRoles = userRepository.findByEmailAddress(emailAddress).get().getRoles();
+        validateRoles(dbRoles, roles);
     }
 }

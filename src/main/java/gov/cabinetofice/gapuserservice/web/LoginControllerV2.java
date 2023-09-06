@@ -17,6 +17,7 @@ import gov.cabinetofice.gapuserservice.service.OneLoginService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
 import gov.cabinetofice.gapuserservice.service.encryption.Sha512Service;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -54,6 +55,8 @@ public class LoginControllerV2 {
     private final ApplicationConfigProperties configProperties;
     private final Sha512Service encryptionService;
     private final NonceRepository nonceRepository;
+    private final OneLoginUserService oneLoginUserService;
+
 
     private final FindAGrantConfigProperties findProperties;
 
@@ -78,11 +81,12 @@ public class LoginControllerV2 {
     @Value("${feature.onelogin.migration.enabled}")
     public String migrationEnabled;
 
-    @GetMapping("/verifyAdminSession")
-    public ResponseEntity<Boolean> verifyAdminRoles(@RequestHeader("emailaddress") String emailAddress, @RequestHeader("roles") String roles){
-        oneLoginService.validateAdminSession(emailAddress, roles);
+    @GetMapping("/validateAdminSession")
+    public ResponseEntity<Boolean> validateAdminRoles(@RequestHeader("emailaddress") String emailAddress, @RequestHeader("roles") String roles){
+        oneLoginUserService.validateAdminSession(emailAddress, roles);
         return ResponseEntity.ok(Boolean.TRUE);
     }
+
     @GetMapping("/login")
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public RedirectView login(final @RequestParam(name = REDIRECT_URL_NAME) Optional<String> redirectUrlParam,

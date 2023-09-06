@@ -32,7 +32,7 @@ public class UserController {
     private final CustomJwtServiceImpl jwtService;
     private final SecretAuthService secretAuthService;
 
-    @GetMapping("/user")
+    @GetMapping("/userFromJwt")
     public ResponseEntity<UserDto> getUserFromJwt(HttpServletRequest httpRequest) {
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();

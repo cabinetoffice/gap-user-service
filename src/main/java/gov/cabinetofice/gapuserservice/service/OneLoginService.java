@@ -44,7 +44,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.view.RedirectView;
 
-
 import java.io.IOException;
 import java.net.URL;
 import java.security.KeyFactory;
@@ -396,19 +395,5 @@ public class OneLoginService {
         );
     }
 
-    public void validateAdminSession(String emailAddress, String roles) throws UnauthorizedException {
-        final List<Role> userRoles = userRepository.findByEmailAddress(emailAddress).get().getRoles();
-
-        final boolean sameNumberOfRoles = roles.split(",").length == userRoles.size();
-
-        if(!sameNumberOfRoles){
-            throw new UnauthorizedException("Roles in payload do not match roles in database");
-        }
-
-        final boolean allRolesMatch = userRoles.stream().allMatch(role -> roles.contains(roleMapper.roleToRoleDto(role).getName()));
-        if(!allRolesMatch){
-            throw new UnauthorizedException("Roles in payload do not match roles in database");
-        }
-    }
 }
 

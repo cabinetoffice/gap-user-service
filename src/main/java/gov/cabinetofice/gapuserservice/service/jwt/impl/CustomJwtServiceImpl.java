@@ -44,6 +44,7 @@ public class CustomJwtServiceImpl implements JwtService {
 
     private final UserRepository userRepository;
     private final OneLoginUserService oneLoginUserService;
+
     private final RoleMapper roleMapper;
     private final Clock clock;
     private final RSAKey rsaKey;
@@ -88,7 +89,7 @@ public class CustomJwtServiceImpl implements JwtService {
                 Optional<User> user = userRepository.findBySub(jwtPayload.getSub());
                 if (user.isEmpty()) user = userRepository.findByEmailAddress(jwtPayload.getEmail());
                 if (user.isEmpty()) return false;
-                verifyThatRolesInPayloadMatchRolesInDB(jwtPayload);
+                validateRolesInThePayload(jwtPayload);
                 if (user.get().getLoginJourneyState().equals(LoginJourneyState.PRIVACY_POLICY_PENDING)) return false;
             }
 
@@ -173,19 +174,11 @@ public class CustomJwtServiceImpl implements JwtService {
         return  userRepository.findBySub(payload.getSub()).get();
     }
 
-    public JwtPayload verifyThatRolesInPayloadMatchRolesInDB(JwtPayload payload) throws UnauthorizedException {
-        final List<Role> userRoles = oneLoginUserService.getUserBySub(payload.getSub()).getRoles();
-
-        final boolean sameNumberOfRoles = payload.getRoles().split(",").length == userRoles.size();
-
-        if(!sameNumberOfRoles){
-            throw new UnauthorizedException("Roles in payload do not match roles in database");
-        }
-
-        final boolean allRolesMatch = userRoles.stream().allMatch(role -> payload.getRoles().contains(roleMapper.roleToRoleDto(role).getName()));
-        if(!allRolesMatch){
-            throw new UnauthorizedException("Roles in payload do not match roles in database");
-        }
+    public JwtPayload validateRolesInThePayload(JwtPayload payload) throws UnauthorizedException {
+        final List<Role> dbRoles = oneLoginUserService.getUserBySub(payload.getSub()).getRoles();
+        final String roles = payload.getRoles();
+        oneLoginUserService.validateRoles(dbRoles, roles);
         return payload;
     }
+
 }
