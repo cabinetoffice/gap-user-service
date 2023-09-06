@@ -142,9 +142,12 @@ public class OneLoginUserService {
                user.setDepartment(null);
             }
     }
-    public boolean isUserApplicantAndFindOnly (User user) {
+
+    public boolean isUserApplicantAndFindOnly(User user) {
         final List<Role> roles = user.getRoles();
-        return !roles.isEmpty() && roles.stream().allMatch(role -> role.getName().equals(RoleEnum.FIND) || role.getName().equals(RoleEnum.APPLICANT));
+        return !roles.isEmpty() && roles.stream().allMatch(
+                role -> role.getName().equals(RoleEnum.FIND) ||
+                        role.getName().equals(RoleEnum.APPLICANT));
     }
 
     private boolean doesUserHaveDepartment(User user) {
