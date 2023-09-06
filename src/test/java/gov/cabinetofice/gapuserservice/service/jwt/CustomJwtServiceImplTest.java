@@ -9,7 +9,6 @@ import com.auth0.jwt.interfaces.Verification;
 import com.nimbusds.jose.JOSEException;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
-import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -51,9 +50,6 @@ public class CustomJwtServiceImplTest {
     private JwtBlacklistRepository jwtBlacklistRepository;
 
     @Mock
-    private RoleMapper roleMapper;
-
-    @Mock
     private OneLoginUserService oneLoginUserService;
 
     @Mock
@@ -74,7 +70,7 @@ public class CustomJwtServiceImplTest {
                 .expiresAfter(60)
                 .build();
 
-        serviceUnderTest = spy(new CustomJwtServiceImpl(roleMapper, oneLoginUserService, jwtProperties, jwtBlacklistRepository, userRepository, clock));
+        serviceUnderTest = spy(new CustomJwtServiceImpl(oneLoginUserService, jwtProperties, jwtBlacklistRepository, userRepository, clock));
     }
 
     @Nested

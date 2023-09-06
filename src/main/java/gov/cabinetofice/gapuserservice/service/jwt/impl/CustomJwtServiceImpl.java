@@ -14,7 +14,6 @@ import gov.cabinetofice.gapuserservice.config.JwtProperties;
 import gov.cabinetofice.gapuserservice.dto.JwtPayload;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
-import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.JwtBlacklistRepository;
@@ -45,7 +44,6 @@ public class CustomJwtServiceImpl implements JwtService {
     private final UserRepository userRepository;
     private final OneLoginUserService oneLoginUserService;
 
-    private final RoleMapper roleMapper;
     private final Clock clock;
     private final RSAKey rsaKey;
 
@@ -55,8 +53,7 @@ public class CustomJwtServiceImpl implements JwtService {
     @Value("${feature.onelogin.enabled}")
     public boolean oneLoginEnabled;
 
-    public CustomJwtServiceImpl(RoleMapper roleMapper, OneLoginUserService oneLoginUserService, JwtProperties jwtProperties, JwtBlacklistRepository jwtBlacklistRepository, UserRepository userRepository, Clock clock) throws JOSEException {
-        this.roleMapper = roleMapper;
+    public CustomJwtServiceImpl(OneLoginUserService oneLoginUserService, JwtProperties jwtProperties, JwtBlacklistRepository jwtBlacklistRepository, UserRepository userRepository, Clock clock) throws JOSEException {
         this.oneLoginUserService = oneLoginUserService;
         this.jwtProperties = jwtProperties;
         this.jwtBlacklistRepository = jwtBlacklistRepository;
