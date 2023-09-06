@@ -65,7 +65,7 @@ public class UserController {
         }
 
         if(oneLoginUserService.isUserApplicantAndFindOnly(oneLoginUserService.getUserById(userId))) {
-            throw new InvalidRequestException("User only has find and applicant roles");
+            throw new InvalidRequestException("Users with find and applicant roles cannot be assigned a department");
         }
 
         if(departmentId == null) return ResponseEntity.ok().build();
