@@ -8,7 +8,6 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.Verification;
 import com.nimbusds.jose.JOSEException;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
-import gov.cabinetofice.gapuserservice.dto.RoleDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
 import gov.cabinetofice.gapuserservice.model.Role;
@@ -103,7 +102,6 @@ public class CustomJwtServiceImplTest {
                     User testUser = User.builder().roles(List.of(Role.builder().name(RoleEnum.FIND).id(1).build(), Role.builder().name(RoleEnum.SUPER_ADMIN).id(4).build(), Role.builder().name(RoleEnum.ADMIN).id(3).build(), Role.builder().name(RoleEnum.APPLICANT).id(2).build())).loginJourneyState(LoginJourneyState.USER_READY).build();
                     when(userRepository.findBySub(any())).thenReturn(Optional.of(testUser));
                     when(oneLoginUserService.getUserBySub(any())).thenReturn(testUser);
-                    when(roleMapper.roleToRoleDto(any())).thenReturn(RoleDto.builder().name("FIND").build());
                     final boolean response = serviceUnderTest.isTokenValid(jwt);
                     assertThat(response).isTrue();
                     verify(mockedJwtVerifier, times(1)).verify(jwt);
@@ -147,7 +145,6 @@ public class CustomJwtServiceImplTest {
                     User testUser = User.builder().roles(List.of(Role.builder().name(RoleEnum.FIND).id(1).build(), Role.builder().name(RoleEnum.SUPER_ADMIN).id(4).build(), Role.builder().name(RoleEnum.ADMIN).id(3).build(), Role.builder().name(RoleEnum.APPLICANT).id(2).build())).loginJourneyState(LoginJourneyState.USER_READY).build();
                     when(userRepository.findBySub(any())).thenReturn(Optional.of(testUser));
                     when(oneLoginUserService.getUserBySub(any())).thenReturn(testUser);
-                    when(roleMapper.roleToRoleDto(any())).thenReturn(RoleDto.builder().name("FIND").build());
 
                     final boolean response = serviceUnderTest.isTokenValid(jwt);
 
@@ -174,7 +171,6 @@ public class CustomJwtServiceImplTest {
                     when(userRepository.findBySub(any())).thenReturn(Optional.of(User.builder().loginJourneyState(LoginJourneyState.USER_READY).build()));
                     when(userRepository.findBySub(any())).thenReturn(Optional.of(testUser));
                     when(oneLoginUserService.getUserBySub(any())).thenReturn(testUser);
-                    when(roleMapper.roleToRoleDto(any())).thenReturn(RoleDto.builder().name("FIND").build());
                     serviceUnderTest.isTokenValid(jwt);
                     staticAlgorithm.verify(() -> RSA256(any(), any()), times(1));
                     staticJwt.verify(() -> JWT.require(mockAlgorithm), times(1));
