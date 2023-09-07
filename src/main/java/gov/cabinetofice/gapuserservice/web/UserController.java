@@ -4,6 +4,7 @@ import gov.cabinetofice.gapuserservice.dto.ChangeDepartmentPageDto;
 import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
 import gov.cabinetofice.gapuserservice.dto.UserDto;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
+import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
@@ -58,8 +59,13 @@ public class UserController {
     @PatchMapping("/user/{userId}/department")
     public ResponseEntity<User> updateDepartment(HttpServletRequest httpRequest, @PathVariable("userId") Integer userId,
                                                    @RequestParam(value = "departmentId", required = false) Integer departmentId) {
+
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
+        }
+
+        if(oneLoginUserService.isUserApplicantAndFindOnly(oneLoginUserService.getUserById(userId))) {
+            throw new InvalidRequestException("Users with find and applicant roles cannot be assigned a department");
         }
 
         if(departmentId == null) return ResponseEntity.ok().build();
