@@ -8,7 +8,9 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.Verification;
 import com.nimbusds.jose.JOSEException;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
+import gov.cabinetofice.gapuserservice.dto.JwtPayload;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
+import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -37,6 +39,7 @@ import static com.auth0.jwt.JWT.decode;
 import static com.auth0.jwt.JWT.require;
 import static com.auth0.jwt.algorithms.Algorithm.RSA256;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 
@@ -47,10 +50,10 @@ public class CustomJwtServiceImplTest {
     private CustomJwtServiceImpl serviceUnderTest;
 
     @Mock
-    private JwtBlacklistRepository jwtBlacklistRepository;
+    private OneLoginUserService oneLoginUserService;
 
     @Mock
-    private OneLoginUserService oneLoginUserService;
+    private JwtBlacklistRepository jwtBlacklistRepository;
 
     @Mock
     private JwtProperties jwtProperties;
@@ -261,4 +264,29 @@ public class CustomJwtServiceImplTest {
             }
         }
     }
+
+    @Test
+    void testValidateRolesInThePayloadWithValidPayload() {
+        User testUser = User.builder().gapUserId(1).sub("sub").build();
+        JwtPayload payload = new JwtPayload();
+        payload.setRoles("[FIND, APPLY]");
+        when(oneLoginUserService.getUserBySub(any())).thenReturn(testUser);
+        doNothing().when(oneLoginUserService).validateRoles(testUser.getRoles(),"[FIND, APPLY]");
+        JwtPayload response = serviceUnderTest.validateRolesInThePayload(payload);
+
+        assertThat(response).isSameAs(payload);
+    }
+
+    @Test
+    void testValidateRolesInThePayloadWithInvalidPayload() {
+        User testUser = User.builder().gapUserId(1).sub("sub").build();
+        when(oneLoginUserService.getUserBySub(any())).thenReturn(testUser);
+        JwtPayload payload = new JwtPayload();
+        payload.setRoles("[FIND, APPLY]");
+        doThrow(UnauthorizedException.class).when(oneLoginUserService).validateRoles(testUser.getRoles(),"[FIND, APPLY]");
+
+        JwtPayload response = serviceUnderTest.validateRolesInThePayload(payload);
+        assertThrows(UnauthorizedException.class, () -> serviceUnderTest.validateRolesInThePayload(payload));
+    }
+
 }
