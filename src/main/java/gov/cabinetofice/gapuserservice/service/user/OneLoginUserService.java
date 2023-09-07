@@ -176,7 +176,7 @@ public class OneLoginUserService {
         response.addCookie(thirdPartyAuthToken);
     }
 
-    public void validateRoles(List<Role> userRoles, String payloadRoles) {
+    public void validateRoles(List<Role> userRoles, String payloadRoles) throws UnauthorizedException {
         final List<String> formattedPayloadRoles = removeSquareBracketsAndTrim(Arrays.asList(payloadRoles.split(",")));
         final List<String> formattedUserRoles = userRoles.stream().map(role -> roleMapper.roleToRoleDto(role).getName()).toList();
         HashSet userStoredRoles = new HashSet<>(formattedUserRoles);

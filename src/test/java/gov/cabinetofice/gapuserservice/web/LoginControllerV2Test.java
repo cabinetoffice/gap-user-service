@@ -7,6 +7,7 @@ import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
+import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.model.Nonce;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
@@ -41,6 +42,7 @@ import org.json.JSONObject;
 import java.util.*;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
@@ -738,5 +740,24 @@ class LoginControllerV2Test {
                 Assertions.assertEquals(applicantBaseUrl, methodResponse.getUrl());
             }
         }
+    }
+
+    @Test
+    void testValidateAdminSession() {
+        String emailAddress = "test@email.com";
+        String roles = "[FIND, APPLY]";
+        OneLoginUserService oneLoginUserServiceMock = mock(OneLoginUserService.class);
+        doNothing().when(oneLoginUserServiceMock).validateAdminSession(emailAddress, roles);
+
+        assertDoesNotThrow(() -> oneLoginUserServiceMock.validateAdminSession(emailAddress, roles));
+    }
+    @Test
+    void testValidateAdminSessionWithInvalidSession() {
+        String emailAddress = "test@email.com";
+        String roles = "[FIND, APPLY]";
+        OneLoginUserService oneLoginUserServiceMock = mock(OneLoginUserService.class);
+        doThrow(UnauthorizedException.class).when(oneLoginUserServiceMock).validateAdminSession(emailAddress, roles);
+
+        assertThrows(UnauthorizedException.class, () -> oneLoginUserServiceMock.validateAdminSession(emailAddress, roles));
     }
 }
