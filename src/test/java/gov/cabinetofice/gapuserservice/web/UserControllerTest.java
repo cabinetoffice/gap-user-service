@@ -3,6 +3,8 @@ package gov.cabinetofice.gapuserservice.web;
 import gov.cabinetofice.gapuserservice.dto.ChangeDepartmentPageDto;
 import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
 import gov.cabinetofice.gapuserservice.dto.UserDto;
+import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
+import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -21,6 +23,7 @@ import java.util.List;
 import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -87,4 +90,24 @@ class UserControllerTest {
 
         assertThat(methodResponse).isEqualTo(ResponseEntity.ok("success"));
     }
+
+    @Test
+    void updateDepartmentCantBeCalledOnApplicantAndFindUser() {
+        final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        User mockUser = User.builder().sub("1").gapUserId(1)
+                .roles(List.of(Role.builder()
+                        .name(RoleEnum.FIND)
+                        .description("desc").build(),
+                Role.builder()
+                        .name(RoleEnum.APPLICANT)
+                        .description("desc").build()))
+                .emailAddress("test@test.com").build();
+        when(oneLoginUserService.getUserById(1)).thenReturn(mockUser);
+        when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
+        when(oneLoginUserService.isUserApplicantAndFindOnly(mockUser)).thenReturn(true);
+
+        assertThrows(InvalidRequestException.class, () -> controller.updateDepartment(httpRequest, 1, 1));
+
+    }
+
 }
