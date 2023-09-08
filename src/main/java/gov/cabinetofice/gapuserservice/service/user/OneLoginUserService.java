@@ -132,6 +132,7 @@ public class OneLoginUserService {
 
         addRoleIfNotPresent(user, RoleEnum.FIND);
         addRoleIfNotPresent(user, RoleEnum.APPLICANT);
+        deleteDepartmentIfPresentAndUserIsOnlyApplicantOrFind(user);
         userRepository.save(user);
 
         return user;
@@ -143,6 +144,23 @@ public class OneLoginUserService {
                     "Update Roles failed: ".concat(roleName.name()).concat(" role not found")));
             user.addRole(role);
         }
+    }
+
+    private void deleteDepartmentIfPresentAndUserIsOnlyApplicantOrFind(User user) {
+           if (isUserApplicantAndFindOnly(user) && doesUserHaveDepartment(user)) {
+               user.setDepartment(null);
+            }
+    }
+
+    public boolean isUserApplicantAndFindOnly(User user) {
+        final List<Role> roles = user.getRoles();
+        return !roles.isEmpty() && roles.stream().allMatch(
+                role -> role.getName().equals(RoleEnum.FIND) ||
+                        role.getName().equals(RoleEnum.APPLICANT));
+    }
+
+    private boolean doesUserHaveDepartment(User user) {
+        return user.getDepartment() != null;
     }
 
     public User deleteUser(Integer id) {

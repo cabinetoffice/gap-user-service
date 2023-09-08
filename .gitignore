@@ -32,4 +32,7 @@ build/
 ### VS Code ###
 .vscode/
 
+### Local properties ###
 application-local.properties
+.env.local
+
