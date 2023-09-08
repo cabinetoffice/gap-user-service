@@ -285,7 +285,6 @@ public class CustomJwtServiceImplTest {
         payload.setRoles("[FIND, APPLY]");
         doThrow(UnauthorizedException.class).when(oneLoginUserService).validateRoles(testUser.getRoles(),"[FIND, APPLY]");
 
-        JwtPayload response = serviceUnderTest.validateRolesInThePayload(payload);
         assertThrows(UnauthorizedException.class, () -> serviceUnderTest.validateRolesInThePayload(payload));
     }
 
