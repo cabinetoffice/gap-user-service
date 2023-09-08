@@ -7,6 +7,7 @@ import static net.logstash.logback.argument.StructuredArguments.*;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -24,10 +25,11 @@ public class LoggingInterceptor implements HandlerInterceptor {
         if (request.getRequestURL().toString().endsWith("/health")) return true;
         String event = "Incoming request";
         log.info(
-                loggingUtils.getJsonLogMessage(event, 6),
+                loggingUtils.getJsonLogMessage(event, 7),
                 value("event", event),
                 keyValue("URL", request.getRequestURL()),
                 keyValue("query", request.getQueryString()),
+                keyValue("correlationId", MDC.get("CorrelationId")),
                 keyValue("method", request.getMethod()),
                 keyValue("headers", loggingUtils.getHeadersFromRequest(request)),
                 keyValue("cookies", loggingUtils.getCookiesFromRequest(request))
@@ -41,10 +43,11 @@ public class LoggingInterceptor implements HandlerInterceptor {
         if (request.getRequestURL().toString().endsWith("/health")) return;
         String event = "Outgoing response";
         log.info(
-                loggingUtils.getJsonLogMessage(event, 6),
+                loggingUtils.getJsonLogMessage(event, 7),
                 value("event", event),
                 keyValue("requestURL", request.getRequestURL()),
                 keyValue("requestQuery", request.getQueryString()),
+                keyValue("correlationId", MDC.get("CorrelationId")),
                 keyValue("requestMethod", request.getMethod()),
                 keyValue("status", response.getStatus()),
                 keyValue("headers", loggingUtils.getHeadersFromResponse(response))
