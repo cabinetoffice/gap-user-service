@@ -49,10 +49,21 @@ class UserControllerTest {
     void updateRolesForUserId() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
+        when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(2).build()));
         final ResponseEntity<String> methodResponse = controller.updateRoles(httpRequest, List.of(1,2), 1);
 
         assertThat(methodResponse).isEqualTo(ResponseEntity.ok("success"));
     }
+
+    @Test
+    void testSuperAdminCannotBlockThemselves() {
+        final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
+        when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(1).build()));
+
+        assertThrows(UnsupportedOperationException.class, () -> controller.updateRoles(httpRequest, List.of(), 1));
+    }
+
     @Test
     void shouldReturnUserWhenValidIdIsGiven() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
@@ -92,10 +103,19 @@ class UserControllerTest {
     void shouldDeleteUserWhenValidIdIsGiven() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
-        when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().build()));
+        when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(2).build()));
         final ResponseEntity<String> methodResponse = controller.deleteUser(httpRequest, 1);
 
         assertThat(methodResponse).isEqualTo(ResponseEntity.ok("success"));
+    }
+
+    @Test
+    void shouldThrowErrorWhenAdminTriesToDeleteThemselves() {
+        final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
+        when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(1).build()));
+
+        assertThrows(UnsupportedOperationException.class, () -> controller.deleteUser(httpRequest, 1));
     }
 
     @Test
