@@ -3,7 +3,7 @@ package gov.cabinetofice.gapuserservice.enums;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
 
 public enum LoginJourneyState {
     PRIVACY_POLICY_PENDING {

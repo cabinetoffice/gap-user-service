@@ -4,20 +4,20 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(HttpStatus.UNAUTHORIZED)
-public class UnauthorizedException extends RuntimeException {
+public class UnauthorizedClientException extends RuntimeException {
 
-    public UnauthorizedException() {
+    public UnauthorizedClientException() {
     }
 
-    public UnauthorizedException(String message) {
+    public UnauthorizedClientException(String message) {
         super(message);
     }
 
-    public UnauthorizedException(String message, Throwable cause) {
+    public UnauthorizedClientException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public UnauthorizedException(Throwable cause) {
+    public UnauthorizedClientException(Throwable cause) {
         super(cause);
     }
 

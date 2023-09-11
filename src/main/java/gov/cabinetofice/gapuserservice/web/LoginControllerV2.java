@@ -8,7 +8,7 @@ import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
-import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
+import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedClientException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.model.Nonce;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -16,6 +16,7 @@ import gov.cabinetofice.gapuserservice.repository.NonceRepository;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
 import gov.cabinetofice.gapuserservice.service.encryption.Sha512Service;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.util.LoggingUtils;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,11 +24,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
+import static net.logstash.logback.argument.StructuredArguments.*;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -43,7 +44,7 @@ import java.util.Optional;
 @Controller
 @RequestMapping("v2")
 @ConditionalOnProperty(value = "feature.onelogin.enabled", havingValue = "true")
-@Log4j2
+@Slf4j
 @Getter
 public class LoginControllerV2 {
     private final OneLoginService oneLoginService;
@@ -51,8 +52,8 @@ public class LoginControllerV2 {
     private final ApplicationConfigProperties configProperties;
     private final Sha512Service encryptionService;
     private final NonceRepository nonceRepository;
-
     private final FindAGrantConfigProperties findProperties;
+    private final LoggingUtils loggingUtils;
 
     public static final String PRIVACY_POLICY_PAGE_VIEW = "privacy-policy";
 
@@ -77,9 +78,11 @@ public class LoginControllerV2 {
 
     @GetMapping("/login")
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    public RedirectView login(final @RequestParam(name = REDIRECT_URL_NAME) Optional<String> redirectUrlParam,
+    public RedirectView login(
+            final @RequestParam(name = REDIRECT_URL_NAME) Optional<String> redirectUrlParam,
             final HttpServletRequest request,
-            final HttpServletResponse response) {
+            final HttpServletResponse response
+    ) {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
         final boolean isTokenValid = customJWTCookie != null
                 && customJWTCookie.getValue() != null
@@ -102,9 +105,13 @@ public class LoginControllerV2 {
             final @CookieValue(name = STATE_COOKIE) String stateCookie,
             final HttpServletResponse response,
             final @RequestParam String code,
-            final @RequestParam String state) {
-
+            final @RequestParam String state
+    ) {
         final JSONObject tokenResponse = oneLoginService.getOneLoginUserTokenResponse(code);
+        log.info(
+                loggingUtils.getLogMessage("one login token response: ", 1),
+                entries(tokenResponse.toMap())
+        );
         final String idToken = tokenResponse.getString("id_token");
         final String authToken = tokenResponse.getString("access_token");
 
@@ -129,8 +136,7 @@ public class LoginControllerV2 {
     }
 
     @GetMapping("/privacy-policy")
-    public ModelAndView submitToPrivacyPolicyPage(
-            final @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto) {
+    public ModelAndView submitToPrivacyPolicyPage(final @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto) {
         return new ModelAndView(PRIVACY_POLICY_PAGE_VIEW)
                 .addObject("homePageUrl", findProperties.getUrl());
     }
@@ -140,7 +146,8 @@ public class LoginControllerV2 {
             final @Valid @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto,
             final BindingResult result,
             final HttpServletRequest request,
-            final @CookieValue(name = REDIRECT_URL_NAME, required = false) Optional<String> redirectUrlCookie) {
+            final @CookieValue(name = REDIRECT_URL_NAME, required = false) Optional<String> redirectUrlCookie
+    ) {
         if (result.hasErrors())
             return submitToPrivacyPolicyPage(privacyPolicyDto);
         final Cookie customJWTCookie = getCustomJwtCookieFromRequest(request);
@@ -176,7 +183,7 @@ public class LoginControllerV2 {
     private Cookie getCustomJwtCookieFromRequest(final HttpServletRequest request) {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
         if (customJWTCookie == null)
-            throw new UnauthorizedException(userServiceCookieName + " cookie not found");
+            throw new UnauthorizedClientException(userServiceCookieName + " cookie not found");
         return customJWTCookie;
     }
 
@@ -197,21 +204,30 @@ public class LoginControllerV2 {
         final boolean isNonceExpired = oneLoginService.isNonceExpired(storedNonce);
 
         if (isNonceExpired) {
-            log.info("/redirect-after-login unauthorized user; nonce expired");
-            log.debug("nonce from token: {}, nonce from db: {}, expiry: {}, now: {}" +
-                            "state from response: {}, hashed state from cookie: {}, plaintext state from cookie: {}",
-                    nonce, storedNonce.getNonceString(), storedNonce.getCreatedAt(), new Date(),
-                    state, hashedStateCookie, encodedStateJson);
-            throw new AccessDeniedException("User authorization failed, please try again");
-        } else if (!(isStateVerified && isNonceVerified)) {
-            log.warn("/redirect-after-login unauthorized user; nonce verified: {}, state verified: {}",
-                    isNonceVerified, isStateVerified);
-            log.debug("nonce from token: {}, nonce from db: {}," +
-                    "state from response: {}, hashed state from cookie: {}, plaintext state from cookie: {}",
-                    nonce, storedNonce.getNonceString(),
-                    state, hashedStateCookie, encodedStateJson);
+            log.error(
+                    loggingUtils.getLogMessage("/redirect-after-login encountered unauthorized user - nonce expired", 7),
+                    keyValue("nonceFromToken", nonce),
+                    keyValue("nonceFromDB", storedNonce.getNonceString()),
+                    keyValue("nonceCreatedAt", storedNonce.getCreatedAt()),
+                    keyValue("now", new Date()),
+                    keyValue("stateFromResponse", state),
+                    keyValue("hashedStateFromCookie", hashedStateCookie),
+                    keyValue("stateFromCookie", encodedStateJson)
+            );
+            throw new UnauthorizedClientException("User authorization failed, please try again");
+        } else if (!isStateVerified || !isNonceVerified) {
+            log.error(
+                    loggingUtils.getLogMessage("/redirect-after-login encountered unauthorised user", 7),
+                    keyValue("nonceVerified", isNonceVerified),
+                    keyValue("stateVerified", isStateVerified),
+                    keyValue("nonceFromToken", nonce),
+                    keyValue("nonceFromDB", storedNonce.getNonceString()),
+                    keyValue("stateFromResponse", state),
+                    keyValue("hashedStateFromCookie", hashedStateCookie),
+                    keyValue("stateFromCookie", encodedStateJson)
+            );
             // TODO take action against malicious activity e.g. temp block user and send email
-            throw new AccessDeniedException("User authorization failed");
+            throw new UnauthorizedClientException("User authorization failed");
         }
     }
 
