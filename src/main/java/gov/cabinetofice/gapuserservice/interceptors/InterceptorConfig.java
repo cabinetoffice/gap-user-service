@@ -10,8 +10,12 @@ public class InterceptorConfig implements WebMvcConfigurer {
     @Autowired
     LoggingInterceptor loggingInterceptor;
 
+    @Autowired
+    CorrelationIdInterceptor correlationIdInterceptor;
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(correlationIdInterceptor);
         registry.addInterceptor(loggingInterceptor);
     }
 }

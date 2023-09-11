@@ -8,6 +8,7 @@ import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
+import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedClientException;
 import gov.cabinetofice.gapuserservice.model.Nonce;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
@@ -18,6 +19,7 @@ import gov.cabinetofice.gapuserservice.service.RoleService;
 import gov.cabinetofice.gapuserservice.service.encryption.Sha512Service;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
+import gov.cabinetofice.gapuserservice.util.LoggingUtils;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -54,7 +56,6 @@ class LoginControllerV2Test {
     @Autowired
     private MockMvc mockMvc;
 
-
     @Mock
     private OneLoginService oneLoginService;
 
@@ -79,6 +80,9 @@ class LoginControllerV2Test {
     @Mock
     private NonceRepository nonceRepository;
 
+    @Mock
+    private LoggingUtils loggingUtils;
+
     private static MockedStatic<WebUtils> mockedWebUtils;
 
     @BeforeEach
@@ -89,7 +93,7 @@ class LoginControllerV2Test {
                 .defaultRedirectUrl("https://www.find-government-grants.service.gov.uk/")
                 .build();
 
-        loginController = new LoginControllerV2(oneLoginService, roleService, customJwtService, configProperties, encryptionService, nonceRepository, oneLoginUserService, findProperties);
+        loginController = new LoginControllerV2(oneLoginService, roleService, customJwtService, configProperties, encryptionService, nonceRepository, oneLoginUserService, findProperties, loggingUtils);
         ReflectionTestUtils.setField(loginController, "userServiceCookieName", "userServiceCookieName");
         ReflectionTestUtils.setField(loginController, "adminBaseUrl", "/adminBaseUrl");
         ReflectionTestUtils.setField(loginController, "applicantBaseUrl", "/applicantBaseUrl");
@@ -122,8 +126,15 @@ class LoginControllerV2Test {
 
             final RedirectView methodResponse = loginController.login(redirectUrl, request, response);
 
-            final Cookie stateCookie = WebUtil.buildSecureCookie(loginController.getSTATE_COOKIE(), "eyJyZWRpcmVjdFVybCI6Imh0dHBzOlwvXC93d3cuZmluZC1nb3Zlcm5tZW50LWdyYW50cy5zZXJ2aWNlLmdvdi51a1wvIiwic3RhdGUiOiJzdGF0ZSJ9", 3600);
-            verify(response).addCookie(stateCookie);
+            ArgumentCaptor<Cookie> argument = ArgumentCaptor.forClass(Cookie.class);
+            verify(response).addCookie(argument.capture());
+            Cookie stateCookie = argument.getValue();
+
+            assertThat(stateCookie.getName()).isEqualTo(loginController.getSTATE_COOKIE());
+            assertThat(stateCookie.getValue()).isEqualTo("eyJyZWRpcmVjdFVybCI6Imh0dHBzOi8vd3d3LmZpbmQtZ292ZXJubWVudC1ncmFudHMuc2VydmljZS5nb3YudWsvIiwic3RhdGUiOiJzdGF0ZSJ9");
+            assertThat(stateCookie.isHttpOnly()).isEqualTo(true);
+            assertThat(stateCookie.getSecure()).isEqualTo(true);
+            assertThat(stateCookie.getMaxAge()).isEqualTo(3600);
 
             assertThat(methodResponse.getUrl()).isEqualTo("loginUrl");
         }
@@ -422,7 +433,7 @@ class LoginControllerV2Test {
             when(oneLoginService.isNonceExpired(nonce)).thenReturn(true);
             when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
 
-            Exception exception = assertThrows(AccessDeniedException.class, () -> loginController.redirectAfterLogin(stateCookie, response, code, state));
+            Exception exception = assertThrows(UnauthorizedClientException.class, () -> loginController.redirectAfterLogin(stateCookie, response, code, state));
             assertThat(exception.getMessage()).isEqualTo("User authorization failed, please try again");
         }
 
@@ -445,7 +456,7 @@ class LoginControllerV2Test {
             when(oneLoginService.isNonceExpired(nonce)).thenReturn(false);
             when(encryptionService.getSHA512SecurePassword(any())).thenReturn("state");
 
-            Exception exception = assertThrows(AccessDeniedException.class, () -> loginController.redirectAfterLogin(stateCookie, response, code, state));
+            Exception exception = assertThrows(UnauthorizedClientException.class, () -> loginController.redirectAfterLogin(stateCookie, response, code, state));
             assertThat(exception.getMessage()).isEqualTo("User authorization failed");
         }
 
@@ -467,7 +478,7 @@ class LoginControllerV2Test {
             when(oneLoginService.isNonceExpired(nonce)).thenReturn(false);
             when(encryptionService.getSHA512SecurePassword(any())).thenReturn("invalid_state");
 
-            Exception exception = assertThrows(AccessDeniedException.class, () -> loginController.redirectAfterLogin(stateCookie, response, code, state));
+            Exception exception = assertThrows(UnauthorizedClientException.class, () -> loginController.redirectAfterLogin(stateCookie, response, code, state));
             assertThat(exception.getMessage()).isEqualTo("User authorization failed");
         }
     }
