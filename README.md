@@ -70,11 +70,21 @@ Responses that return JSON should be added to `mockOneLogin/wiremock/__files`
 
 ## Troubleshooting
 - ensure that the email and sub in the gaplocaluserdb>gap_users table match what's returned in wiremock
-  - you must restart the wiremock server if you make any changes
+  - you must restart the wiremock server if you make any changes to the files in mockOneLogin
+
 - ensure that ONE_LOGIN_ENABLED is true in all your projects
+
 - ensure that the ports match up between your FE and BE
+
 - if you're logging in as an admin, ensure that admin has a department
+
 - if you're having trouble running the migration scripts
-  1. run `mvn flyway:clean`
-  2. then `mvn clean flyway:migrate`
-  3. start the app as normal
+  - run `mvn flyway:clean`
+  - then `mvn clean flyway:migrate`
+  - then rerun the service
+
+- if you're having trouble installing a new package in your pom.xml:
+  - open the Maven tab in IntelliJ, and check the 3 buttons in the top-left of the tab
+  - click "Download Sources and/or Documentation" > "Download Sources and Documentation"
+  - click "Reload All Maven Projects"
+  - It should now be working!

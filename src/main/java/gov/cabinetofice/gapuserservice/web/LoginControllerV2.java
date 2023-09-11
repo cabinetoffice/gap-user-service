@@ -99,7 +99,7 @@ public class LoginControllerV2 {
     public RedirectView redirectAfterLogin(
             final @CookieValue(name = STATE_COOKIE) String stateCookie,
             final HttpServletResponse response,
-             final @RequestParam String code,
+            final @RequestParam String code,
             final @RequestParam String state) {
 
         final JSONObject tokenResponse = oneLoginService.getOneLoginUserTokenResponse(code);

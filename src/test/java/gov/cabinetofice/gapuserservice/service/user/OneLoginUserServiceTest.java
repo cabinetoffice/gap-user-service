@@ -22,10 +22,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -84,6 +81,58 @@ public class OneLoginUserServiceTest {
         assertThat(result).isNotNull();
         assertThat(result).isEqualTo(mockedUser);
         verify(userRepository, times(1)).findById(1);
+    }
+
+    @Test
+    void shouldReturnUserWhenValidOneLoginSubIsGiven() {
+
+        User mockedUser = User.builder().gapUserId(1).build();
+        when(userRepository.findBySub("1234")).thenReturn(Optional.of(mockedUser));
+        User result = oneLoginUserService.getUserByUserSub("1234");
+
+        assertThat(result).isNotNull();
+        assertThat(result).isEqualTo(mockedUser);
+        verify(userRepository, times(1)).findBySub("1234");
+    }
+
+    @Test
+    void shouldReturnUserWhenValidColaSubIsGiven() {
+
+        UUID uuid = UUID.fromString("f1da81d1-375f-4693-b52e-60f38a253fc9");
+
+        User mockedUser = User.builder().gapUserId(1).build();
+        when(userRepository.findBySub("f1da81d1-375f-4693-b52e-60f38a253fc9")).thenReturn(Optional.empty());
+        when(userRepository.findByColaSub(uuid)).thenReturn(Optional.of(mockedUser));
+        User result = oneLoginUserService.getUserByUserSub("f1da81d1-375f-4693-b52e-60f38a253fc9");
+
+        assertThat(result).isNotNull();
+        assertThat(result).isEqualTo(mockedUser);
+        verify(userRepository, times(1)).findBySub("f1da81d1-375f-4693-b52e-60f38a253fc9");
+        verify(userRepository, times(1)).findByColaSub(uuid);
+    }
+
+    @Test
+    void shouldThrowNotFoundExceptionWhenInValidSubIsGiven() {
+
+        UUID uuid = UUID.fromString("f1da81d1-375f-4693-b52e-60f38a253fc9");
+
+        when(userRepository.findBySub("f1da81d1-375f-4693-b52e-60f38a253fc9")).thenReturn(Optional.empty());
+        when(userRepository.findByColaSub(uuid)).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class, () ->
+                oneLoginUserService.getUserByUserSub("f1da81d1-375f-4693-b52e-60f38a253fc9"));
+        verify(userRepository, times(1)).findBySub("f1da81d1-375f-4693-b52e-60f38a253fc9");
+        verify(userRepository, times(1)).findByColaSub(uuid);
+    }
+
+    @Test
+    void shouldThrowNotFoundExceptionWhenInValidUUIDSubIsGiven() {
+
+        when(userRepository.findBySub("1234")).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class, () ->
+                oneLoginUserService.getUserByUserSub("1234"));
+        verify(userRepository, times(1)).findBySub("1234");
     }
 
     @Test
@@ -350,5 +399,51 @@ public class OneLoginUserServiceTest {
         assertThat(updatedUser.getRoles().size()).isEqualTo(4);
         assertThat(updatedUser.getRoles().stream().anyMatch(role -> role.getName().equals(RoleEnum.APPLICANT))).isTrue();
         assertThat(updatedUser.getRoles().stream().anyMatch(role -> role.getName().equals(RoleEnum.FIND))).isTrue();
-    }}
+    }
+
+    @Test
+    void updateRolesShouldSetDepartmentToNullIfNotSuperAdminOrAdmin() {
+        Integer userId = 1;
+        List<Integer> newRoles = List.of(1, 2);
+        User user = User.builder().gapUserId(userId).department(Department.builder().name("test").build()).build();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(roleRepository.findById(1)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
+        when(roleRepository.findById(2)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).build()));
+        User updatedUser = oneLoginUserService.updateRoles(1 , newRoles);
+
+        assertThat(updatedUser.getDepartment()).isNull();
+    }
+
+    @Test
+    void updateRolesShouldNotSetDepartmentToNullIfUserHasMoreThanTwoRoles() {
+        Integer userId = 1;
+        List<Integer> newRoles = List.of(1, 2, 3);
+        User user = User.builder().gapUserId(userId).department(Department.builder().name("test").build()).build();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(roleRepository.findById(1)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
+        when(roleRepository.findById(2)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).build()));
+        when(roleRepository.findById(3)).thenReturn(Optional.of(Role.builder().name(RoleEnum.ADMIN).build()));
+        User updatedUser = oneLoginUserService.updateRoles(1 , newRoles);
+
+        assertThat(updatedUser.getDepartment()).isNotNull();
+    }
+
+    @Test
+    void updateRolesShouldNotSetDepartmentToNullIfUserIsAdminOrSuperAdmin() {
+        Integer userId = 1;
+        List<Integer> newRoles = List.of( 3, 4);
+        User user = User.builder().gapUserId(userId).department(Department.builder().name("test").build()).build();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(roleRepository.findById(3)).thenReturn(Optional.of(Role.builder().name(RoleEnum.ADMIN).build()));
+        when(roleRepository.findById(4)).thenReturn(Optional.of(Role.builder().name(RoleEnum.SUPER_ADMIN).build()));
+        when(roleRepository.findByName(RoleEnum.FIND)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).id(1).build()));
+        when(roleRepository.findByName(RoleEnum.APPLICANT)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).id(2).build()));
+        User updatedUser = oneLoginUserService.updateRoles(1 , newRoles);
+
+        assertThat(updatedUser.getDepartment()).isNotNull();
+    }
+
+}
+
+
 
