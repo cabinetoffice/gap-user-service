@@ -168,7 +168,7 @@ public class CustomJwtServiceImpl implements JwtService {
         }
         final DecodedJWT decodedJwt = decodedJwt(customJWTCookie.getValue());
         final JwtPayload payload = decodeTheTokenPayloadInAReadableFormat(decodedJwt);
-        return  userRepository.findBySub(payload.getSub());
+        return userRepository.findBySub(payload.getSub());
     }
 
     public JwtPayload validateRolesInThePayload(JwtPayload payload) throws UnauthorizedException {
