@@ -20,6 +20,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 
 @RequiredArgsConstructor
@@ -38,8 +39,12 @@ public class UserController {
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
+        Optional<User> user = jwtService.getUserFromJwt(httpRequest);
+        if(user.isEmpty()){
+            throw new InvalidRequestException("Could not get user from jwt");
+        }
 
-        return ResponseEntity.ok(new UserDto(jwtService.getUserFromJwt(httpRequest)));
+        return ResponseEntity.ok(new UserDto(user.get()));
     }
 
     @GetMapping("/isSuperAdmin")
@@ -106,8 +111,12 @@ public class UserController {
         }
 
         boolean requestToBlockUser = roleIds.size() == 0;
+        Optional<User> user = jwtService.getUserFromJwt(httpRequest);
 
-        if (requestToBlockUser && id == jwtService.getUserFromJwt(httpRequest).getGapUserId()){
+        if(user.isEmpty()){
+            throw new InvalidRequestException("Could not get user from jwt");
+        }
+        if (requestToBlockUser && id.equals(user.get().getGapUserId())){
             throw new UnsupportedOperationException("You can't block yourself");
         }
 
@@ -120,8 +129,11 @@ public class UserController {
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
-
-        if(jwtService.getUserFromJwt(httpRequest).getGapUserId() == id) {
+        Optional<User> user = jwtService.getUserFromJwt(httpRequest);
+        if(user.isEmpty()){
+            throw new InvalidRequestException("Could not get user from jwt");
+        }
+        if(user.get().getGapUserId().equals(id)) {
             throw new UnsupportedOperationException("You can't delete yourself");
         }
 

@@ -129,6 +129,30 @@ public class CustomJwtServiceImplTest {
         }
 
         @Test
+        void ReturnsFalse_ifInvalidPayload() {
+            final Algorithm mockAlgorithm = mock(Algorithm.class);
+            final Verification spiedVerification = spy(verification);
+            ReflectionTestUtils.setField(serviceUnderTest, "oneLoginEnabled", true);
+
+            try (MockedStatic<Algorithm> staticAlgorithm = Mockito.mockStatic(Algorithm.class)) {
+                staticAlgorithm.when(() -> RSA256(any(), any())).thenReturn(mockAlgorithm);
+                try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
+                    staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
+                    staticJwt.when(() -> decode(any())).thenCallRealMethod();
+                    when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
+                    User testUser = User.builder().roles(List.of(Role.builder().name(RoleEnum.FIND).id(1).build(), Role.builder().name(RoleEnum.SUPER_ADMIN).id(4).build(), Role.builder().name(RoleEnum.ADMIN).id(3).build(), Role.builder().name(RoleEnum.APPLICANT).id(2).build())).loginJourneyState(LoginJourneyState.USER_READY).build();
+                    when(userRepository.findBySub(any())).thenReturn(Optional.of(testUser));
+                    when(oneLoginUserService.getUserBySub(any())).thenReturn(testUser);
+                    doThrow(UnauthorizedException.class).when(oneLoginUserService).validateRoles(any(), any());
+
+                    final boolean response = serviceUnderTest.isTokenValid(jwt);
+                    assertThat(response).isFalse();
+                    verify(mockedJwtVerifier, times(1)).verify(jwt);
+                }
+            }
+        }
+
+        @Test
         void ReturnsFalse_IfBlacklisted() {
             final Algorithm mockAlgorithm = mock(Algorithm.class);
             final Verification spiedVerification = spy(verification);

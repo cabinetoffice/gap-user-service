@@ -82,7 +82,7 @@ public class LoginControllerV2 {
     public String migrationEnabled;
 
     @GetMapping("/validateAdminSession")
-    public ResponseEntity<Boolean> validateAdminRoles(@RequestHeader("emailaddress") String emailAddress, @RequestHeader("roles") String roles){
+    public ResponseEntity<Boolean> validateAdminRoles(@RequestParam("emailAddress") String emailAddress, @RequestParam("roles") String roles){
         oneLoginUserService.validateAdminSession(emailAddress, roles);
         return ResponseEntity.ok(Boolean.TRUE);
     }

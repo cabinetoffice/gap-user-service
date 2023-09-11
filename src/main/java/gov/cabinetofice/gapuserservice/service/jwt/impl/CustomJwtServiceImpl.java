@@ -161,14 +161,14 @@ public class CustomJwtServiceImpl implements JwtService {
                 .build();
     }
 
-    public User getUserFromJwt(final HttpServletRequest request) {
+    public Optional<User> getUserFromJwt(final HttpServletRequest request) {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
         if (customJWTCookie == null || customJWTCookie.getValue() == null) {
             throw new UnauthorizedException("No JWT token provided");
         }
         final DecodedJWT decodedJwt = decodedJwt(customJWTCookie.getValue());
         final JwtPayload payload = decodeTheTokenPayloadInAReadableFormat(decodedJwt);
-        return  userRepository.findBySub(payload.getSub()).get();
+        return  userRepository.findBySub(payload.getSub());
     }
 
     public JwtPayload validateRolesInThePayload(JwtPayload payload) throws UnauthorizedException {
@@ -177,5 +177,4 @@ public class CustomJwtServiceImpl implements JwtService {
         oneLoginUserService.validateRoles(userRoles, payloadRoles);
         return payload;
     }
-
 }

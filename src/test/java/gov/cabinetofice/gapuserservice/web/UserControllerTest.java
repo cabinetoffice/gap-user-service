@@ -17,11 +17,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -90,7 +92,7 @@ class UserControllerTest {
     void shouldDeleteUserWhenValidIdIsGiven() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
-        when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(User.builder().build());
+        when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().build()));
         final ResponseEntity<String> methodResponse = controller.deleteUser(httpRequest, 1);
 
         assertThat(methodResponse).isEqualTo(ResponseEntity.ok("success"));
@@ -102,11 +104,16 @@ class UserControllerTest {
         when(roleService.isSuperAdmin(any(HttpServletRequest.class)))
                 .thenReturn(true);
         when(customJwtService.getUserFromJwt(any(HttpServletRequest.class)))
-                .thenReturn(mockUser);
+                .thenReturn(Optional.of(mockUser));
         final ResponseEntity<UserDto> methodResponse = controller.getUserFromJwt(mock(HttpServletRequest.class));
 
         assertThat(methodResponse.getBody()).isEqualTo(new UserDto(mockUser));
+    }
 
+    @Test
+    public void testGetUserFromJwtThrowsErrorWhenNotSuperAdmin() throws Exception {
+        Mockito.doThrow(ForbiddenException.class).when(roleService).isSuperAdmin(any(HttpServletRequest.class));
+        assertThrows(ForbiddenException.class, () -> controller.getUserFromJwt(mock(HttpServletRequest.class)));
     }
     
     @Test
