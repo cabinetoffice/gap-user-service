@@ -12,8 +12,6 @@ import gov.cabinetofice.gapuserservice.model.*;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
-import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
-import gov.cabinetofice.gapuserservice.util.LoggingUtils;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -52,17 +50,9 @@ public class OneLoginServiceTest {
 
     @InjectMocks
     private OneLoginService oneLoginService;
-    @Mock
-    private JwtBlacklistService jwtBlacklistService;
 
     @Mock
     private CustomJwtServiceImpl customJwtService;
-
-    @Mock
-    private LoggingUtils loggingUtils;
-
-    @Mock
-    private OneLoginUserService oneLoginUserService;
 
     private static MockedStatic<RestUtils> mockedStatic;
 
@@ -225,7 +215,7 @@ public class OneLoginServiceTest {
     }
 
     @Nested
-    class createUser {
+    class CreateUserTest {
         @Test
         void shouldReturnSavedUser() {
             when(roleRepository.findByName(any())).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
@@ -258,7 +248,7 @@ public class OneLoginServiceTest {
     }
 
     @Nested
-    class setUsersLoginJourneyState {
+    class SetUsersLoginJourneyStateTest {
         @Test
         void shouldSetUsersLoginJourneyState() {
             final User user = User.builder()
@@ -274,7 +264,7 @@ public class OneLoginServiceTest {
     }
 
     @Nested
-    class generateCustomJwtClaims {
+    class GenerateCustomJwtClaimsTest {
 
         final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
                 .sub("sub")
@@ -339,7 +329,7 @@ public class OneLoginServiceTest {
     }
 
     @Nested
-    class createOrGetUserFromInfo {
+    class CreateOrGetUserFromInfoTest {
         @Test
         void getExistingUser() {
             final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
@@ -373,7 +363,7 @@ public class OneLoginServiceTest {
     }
 
     @Nested
-    class migrateUser {
+    class MigrateUserTest {
         @Test
         void shouldMigrateUser() {
             final User user = User.builder()
@@ -465,7 +455,7 @@ public class OneLoginServiceTest {
     }
 
     @Nested
-    class isNonceExpired {
+    class IsNonceExpiredTest {
 
         @Test
         void testNonceNotExpired() {
@@ -479,7 +469,7 @@ public class OneLoginServiceTest {
 
         @Test
         void testNonceIsExpired() throws ParseException {
-            DateFormat format = new SimpleDateFormat("yyyy-mm-dd", Locale.ENGLISH);
+            DateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH);
             final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
                     .nonceId(1)
                     .nonceString("nonce")
@@ -495,7 +485,7 @@ public class OneLoginServiceTest {
     }
 
     @Nested
-    class validateIdToken {
+    class ValidateIdTokenTest {
 
         @Test
         void testValidIdToken() {

@@ -27,12 +27,9 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
@@ -49,9 +46,6 @@ import static org.mockito.Mockito.*;
 class LoginControllerV2Test {
 
     private LoginControllerV2 loginController;
-
-    @Autowired
-    private MockMvc mockMvc;
 
     @Mock
     private OneLoginService oneLoginService;
@@ -98,7 +92,7 @@ class LoginControllerV2Test {
     }
 
     @Nested
-    class login {
+    class LoginTest {
         final String state = "state";
         final String nonce = "nonce";
         final String saltId = "saltId";
@@ -170,7 +164,7 @@ class LoginControllerV2Test {
     }
 
     @Nested
-    class redirectAfterLogin {
+    class RedirectAfterLoginTest {
         //B64 encoded stateCookie containing '{"state":"state","redirectUrl":"redirectUrl"}'
         final String stateCookie = "eyJzdGF0ZSI6InN0YXRlIiwicmVkaXJlY3RVcmwiOiJyZWRpcmVjdFVybCJ9";
         final String redirectUrlCookie = "redirectUrl";
@@ -453,7 +447,10 @@ class LoginControllerV2Test {
             when(oneLoginService.isNonceExpired(nonceObj)).thenReturn(false);
             when(encryptionService.getSHA512SecurePassword(any(), eq(saltId))).thenReturn(state);
 
-            Exception exception = assertThrows(UnauthorizedClientException.class, () -> loginController.redirectAfterLogin(stateCookie, response, code, state));
+            Exception exception = assertThrows(
+                UnauthorizedClientException.class,
+                () -> loginController.redirectAfterLogin(stateCookie, response, code, state)
+            );
             assertThat(exception.getMessage()).isEqualTo("User authorization failed");
         }
 
@@ -471,7 +468,10 @@ class LoginControllerV2Test {
             when(oneLoginService.isNonceExpired(nonExistentNonce)).thenReturn(true);
             when(encryptionService.getSHA512SecurePassword(any(), eq(saltId))).thenReturn(state);
 
-            Exception exception = assertThrows(UnauthorizedClientException.class, () -> loginController.redirectAfterLogin(stateCookie, response, code, state));
+            Exception exception = assertThrows(
+                UnauthorizedClientException.class,
+                () -> loginController.redirectAfterLogin(stateCookie, response, code, state)
+            );
             assertThat(exception.getMessage()).isEqualTo("User authorization failed");
         }
 
@@ -479,7 +479,7 @@ class LoginControllerV2Test {
         void shouldRequireReauthentication_ifStateDoesNotMatch() throws JSONException {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final JSONObject tokenResponse = new JSONObject();
-            tokenResponse.put("id_token", idToken).put("access_token", accessToken);;
+            tokenResponse.put("id_token", idToken).put("access_token", accessToken);
             final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
                     .nonceId(1)
                     .nonceString(nonce)
@@ -493,13 +493,16 @@ class LoginControllerV2Test {
             when(oneLoginService.isNonceExpired(nonceObj)).thenReturn(false);
             when(encryptionService.getSHA512SecurePassword(any(), eq(saltId))).thenReturn("invalid_state");
 
-            Exception exception = assertThrows(UnauthorizedClientException.class, () -> loginController.redirectAfterLogin(stateCookie, response, code, state));
+            Exception exception = assertThrows(
+                UnauthorizedClientException.class,
+                () -> loginController.redirectAfterLogin(stateCookie, response, code, state)
+            );
             assertThat(exception.getMessage()).isEqualTo("User authorization failed");
         }
     }
 
     @Nested
-    class privacyPolicy {
+    class PrivacyPolicyTest {
         private final String mockJwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdWIiLCJlbWFpbCI6ImVtYWlsIiwicm9sZXMiOlsiRklORCIsIkFQUExJQ0FOVCJdfQ.MrlNeug1Wos6UYKgwSBHxFw0XxdgQvcCdO-Xi3RMqBk";
 
         @Test

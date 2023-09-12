@@ -1,6 +1,5 @@
 package gov.cabinetofice.gapuserservice.service.encryption;
 
-import gov.cabinetofice.gapuserservice.model.User;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -10,7 +9,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.any;
 
 import java.util.Optional;
 
@@ -49,11 +47,12 @@ public class Sha512ServiceTest {
         Salt saltModel = Salt.builder().salt(salt).saltId(saltId).build();
         when(saltRepository.findFirstBySaltIdOrderBySaltIdAsc(saltId)).thenReturn(Optional.ofNullable(saltModel));
         encryptionService.deleteSalt(saltId);
+        assert saltModel != null;
         verify(saltRepository).delete(saltModel);
     }
 
     @Nested
-    class getSHA512SecurePassword {
+    class GetSHA512SecurePasswordTest {
         String saltId = "saltId";
         // trust me
         String expectedHash = "95f43348cafc5543fd8e90216b4c27f4f52b0867ef8576428c1d4c7dfa020fb5b485d1fcd8efc217d614924552d66ccf7ccb7f56ea4fb6d976f2b27a880bb9ac";
