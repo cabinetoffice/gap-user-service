@@ -22,21 +22,23 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
-import org.json.JSONObject;
 
 import java.util.*;
 
@@ -120,7 +122,7 @@ class LoginControllerV2Test {
             verify(response).addCookie(argument.capture());
             Cookie stateCookie = argument.getValue();
 
-            assertThat(stateCookie.getName()).isEqualTo(loginController.getSTATE_COOKIE());
+            assertThat(stateCookie.getName()).isEqualTo("state");
             assertThat(stateCookie.getValue()).isEqualTo("eyJyZWRpcmVjdFVybCI6Imh0dHBzOi8vd3d3LmZpbmQtZ292ZXJubWVudC1ncmFudHMuc2VydmljZS5nb3YudWsvIiwic3RhdGUiOiJzdGF0ZSJ9");
             assertThat(stateCookie.isHttpOnly()).isEqualTo(true);
             assertThat(stateCookie.getSecure()).isEqualTo(true);

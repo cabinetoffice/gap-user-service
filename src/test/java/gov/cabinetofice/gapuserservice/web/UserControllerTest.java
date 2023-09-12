@@ -3,7 +3,6 @@ package gov.cabinetofice.gapuserservice.web;
 import gov.cabinetofice.gapuserservice.dto.ChangeDepartmentPageDto;
 import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
 import gov.cabinetofice.gapuserservice.dto.UserDto;
-import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
@@ -11,13 +10,16 @@ import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Objects;
@@ -39,6 +41,11 @@ class UserControllerTest {
     @Mock
     private RoleService roleService;
 
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(controller, "userServiceCookieName", "userServiceCookieName");
+    }
+
     @Test
     void updateRolesForUserId() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
@@ -47,6 +54,7 @@ class UserControllerTest {
 
         assertThat(methodResponse).isEqualTo(ResponseEntity.ok("success"));
     }
+
     @Test
     void shouldReturnUserWhenValidIdIsGiven() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
@@ -85,6 +93,7 @@ class UserControllerTest {
     @Test
     void shouldDeleteUserWhenValidIdIsGiven() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        when(httpRequest.getCookies()).thenReturn(new Cookie[] {new Cookie("userServiceCookieName", "1")});
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         final ResponseEntity<String> methodResponse = controller.deleteUser(httpRequest, 1);
 

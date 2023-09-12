@@ -21,6 +21,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.util.*;
 
@@ -44,6 +46,9 @@ public class OneLoginUserServiceTest {
 
     @Mock
     private RoleRepository roleRepository;
+
+    @Mock
+    private WebClient.Builder webClientBuilder;
 
     @Test
     void shouldReturnUpdatedUserWhenValidIdAndRolesAreGiven() {
@@ -369,7 +374,7 @@ public class OneLoginUserServiceTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        assertThrows(UserNotFoundException.class, () -> oneLoginUserService.deleteUser(userId));
+        assertThrows(UserNotFoundException.class, () -> oneLoginUserService.deleteUser(userId, "jwt"));
     }
 
     @Test
@@ -378,10 +383,20 @@ public class OneLoginUserServiceTest {
         User user = User.builder().gapUserId(userId).build();
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        final WebClient webClient = mock(WebClient.class);
+        when(webClientBuilder.build()).thenReturn(webClient);
+        final WebClient.RequestHeadersUriSpec requestHeadersUriSpec = mock(WebClient.RequestHeadersUriSpec.class);
+        when(webClient.delete()).thenReturn(requestHeadersUriSpec);
+        final WebClient.RequestHeadersSpec requestHeadersSpec = mock(WebClient.RequestHeadersSpec.class);
+        when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.header(anyString(), anyString())).thenReturn(requestHeadersSpec);
+        final WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(Void.class)).thenReturn(Mono.when());
 
-        oneLoginUserService.deleteUser(userId);
+        oneLoginUserService.deleteUser(userId, "jwt");
 
-        verify(userRepository).delete(user);
+        verify(userRepository).deleteById(userId);
     }
 
     @Test
