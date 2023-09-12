@@ -135,6 +135,15 @@ class UserControllerTest {
         Mockito.doThrow(ForbiddenException.class).when(roleService).isSuperAdmin(any(HttpServletRequest.class));
         assertThrows(ForbiddenException.class, () -> controller.getUserFromJwt(mock(HttpServletRequest.class)));
     }
+
+    @Test
+    public void testGetUserFromJwtThrowsInvalidRequestWhenUserIsEmpty() throws Exception {
+        when(roleService.isSuperAdmin(any(HttpServletRequest.class)))
+                .thenReturn(true);
+        when(customJwtService.getUserFromJwt(any(HttpServletRequest.class)))
+                .thenReturn(Optional.empty());
+        assertThrows(InvalidRequestException.class, () -> controller.getUserFromJwt(mock(HttpServletRequest.class)));
+    }
     
     @Test
     void updateDepartmentCantBeCalledOnApplicantAndFindUser() {

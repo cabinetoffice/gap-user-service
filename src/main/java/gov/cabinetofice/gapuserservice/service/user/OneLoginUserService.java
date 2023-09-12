@@ -3,10 +3,7 @@ package gov.cabinetofice.gapuserservice.service.user;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.dto.UserQueryDto;
-import gov.cabinetofice.gapuserservice.exceptions.DepartmentNotFoundException;
-import gov.cabinetofice.gapuserservice.exceptions.RoleNotFoundException;
-import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
-import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
+import gov.cabinetofice.gapuserservice.exceptions.*;
 import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
 import gov.cabinetofice.gapuserservice.model.Department;
 import gov.cabinetofice.gapuserservice.model.Role;
@@ -196,7 +193,8 @@ public class OneLoginUserService {
     }
 
     public void validateRoles(List<Role> userRoles, String payloadRoles) throws UnauthorizedException {
-        final List<String> formattedPayloadRoles = removeSquareBracketsAndTrim(Arrays.asList(payloadRoles.split(",")));
+        final List<String> formattedPayloadRoles = removeSquareBracketsAndTrim(Arrays.asList(payloadRoles
+                .split(",")));
         final Set<String> formattedUserRoles = userRoles.stream()
                 .map(role -> roleMapper.roleToRoleDto(role).getName())
                 .collect(Collectors.toSet());
@@ -206,8 +204,12 @@ public class OneLoginUserService {
         }
     }
 
-    public void validateAdminSession(String emailAddress, String roles) throws UnauthorizedException {
-        final List<Role> dbRoles = userRepository.findByEmailAddress(emailAddress).get().getRoles();
-        validateRoles(dbRoles, roles);
+    public void validateAdminSession(String emailAddress, String roles) throws InvalidRequestException {
+        Optional<User> user = userRepository.findByEmailAddress(emailAddress);
+        if(user.isEmpty()){
+            throw new InvalidRequestException("Could not get user from emailAddress");
+        }
+        final List<Role> userRoles = user.get().getRoles();
+        validateRoles(userRoles, roles);
     }
 }
