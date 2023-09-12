@@ -171,7 +171,7 @@ public class CustomJwtServiceImpl implements JwtService {
         return userRepository.findBySub(payload.getSub());
     }
 
-    public JwtPayload validateRolesInThePayload(JwtPayload payload) throws UnauthorizedException {
+    public JwtPayload validateRolesInThePayload(JwtPayload payload) {
         final List<Role> userRoles = oneLoginUserService.getUserBySub(payload.getSub()).getRoles();
         final String payloadRoles = payload.getRoles();
         oneLoginUserService.validateRoles(userRoles, payloadRoles);

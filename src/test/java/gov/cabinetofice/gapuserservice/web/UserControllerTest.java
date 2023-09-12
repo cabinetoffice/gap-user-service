@@ -65,6 +65,15 @@ class UserControllerTest {
     }
 
     @Test
+    void testSuperAdminThrowsInvalidRequestWithNoUser() {
+        final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
+        when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.empty());
+
+        assertThrows(InvalidRequestException.class, () -> controller.updateRoles(httpRequest, List.of(), 1));
+    }
+
+    @Test
     void shouldReturnUserWhenValidIdIsGiven() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         User mockUser = User.builder().sub("1").gapUserId(1)
@@ -117,6 +126,16 @@ class UserControllerTest {
 
         assertThrows(UnsupportedOperationException.class, () -> controller.deleteUser(httpRequest, 1));
     }
+
+    @Test
+    void shouldThrowErrorWhenUserIsEmpty() {
+        final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
+        when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.empty());
+
+        assertThrows(InvalidRequestException.class, () -> controller.deleteUser(httpRequest, 1));
+    }
+
 
     @Test
     public void testGetUserFromJwt() throws Exception {

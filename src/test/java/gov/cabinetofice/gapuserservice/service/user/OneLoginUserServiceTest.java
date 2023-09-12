@@ -90,15 +90,14 @@ public class OneLoginUserServiceTest {
     }
 
     @Test
-    void shouldReturnUserWhenValidOneLoginSubIsGiven() {
+    void shouldReturnUserWhenValidSubIsGiven() {
+            User mockedUser = User.builder().gapUserId(1).build();
+            when(userRepository.findBySub("1234")).thenReturn(Optional.of(mockedUser));
+            User result = oneLoginUserService.getUserByUserSub("1234");
 
-        User mockedUser = User.builder().gapUserId(1).build();
-        when(userRepository.findBySub("1234")).thenReturn(Optional.of(mockedUser));
-        User result = oneLoginUserService.getUserByUserSub("1234");
-
-        assertThat(result).isNotNull();
-        assertThat(result).isEqualTo(mockedUser);
-        verify(userRepository, times(1)).findBySub("1234");
+            assertThat(result).isNotNull();
+            assertThat(result).isEqualTo(mockedUser);
+            verify(userRepository, times(1)).findBySub("1234");
     }
 
     @Test
@@ -145,6 +144,12 @@ public class OneLoginUserServiceTest {
     void shouldThrowUserNotFoundExceptionWhenInValidIdIsGiven() {
         when(userRepository.findById(anyInt())).thenReturn(Optional.empty());
         assertThrows(UserNotFoundException.class, () -> oneLoginUserService.getUserById(100));
+    }
+
+    @Test
+    void shouldThrowUserNotFoundExceptionWhenInValidSubIsGiven() {
+        when(userRepository.findBySub(anyString())).thenReturn(Optional.empty());
+        assertThrows(UserNotFoundException.class, () -> oneLoginUserService.getUserBySub("100"));
     }
 
     @Nested
@@ -452,7 +457,7 @@ public class OneLoginUserServiceTest {
     }
 
     @Test
-    void testValidateAdminSessionThrowsInvalidExceptionWithEmptyUser() {
+    void testValidateSessionsRolesThrowsInvalidExceptionWithEmptyUser() {
         String  email = "email";
         String roles = "APPLICANT";
         when(userRepository.findByEmailAddress(email)).thenReturn(Optional.empty());
