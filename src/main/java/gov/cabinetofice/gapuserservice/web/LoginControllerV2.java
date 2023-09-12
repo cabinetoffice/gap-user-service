@@ -8,6 +8,7 @@ import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
+import gov.cabinetofice.gapuserservice.enums.NextStateArgs;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedClientException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.model.Nonce;
@@ -25,7 +26,6 @@ import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import static net.logstash.logback.argument.StructuredArguments.*;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -39,6 +39,9 @@ import org.springframework.web.util.WebUtils;
 import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
+
+import static net.logstash.logback.argument.StructuredArguments.entries;
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @RequiredArgsConstructor
 @Controller
@@ -129,10 +132,7 @@ public class LoginControllerV2 {
 
         final User user = oneLoginService.createOrGetUserFromInfo(userInfo);
         addCustomJwtCookie(response, userInfo, idToken);
-
-        return new RedirectView(user.getLoginJourneyState()
-                .getLoginJourneyRedirect(user.getHighestRole().getName())
-                .getRedirectUrl(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl, redirectUrl));
+        return new RedirectView(runStateMachine(redirectUrl, user, "jwt", user.hasAcceptedPrivacyPolicy(), userInfo));
     }
 
     @GetMapping("/privacy-policy")
@@ -153,8 +153,7 @@ public class LoginControllerV2 {
         final Cookie customJWTCookie = getCustomJwtCookieFromRequest(request);
         final User user = getUserFromCookie(customJWTCookie)
                 .orElseThrow(() -> new UserNotFoundException("Privacy policy: Could not fetch user from jwt"));
-        return new ModelAndView("redirect:" + runStateMachine(redirectUrlCookie
-                .orElse(configProperties.getDefaultRedirectUrl()), user, customJWTCookie.getValue()));
+        return new ModelAndView("redirect:" + runStateMachine(redirectUrlCookie.orElse(configProperties.getDefaultRedirectUrl()), user, customJWTCookie.getValue(), true, null));
     }
 
     @GetMapping("/logout")
@@ -231,9 +230,9 @@ public class LoginControllerV2 {
         }
     }
 
-    private String runStateMachine(final String redirectUrlCookie, final User user, final String jwt) {
+    private String runStateMachine(final String redirectUrlCookie, final User user, final String jwt, final boolean hasAcceptedPrivacyPolicy, final OneLoginUserInfoDto userInfo) {
         return user.getLoginJourneyState()
-                .nextState(oneLoginService, user, jwt, log)
+                .nextState(new NextStateArgs(oneLoginService, user, jwt, log, hasAcceptedPrivacyPolicy, userInfo))
                 .getLoginJourneyRedirect(user.getHighestRole().getName())
                 .getRedirectUrl(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl, redirectUrlCookie);
     }

@@ -1,20 +1,16 @@
 package gov.cabinetofice.gapuserservice.enums;
 
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
-import gov.cabinetofice.gapuserservice.model.User;
-import gov.cabinetofice.gapuserservice.service.OneLoginService;
-import org.slf4j.Logger;
 
+// TODO inject logger here?
 public enum LoginJourneyState {
     PRIVACY_POLICY_PENDING {
         @Override
-        public LoginJourneyState nextState(final OneLoginService oneLoginService,
-                                           final User user,
-                                           final String jwt,
-                                           final Logger logger) {
-            logger.debug("User: " + user.getSub() + " accepted the privacy policy");
-            oneLoginService.setUsersLoginJourneyState(user, PRIVACY_POLICY_ACCEPTED);
-            return PRIVACY_POLICY_ACCEPTED.nextState(oneLoginService, user, jwt, logger);
+        public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
+            nextStateArgs.logger().debug("User: " + nextStateArgs.user().getSub() + " accepted the privacy policy");
+            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), PRIVACY_POLICY_ACCEPTED);
+            if (!nextStateArgs.hasAcceptedPrivacyPolicy()) return this;
+            return PRIVACY_POLICY_ACCEPTED.nextState(nextStateArgs);
         }
 
         @Override
@@ -25,45 +21,36 @@ public enum LoginJourneyState {
 
     PRIVACY_POLICY_ACCEPTED {
         @Override
-        public LoginJourneyState nextState(final OneLoginService oneLoginService,
-                                           final User user,
-                                           final String jwt,
-                                           final Logger logger) {
-            final LoginJourneyState nextState = user.hasColaSub() ? MIGRATING_USER : USER_READY;
-            oneLoginService.setUsersLoginJourneyState(user, nextState);
-            return nextState.nextState(oneLoginService, user, jwt, logger);
+        public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
+            final LoginJourneyState nextState = nextStateArgs.user().hasColaSub() ? MIGRATING_USER : USER_READY;
+            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), nextState);
+            return nextState.nextState(nextStateArgs);
         }
     },
 
     MIGRATING_USER {
         @Override
-        public LoginJourneyState nextState(final OneLoginService oneLoginService,
-                                           final User user,
-                                           final String jwt,
-                                           final Logger logger) {
-            logger.debug("Migrating user: " + user.getSub());
+        public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
+            nextStateArgs.logger().debug("Migrating user: " + nextStateArgs.user().getSub());
             LoginJourneyState nextState;
             try {
-                oneLoginService.migrateUser(user, jwt);
+                nextStateArgs.oneLoginService().migrateUser(nextStateArgs.user(), nextStateArgs.jwt());
                 nextState = MIGRATION_SUCCEEDED;
-                logger.info("Successfully migrated user: " + user.getSub());
+                nextStateArgs.logger().info("Successfully migrated user: " + nextStateArgs.user().getSub());
             } catch (Exception e) {
                 nextState = MIGRATION_FAILED;
-                logger.error("Failed to migrate user: " + user.getSub(), e);
+                nextStateArgs.logger().error("Failed to migrate user: " + nextStateArgs.user().getSub(), e);
             }
 
-            oneLoginService.setUsersLoginJourneyState(user, nextState);
-            return nextState.nextState(oneLoginService, user, jwt, logger);
+            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), nextState);
+            return nextState.nextState(nextStateArgs);
         }
     },
 
     MIGRATION_SUCCEEDED {
         @Override
-        public LoginJourneyState nextState(final OneLoginService oneLoginService,
-                                           final User user,
-                                           final String jwt,
-                                           final Logger logger) {
-            oneLoginService.setUsersLoginJourneyState(user, USER_READY);
+        public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
+            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), USER_READY);
             return this;
         }
 
@@ -80,11 +67,8 @@ public enum LoginJourneyState {
 
     MIGRATION_FAILED {
         @Override
-        public LoginJourneyState nextState(final OneLoginService oneLoginService,
-                                           final User user,
-                                           final String jwt,
-                                           final Logger logger) {
-            oneLoginService.setUsersLoginJourneyState(user, USER_READY);
+        public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
+            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), USER_READY);
             return this;
         }
 
@@ -101,10 +85,15 @@ public enum LoginJourneyState {
 
     USER_READY {
         @Override
-        public LoginJourneyState nextState(final OneLoginService oneLoginService,
-                                           final User user,
-                                           final String jwt,
-                                           final Logger logger) {
+        public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
+            final String newEmail = nextStateArgs.userInfo().getEmailAddress();
+            final String oldEmail = nextStateArgs.user().getEmailAddress();
+            final boolean emailsDiffer = !newEmail.equals(oldEmail);
+            if (emailsDiffer) {
+                nextStateArgs.oneLoginService().setUsersEmail(newEmail);
+                nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), MIGRATING_FIND_EMAILS);
+                return MIGRATING_FIND_EMAILS.nextState(nextStateArgs);
+            }
             return this;
         }
 
@@ -117,9 +106,23 @@ public enum LoginJourneyState {
                 case APPLICANT, FIND -> LoginJourneyRedirect.APPLICANT_APP;
             };
         }
+    },
+
+    MIGRATING_FIND_EMAILS {
+        @Override
+        public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
+            // TODO Update emails in find
+            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), USER_READY);
+            return this;
+        }
+
+        @Override
+        public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
+            return LoginJourneyRedirect.EMAIL_UPDATED_PAGE;
+        }
     };
 
-    public abstract LoginJourneyState nextState(final OneLoginService oneLoginService, final User user, final String jwt, final Logger logger);
+    public abstract LoginJourneyState nextState(final NextStateArgs nextStateArgs);
 
     public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
         throw new UnsupportedOperationException("Error, make sure the enums next state function eventually ends up on a state that has a redirect URL");
