@@ -1,16 +1,16 @@
 package gov.cabinetofice.gapuserservice.service.encryption;
 
+import gov.cabinetofice.gapuserservice.model.User;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
+
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.any;
 
 import java.util.Optional;
 
@@ -32,10 +32,13 @@ public class Sha512ServiceTest {
         String saltId = "saltId";
         try (MockedStatic<HelperUtils> utilities = Mockito.mockStatic(HelperUtils.class)) {
             utilities.when(() -> HelperUtils.generateSecureRandomString(255)).thenReturn(salt);
-            utilities.when(() -> HelperUtils.generateUUID()).thenReturn(saltId);
+            utilities.when(HelperUtils::generateUUID).thenReturn(saltId);
             String result = encryptionService.generateAndStoreSalt();
             Assertions.assertEquals(saltId, result);
-            verify(saltRepository).save(Salt.builder().salt(salt).saltId(saltId).build());
+            final ArgumentCaptor<Salt> saltArgumentCaptor = ArgumentCaptor.forClass(Salt.class);
+            verify(saltRepository).save(saltArgumentCaptor.capture());
+            Assertions.assertEquals(salt, saltArgumentCaptor.getValue().getSalt());
+            Assertions.assertEquals(saltId, saltArgumentCaptor.getValue().getSaltId());
         }
     }
 
