@@ -198,8 +198,9 @@ public class OneLoginUserService {
         final Set<String> formattedUserRoles = userRoles.stream()
                 .map(role -> roleMapper.roleToRoleDto(role).getName())
                 .collect(Collectors.toSet());
+        final boolean rolesAreValid = formattedUserRoles.containsAll(formattedPayloadRoles) && formattedPayloadRoles.containsAll(formattedUserRoles);
 
-        if(!formattedUserRoles.containsAll(formattedPayloadRoles)){
+        if(!rolesAreValid){
             throw new UnauthorizedException("Roles in payload do not match roles in database");
         }
     }

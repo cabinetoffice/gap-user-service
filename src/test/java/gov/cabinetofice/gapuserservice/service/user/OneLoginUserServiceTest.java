@@ -3,6 +3,7 @@ package gov.cabinetofice.gapuserservice.service.user;
 import gov.cabinetofice.gapuserservice.dto.RoleDto;
 import gov.cabinetofice.gapuserservice.dto.UserQueryDto;
 import gov.cabinetofice.gapuserservice.exceptions.DepartmentNotFoundException;
+import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
@@ -419,7 +420,7 @@ public class OneLoginUserServiceTest {
     }
 
     @Test
-    void testValidateRolesWhenRolesDoNotMatch() {
+    void testValidateRolesWhenPayloadHasExtraRoles() {
         Role find = Role.builder().name(RoleEnum.FIND).id(1).build();
         Role applicant = Role.builder().name(RoleEnum.APPLICANT).id(2).build();
         String testPayloadRoles = "[FIND, APPLICANT, ADMIN]";
@@ -428,6 +429,26 @@ public class OneLoginUserServiceTest {
         when(roleMapper.roleToRoleDto(applicant)).thenReturn(RoleDto.builder().name("APPLICANT").build());
 
         assertThrows(UnauthorizedException.class, () -> oneLoginUserService.validateRoles(testUserRoles, testPayloadRoles));
+    }
+
+    @Test
+    void testValidateRolesWhenPayloadHasMissingRoles() {
+        Role find = Role.builder().name(RoleEnum.FIND).id(1).build();
+        Role applicant = Role.builder().name(RoleEnum.APPLICANT).id(2).build();
+        String testPayloadRoles = "[FIND]";
+        List<Role> testUserRoles = List.of(find,applicant);
+        when(roleMapper.roleToRoleDto(find)).thenReturn(RoleDto.builder().name("FIND").build());
+        when(roleMapper.roleToRoleDto(applicant)).thenReturn(RoleDto.builder().name("APPLICANT").build());
+
+        assertThrows(UnauthorizedException.class, () -> oneLoginUserService.validateRoles(testUserRoles, testPayloadRoles));
+    }
+
+    @Test
+    void testvalidateAdminSessionThrowsInvalidExceptionWithEmptyUser() {
+        String  email = "email";
+        String roles = "APPLICANT";
+        when(userRepository.findByEmailAddress(email)).thenReturn(Optional.empty());
+        assertThrows(InvalidRequestException.class, () -> oneLoginUserService.validateAdminSession(email, roles));
     }
 
     @Test
