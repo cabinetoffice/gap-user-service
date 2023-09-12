@@ -35,6 +35,7 @@ import org.springframework.web.util.WebUtils;
 
 import java.util.Date;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @RequiredArgsConstructor
@@ -84,10 +85,10 @@ public class LoginControllerV2 {
                 && customJwtService.isTokenValid(customJWTCookie.getValue());
         final String redirectUrl = redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl());
         if (!isTokenValid) {
+            final String nonce = oneLoginService.generateAndStoreNonce();
             String saltId = encryptionService.generateAndStoreSalt();
             final String encodedState = oneLoginService.generateAndStoreState(response, redirectUrl, saltId);
             final String state = encryptionService.getSHA512SecurePassword(encodedState, saltId);
-            final String nonce = oneLoginService.generateAndStoreNonce();
 
             return new RedirectView(oneLoginService.getOneLoginAuthorizeUrl(state, nonce));
         }
@@ -106,9 +107,13 @@ public class LoginControllerV2 {
         final String idToken = tokenResponse.getString("id_token");
         final String authToken = tokenResponse.getString("access_token");
 
-        oneLoginService.validateAuthTokenSignatureAndAlgorithm(authToken);
         IdTokenDto decodedIdToken = oneLoginService.decodeTokenId(idToken);
-        oneLoginService.validateIdToken(decodedIdToken);
+
+        if (!Objects.equals(this.configProperties.getProfile(), "LOCAL")) {
+            // FIXME fix mocks so we don't have to ignore validation locally
+            oneLoginService.validateIdToken(decodedIdToken);
+            oneLoginService.validateAuthTokenSignatureAndAlgorithm(authToken);
+        }
 
         final StateCookieDto stateCookieDto = oneLoginService.decodeStateCookie(stateCookie);
         final String redirectUrl = stateCookieDto.getRedirectUrl();
@@ -116,7 +121,11 @@ public class LoginControllerV2 {
         verifyStateAndNonce(decodedIdToken.getNonce(), stateCookieDto, state);
 
         final OneLoginUserInfoDto userInfo = oneLoginService.getOneLoginUserInfoDto(authToken);
-        oneLoginService.validateUserSub(decodedIdToken.getSub(), userInfo.getSub());
+
+        if (!Objects.equals(this.configProperties.getProfile(), "LOCAL")) {
+            // FIXME fix mocks so we don't have to ignore validation locally
+            oneLoginService.validateUserSub(decodedIdToken.getSub(), userInfo.getSub());
+        }
 
         final User user = oneLoginService.createOrGetUserFromInfo(userInfo);
         addCustomJwtCookie(response, userInfo, idToken);
@@ -199,22 +208,22 @@ public class LoginControllerV2 {
         // Validate that nonce is less than 10 mins old
         final boolean isNonceExpired = oneLoginService.isNonceExpired(storedNonce);
 
-        if (isNonceExpired) {
+        if (!(isStateVerified && isNonceVerified)) {
+            log.warn("/redirect-after-login unauthorized user; nonce verified: {}, state verified: {}",
+                    isNonceVerified, isStateVerified);
+            log.debug("nonce from token: {}, nonce from db: {}," +
+                            "state from response: {}, hashed state from cookie: {}, plaintext state from cookie: {}",
+                    nonce, storedNonce.getNonceString(),
+                    state, hashedStateCookie, encodedStateJson);
+            // TODO take action against malicious activity e.g. temp block user and send email
+            throw new AccessDeniedException("User authorization failed");
+        } else if (isNonceExpired) {
             log.info("/redirect-after-login unauthorized user; nonce expired");
             log.debug("nonce from token: {}, nonce from db: {}, expiry: {}, now: {}" +
                             "state from response: {}, hashed state from cookie: {}, plaintext state from cookie: {}",
                     nonce, storedNonce.getNonceString(), storedNonce.getCreatedAt(), new Date(),
                     state, hashedStateCookie, encodedStateJson);
             throw new NonceExpiredException("User authorization failed, please try again");
-        } else if (!(isStateVerified && isNonceVerified)) {
-            log.warn("/redirect-after-login unauthorized user; nonce verified: {}, state verified: {}",
-                    isNonceVerified, isStateVerified);
-            log.debug("nonce from token: {}, nonce from db: {}," +
-                    "state from response: {}, hashed state from cookie: {}, plaintext state from cookie: {}",
-                    nonce, storedNonce.getNonceString(),
-                    state, hashedStateCookie, encodedStateJson);
-            // TODO take action against malicious activity e.g. temp block user and send email
-            throw new AccessDeniedException("User authorization failed");
         }
     }
 
