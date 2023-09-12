@@ -53,7 +53,7 @@ public class WebSecurityConfig {
                 "/redirect-after-cola-login",
                 "/error/**",
                 "/.well-known/jwks.json",
-                "/v2/validateAdminSession",
+                "/v2/validateSessionsRoles",
                 "/user"
                 );
     }

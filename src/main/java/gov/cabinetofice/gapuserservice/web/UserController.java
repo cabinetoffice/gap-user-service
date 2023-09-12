@@ -110,13 +110,13 @@ public class UserController {
             throw new ForbiddenException();
         }
 
-        boolean requestToBlockUser = roleIds.size() == 0;
+        boolean isARequestToBlockUser = roleIds.size() == 0;
         Optional<User> user = jwtService.getUserFromJwt(httpRequest);
 
         if(user.isEmpty()){
             throw new InvalidRequestException("Could not get user from jwt");
         }
-        if (requestToBlockUser && id.equals(user.get().getGapUserId())){
+        if (isARequestToBlockUser && id.equals(user.get().getGapUserId())){
             throw new UnsupportedOperationException("You can't block yourself");
         }
 

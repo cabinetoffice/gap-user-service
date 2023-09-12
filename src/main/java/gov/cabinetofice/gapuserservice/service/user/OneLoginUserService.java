@@ -193,12 +193,12 @@ public class OneLoginUserService {
     }
 
     public void validateRoles(List<Role> userRoles, String payloadRoles) throws UnauthorizedException {
-        final List<String> formattedPayloadRoles = removeSquareBracketsAndTrim(Arrays.asList(payloadRoles
+        final Set<String> formattedPayloadRoles = removeSquareBracketsAndTrim(Arrays.asList(payloadRoles
                 .split(",")));
         final Set<String> formattedUserRoles = userRoles.stream()
                 .map(role -> roleMapper.roleToRoleDto(role).getName())
                 .collect(Collectors.toSet());
-        final boolean rolesAreValid = formattedUserRoles.containsAll(formattedPayloadRoles) && formattedPayloadRoles.containsAll(formattedUserRoles);
+        final boolean rolesAreValid = formattedPayloadRoles.equals(formattedUserRoles);
 
         if(!rolesAreValid){
             throw new UnauthorizedException("Roles in payload do not match roles in database");

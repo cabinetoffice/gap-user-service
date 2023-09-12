@@ -444,7 +444,15 @@ public class OneLoginUserServiceTest {
     }
 
     @Test
-    void testvalidateAdminSessionThrowsInvalidExceptionWithEmptyUser() {
+    void testValidateRolesWhenUserHasNoRoles() {
+        String testPayloadRoles = "[FIND, APPLICANT]";
+        List<Role> testUserRoles = List.of();
+
+        assertThrows(UnauthorizedException.class, () -> oneLoginUserService.validateRoles(testUserRoles, testPayloadRoles));
+    }
+
+    @Test
+    void testValidateAdminSessionThrowsInvalidExceptionWithEmptyUser() {
         String  email = "email";
         String roles = "APPLICANT";
         when(userRepository.findByEmailAddress(email)).thenReturn(Optional.empty());

@@ -84,7 +84,8 @@ public class LoginControllerV2 {
     public String migrationEnabled;
 
     @GetMapping("/validateSessionsRoles")
-    public ResponseEntity<Boolean> validateSessionsRoles(@RequestParam("emailAddress") String emailAddress, @RequestParam("roles") String roles){
+    public ResponseEntity<Boolean> validateSessionsRoles(@RequestParam("emailAddress") String emailAddress,
+                                                         @RequestParam("roles") String roles){
         oneLoginUserService.validateSessionsRoles(emailAddress, roles);
         return ResponseEntity.ok(Boolean.TRUE);
     }
