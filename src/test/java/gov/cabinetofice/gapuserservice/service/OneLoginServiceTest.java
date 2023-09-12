@@ -8,14 +8,12 @@ import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.*;
-import gov.cabinetofice.gapuserservice.model.Department;
-import gov.cabinetofice.gapuserservice.model.Role;
-import gov.cabinetofice.gapuserservice.model.RoleEnum;
-import gov.cabinetofice.gapuserservice.model.User;
+import gov.cabinetofice.gapuserservice.model.*;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
+import gov.cabinetofice.gapuserservice.util.LoggingUtils;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -37,14 +35,16 @@ import java.io.IOException;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 
 import static io.jsonwebtoken.impl.crypto.RsaProvider.generateKeyPair;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,6 +57,9 @@ public class OneLoginServiceTest {
 
     @Mock
     private CustomJwtServiceImpl customJwtService;
+
+    @Mock
+    private LoggingUtils loggingUtils;
 
     @Mock
     private OneLoginUserService oneLoginUserService;
@@ -462,6 +465,36 @@ public class OneLoginServiceTest {
     }
 
     @Nested
+    class isNonceExpired {
+
+        @Test
+        void testNonceNotExpired() {
+            final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
+                    .nonceId(1)
+                    .nonceString("nonce")
+                    .createdAt(new Date());
+            final Nonce nonceObj = nonceBuilder.build();
+            assertFalse(oneLoginService.isNonceExpired(nonceObj));
+        }
+
+        @Test
+        void testNonceIsExpired() throws ParseException {
+            DateFormat format = new SimpleDateFormat("yyyy-mm-dd", Locale.ENGLISH);
+            final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
+                    .nonceId(1)
+                    .nonceString("nonce")
+                    .createdAt(format.parse("1970-01-01"));
+            final Nonce nonceObj = nonceBuilder.build();
+            assertTrue(oneLoginService.isNonceExpired(nonceObj));
+        }
+
+        @Test
+        void testNonceDoesNotExist() {
+            assertTrue(oneLoginService.isNonceExpired(new Nonce()));
+        }
+    }
+
+    @Nested
     class validateIdToken {
 
         @Test
@@ -483,7 +516,7 @@ public class OneLoginServiceTest {
             invalidToken.setExp(Instant.now().plus(Duration.ofHours(1)).getEpochSecond());
             invalidToken.setIat(Instant.now().minus(Duration.ofHours(1)).getEpochSecond());
 
-            assertThrows(UnauthorizedException.class, () -> oneLoginService.validateIdToken(invalidToken));
+            assertThrows(UnauthorizedClientException.class, () -> oneLoginService.validateIdToken(invalidToken));
         }
 
         @Test
@@ -494,7 +527,7 @@ public class OneLoginServiceTest {
             invalidToken.setExp(Instant.now().plus(Duration.ofHours(1)).getEpochSecond());
             invalidToken.setIat(Instant.now().minus(Duration.ofHours(1)).getEpochSecond());
 
-            assertThrows(UnauthorizedException.class, () -> oneLoginService.validateIdToken(invalidToken));
+            assertThrows(UnauthorizedClientException.class, () -> oneLoginService.validateIdToken(invalidToken));
         }
 
         @Test
@@ -505,7 +538,7 @@ public class OneLoginServiceTest {
             expiredToken.setExp(Instant.now().minus(Duration.ofMinutes(1)).getEpochSecond());
             expiredToken.setIat(Instant.now().minus(Duration.ofHours(1)).getEpochSecond());
 
-            assertThrows(UnauthorizedException.class, () -> oneLoginService.validateIdToken(expiredToken));
+            assertThrows(UnauthorizedClientException.class, () -> oneLoginService.validateIdToken(expiredToken));
         }
 
         @Test
@@ -516,7 +549,7 @@ public class OneLoginServiceTest {
             futureIssuedToken.setExp(Instant.now().plus(Duration.ofHours(1)).getEpochSecond());
             futureIssuedToken.setIat(Instant.now().plus(Duration.ofHours(1)).getEpochSecond());
 
-            assertThrows(UnauthorizedException.class, () -> oneLoginService.validateIdToken(futureIssuedToken));
+            assertThrows(UnauthorizedClientException.class, () -> oneLoginService.validateIdToken(futureIssuedToken));
         }
     }
 
