@@ -83,9 +83,9 @@ public class LoginControllerV2 {
     @Value("${feature.onelogin.migration.enabled}")
     public String migrationEnabled;
 
-    @GetMapping("/validateAdminSession")
-    public ResponseEntity<Boolean> validateAdminRoles(@RequestParam("emailAddress") String emailAddress, @RequestParam("roles") String roles){
-        oneLoginUserService.validateAdminSession(emailAddress, roles);
+    @GetMapping("/validateSessionsRoles")
+    public ResponseEntity<Boolean> validateSessionsRoles(@RequestParam("emailAddress") String emailAddress, @RequestParam("roles") String roles){
+        oneLoginUserService.validateSessionsRoles(emailAddress, roles);
         return ResponseEntity.ok(Boolean.TRUE);
     }
 

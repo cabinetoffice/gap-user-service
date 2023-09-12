@@ -448,7 +448,7 @@ public class OneLoginUserServiceTest {
         String  email = "email";
         String roles = "APPLICANT";
         when(userRepository.findByEmailAddress(email)).thenReturn(Optional.empty());
-        assertThrows(InvalidRequestException.class, () -> oneLoginUserService.validateAdminSession(email, roles));
+        assertThrows(InvalidRequestException.class, () -> oneLoginUserService.validateSessionsRoles(email, roles));
     }
 
     @Test

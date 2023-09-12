@@ -7,8 +7,8 @@ import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
-import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedClientException;
+import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.model.Nonce;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
@@ -25,26 +25,28 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
-import org.json.JSONObject;
 
 import java.util.*;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
@@ -79,6 +81,7 @@ class LoginControllerV2Test {
 
     @Mock
     private NonceRepository nonceRepository;
+
 
     @Mock
     private LoggingUtils loggingUtils;
@@ -757,18 +760,14 @@ class LoginControllerV2Test {
     void testValidateAdminSession() {
         String emailAddress = "test@email.com";
         String roles = "[FIND, APPLY]";
-        OneLoginUserService oneLoginUserServiceMock = mock(OneLoginUserService.class);
-        doNothing().when(oneLoginUserServiceMock).validateAdminSession(emailAddress, roles);
-
-        assertDoesNotThrow(() -> oneLoginUserServiceMock.validateAdminSession(emailAddress, roles));
+        ResponseEntity<Boolean> response = loginController.validateSessionsRoles(emailAddress, roles);
+        assertThat(response).isEqualTo(ResponseEntity.ok(Boolean.TRUE));
     }
     @Test
     void testValidateAdminSessionWithInvalidSession() {
         String emailAddress = "test@email.com";
         String roles = "[FIND, APPLY]";
-        OneLoginUserService oneLoginUserServiceMock = mock(OneLoginUserService.class);
-        doThrow(UnauthorizedException.class).when(oneLoginUserServiceMock).validateAdminSession(emailAddress, roles);
-
-        assertThrows(UnauthorizedException.class, () -> oneLoginUserServiceMock.validateAdminSession(emailAddress, roles));
+        doThrow(UnauthorizedException.class).when(oneLoginUserService).validateSessionsRoles(emailAddress, roles);
+        assertThrows(UnauthorizedException.class, () -> loginController.validateSessionsRoles(emailAddress, roles));
     }
 }
