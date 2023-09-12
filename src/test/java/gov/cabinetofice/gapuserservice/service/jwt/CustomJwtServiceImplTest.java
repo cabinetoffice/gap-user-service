@@ -30,6 +30,7 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.util.WebUtils;
 
@@ -67,26 +68,26 @@ public class CustomJwtServiceImplTest {
 
     private final String CHRISTMAS_2022_MIDDAY = "2022-12-25T12:00:00.00z";
     private final Clock clock = Clock.fixed(Instant.parse(CHRISTMAS_2022_MIDDAY), ZoneId.of("UTC"));
-    private MockedStatic mockedWebUtils;
-
+    private static MockedStatic<WebUtils> mockedWebUtils;
 
     @BeforeEach
     void setup() throws JOSEException {
+        mockedWebUtils = mockStatic(WebUtils.class);
         final JwtProperties jwtProperties = JwtProperties.builder()
                 .signingKey("test-signing-key")
                 .issuer("test-issuer")
                 .audience("test-audience")
                 .expiresAfter(60)
                 .build();
-
         serviceUnderTest = spy(new CustomJwtServiceImpl(oneLoginUserService, jwtProperties, jwtBlacklistRepository, userRepository, clock));
-        this.mockedWebUtils = mockStatic(WebUtils.class);
+        ReflectionTestUtils.setField(serviceUnderTest, "userServiceCookieName", "userServiceCookieName");
     }
 
     @AfterEach
-    public void after() {
-        this.mockedWebUtils.close();
+    public void close() {
+        mockedWebUtils.close();
     }
+
 
     @Nested
     class IsTokenValid {
@@ -332,12 +333,13 @@ public class CustomJwtServiceImplTest {
         @Test
         void testGetUserFromJwtWithValidJwt() {
             String validJwt = "eyJraWQiOiIxODNjZTQ5YS0xYjExLTRiYjgtOWExMi1iYTViNzVmNGVmZjQiLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1cm46ZmRjOmdvdi51azoyMDIyOmliZDJyejJDZ3lpZG5kWHlxMnp5ZmNuUXd5WUk1N2gzNHZNbFNyODdDRGYiLCJhdWQiOiJGR1AiLCJpZFRva2VuIjoienFybiIsInJvbGVzIjoiW0FQUExJQ0FOVCwgRklORCwgQURNSU4sIFNVUEVSX0FETUlOXSIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MiIsImRlcGFydG1lbnQiOiJDYWJpbmV0IE9mZmljZSIsImV4cCI6MTY5MDQ1MjkzNCwiaWF0IjoxNjkwNDQ5MzM0LCJlbWFpbCI6InRlc3QudXNlckBnb3YudWsiLCJqdGkiOiIxOWQyMGYzMi0xZDIyLTQ0NzgtYjkwNi0wMzc5Mzg5ODUxODMifQ.H0xj5yob8u7eJs8zaCgjlTm_pt4fKrNhzFsmMcBNHghUaK3SQUoJcjUea31rKFppl5Dju90lq7n1fmNhVAk3Hpli6KvU2KNSgJZbCiMU5PbjJRZ3ogssjYjhOvor7fQrpComwZqA5-1I2jq9bQEIBwMyoSIpEJh1XFnk_GexedhlTY3ws0C9pX5gev7TL13cuc7xMRDRQE2G6-0sSOdTc5z0ib-Xjqz7D6tkLSOZJ4EKrbNnXpfar8KTSAUX6bO8Huj8q-FousOTpnlgOuUtNWXgdL928wP3fHgaCKsiALCDoHfoRSK2-0do0rsMmFHIrnIeZkJqvULgjgd55FLsAg";
-            HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+            final MockHttpServletRequest request = new MockHttpServletRequest();
             User testUser = User.builder().gapUserId(1).sub("sub").build();
-            Cookie cookie = new Cookie("jwt", validJwt);
-            mockedWebUtils.when((MockedStatic.Verification) WebUtils.getCookie(mockRequest, null)).thenReturn(cookie);
+            Cookie cookie = new Cookie("userServiceCookieName", validJwt);
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                    .thenReturn(cookie);
             when(userRepository.findBySub(any())).thenReturn(Optional.of(testUser));
-            Optional<User> response = serviceUnderTest.getUserFromJwt(mockRequest);
+            Optional<User> response = serviceUnderTest.getUserFromJwt(request);
 
             assertThat(response).isEqualTo(Optional.of(testUser));
         }
@@ -351,7 +353,7 @@ public class CustomJwtServiceImplTest {
         @Test
         void testGetUserFromJwtWithNullValueInJwt() {
             HttpServletRequest mockRequest = mock(HttpServletRequest.class);
-            mockedWebUtils.when((MockedStatic.Verification) WebUtils.getCookie(mockRequest, null)).thenReturn(null);
+            when(WebUtils.getCookie(mockRequest, "userServiceCookieName")).thenReturn(null);
             assertThrows(UnauthorizedException.class, () -> serviceUnderTest.getUserFromJwt(mockRequest));
         }
     }
