@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.Optional;
+import java.util.UUID;
 
 
 @Repository
@@ -20,6 +21,9 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     Optional<User> findByEmailAddress(String email);
     @EntityGraph(attributePaths = {"department", "roles"})
     Optional<User> findBySub(String sub);
+
+    @EntityGraph(attributePaths = {"department", "roles"})
+    Optional<User> findByColaSub(UUID sub);
 
     @EntityGraph(attributePaths = {"department", "roles"})
     Optional<User> findById(int id);

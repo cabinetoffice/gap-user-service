@@ -16,6 +16,7 @@ import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
+import gov.cabinetofice.gapuserservice.util.LoggingUtils;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -60,6 +61,9 @@ public class OneLoginServiceTest {
 
     @Mock
     private CustomJwtServiceImpl customJwtService;
+
+    @Mock
+    private LoggingUtils loggingUtils;
 
     @Mock
     private OneLoginUserService oneLoginUserService;
@@ -486,7 +490,7 @@ public class OneLoginServiceTest {
             invalidToken.setExp(Instant.now().plus(Duration.ofHours(1)).getEpochSecond());
             invalidToken.setIat(Instant.now().minus(Duration.ofHours(1)).getEpochSecond());
 
-            assertThrows(UnauthorizedException.class, () -> oneLoginService.validateIdToken(invalidToken));
+            assertThrows(UnauthorizedClientException.class, () -> oneLoginService.validateIdToken(invalidToken));
         }
 
         @Test
@@ -497,7 +501,7 @@ public class OneLoginServiceTest {
             invalidToken.setExp(Instant.now().plus(Duration.ofHours(1)).getEpochSecond());
             invalidToken.setIat(Instant.now().minus(Duration.ofHours(1)).getEpochSecond());
 
-            assertThrows(UnauthorizedException.class, () -> oneLoginService.validateIdToken(invalidToken));
+            assertThrows(UnauthorizedClientException.class, () -> oneLoginService.validateIdToken(invalidToken));
         }
 
         @Test
@@ -508,7 +512,7 @@ public class OneLoginServiceTest {
             expiredToken.setExp(Instant.now().minus(Duration.ofMinutes(1)).getEpochSecond());
             expiredToken.setIat(Instant.now().minus(Duration.ofHours(1)).getEpochSecond());
 
-            assertThrows(UnauthorizedException.class, () -> oneLoginService.validateIdToken(expiredToken));
+            assertThrows(UnauthorizedClientException.class, () -> oneLoginService.validateIdToken(expiredToken));
         }
 
         @Test
@@ -519,7 +523,7 @@ public class OneLoginServiceTest {
             futureIssuedToken.setExp(Instant.now().plus(Duration.ofHours(1)).getEpochSecond());
             futureIssuedToken.setIat(Instant.now().plus(Duration.ofHours(1)).getEpochSecond());
 
-            assertThrows(UnauthorizedException.class, () -> oneLoginService.validateIdToken(futureIssuedToken));
+            assertThrows(UnauthorizedClientException.class, () -> oneLoginService.validateIdToken(futureIssuedToken));
         }
     }
 

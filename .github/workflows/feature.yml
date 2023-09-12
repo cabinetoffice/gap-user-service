@@ -20,6 +20,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Migration Version Check
+        run: bash ./migration-version-check.sh
+        working-directory: ./git-hooks
+
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:

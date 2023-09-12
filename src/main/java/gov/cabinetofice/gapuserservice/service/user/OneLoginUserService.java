@@ -20,20 +20,19 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.BiFunction;
 
 @RequiredArgsConstructor
 @Service
+@Slf4j
 public class OneLoginUserService {
 
     private final UserRepository userRepository;
@@ -75,6 +74,23 @@ public class OneLoginUserService {
                 .orElseThrow(() -> new UserNotFoundException("user with id: " + id + "not found"));
     }
 
+    public User getUserByUserSub(String userSub) {
+        // Get user by One Login sub first
+        Optional<User> user = userRepository.findBySub(userSub);
+        if (user.isEmpty()) {
+            // If user is not found by One Login sub, get user by Cola sub
+            try {
+                return userRepository.findByColaSub(UUID.fromString(userSub))
+                        .orElseThrow(() -> new UserNotFoundException("user with sub: " + userSub + "not found"));
+
+            } catch (IllegalArgumentException e) {
+                log.error("Invalid UUID: " + userSub);
+                throw new UserNotFoundException("Invalid UUID: " + userSub);
+            }
+        }
+        return user.get();
+    }
+
     public User updateDepartment(Integer id, Integer departmentId) {
         Optional<User> optionalUser = userRepository.findById(id);
 
@@ -110,6 +126,7 @@ public class OneLoginUserService {
 
         addRoleIfNotPresent(user, RoleEnum.FIND);
         addRoleIfNotPresent(user, RoleEnum.APPLICANT);
+        deleteDepartmentIfPresentAndUserIsOnlyApplicantOrFind(user);
         userRepository.save(user);
 
         return user;
@@ -121,6 +138,23 @@ public class OneLoginUserService {
                     "Update Roles failed: ".concat(roleName.name()).concat(" role not found")));
             user.addRole(role);
         }
+    }
+
+    private void deleteDepartmentIfPresentAndUserIsOnlyApplicantOrFind(User user) {
+           if (isUserApplicantAndFindOnly(user) && doesUserHaveDepartment(user)) {
+               user.setDepartment(null);
+            }
+    }
+
+    public boolean isUserApplicantAndFindOnly(User user) {
+        final List<Role> roles = user.getRoles();
+        return !roles.isEmpty() && roles.stream().allMatch(
+                role -> role.getName().equals(RoleEnum.FIND) ||
+                        role.getName().equals(RoleEnum.APPLICANT));
+    }
+
+    private boolean doesUserHaveDepartment(User user) {
+        return user.getDepartment() != null;
     }
 
     @Transactional
