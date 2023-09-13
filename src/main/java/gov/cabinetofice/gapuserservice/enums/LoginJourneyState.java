@@ -86,13 +86,16 @@ public enum LoginJourneyState {
     USER_READY {
         @Override
         public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
-            final String newEmail = nextStateArgs.userInfo().getEmailAddress();
-            final String oldEmail = nextStateArgs.user().getEmailAddress();
-            final boolean emailsDiffer = !newEmail.equals(oldEmail);
-            if (emailsDiffer) {
-                nextStateArgs.oneLoginService().setUsersEmail(newEmail);
-                nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), MIGRATING_FIND_EMAILS);
-                return MIGRATING_FIND_EMAILS.nextState(nextStateArgs);
+            if (nextStateArgs.userInfo() != null) {
+                final String newEmail = nextStateArgs.userInfo().getEmailAddress();
+                final String oldEmail = nextStateArgs.user().getEmailAddress();
+                final boolean emailsDiffer = !newEmail.equals(oldEmail);
+
+                if (emailsDiffer) {
+                    nextStateArgs.oneLoginService().setUsersEmail(nextStateArgs.user(), newEmail);
+                    nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), MIGRATING_FIND_EMAILS);
+                    return MIGRATING_FIND_EMAILS.nextState(nextStateArgs);
+                }
             }
             return this;
         }

@@ -437,5 +437,10 @@ public class OneLoginService {
                 Safelist.basic()
         );
     }
+
+    public void setUsersEmail(User user, String newEmail) {
+        user.setEmailAddress(newEmail);
+        userRepository.save(user);
+    }
 }
 
