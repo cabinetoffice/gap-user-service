@@ -79,7 +79,8 @@ public class CustomJwtServiceImplTest {
                 .audience("test-audience")
                 .expiresAfter(60)
                 .build();
-        serviceUnderTest = spy(new CustomJwtServiceImpl(oneLoginUserService, jwtProperties, jwtBlacklistRepository, userRepository, clock));
+        serviceUnderTest = spy(new CustomJwtServiceImpl(
+                oneLoginUserService, jwtProperties, jwtBlacklistRepository, userRepository, clock));
         ReflectionTestUtils.setField(serviceUnderTest, "userServiceCookieName", "userServiceCookieName");
     }
 
@@ -153,7 +154,11 @@ public class CustomJwtServiceImplTest {
                     staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
                     staticJwt.when(() -> decode(any())).thenCallRealMethod();
                     when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
-                    User testUser = User.builder().roles(List.of(Role.builder().name(RoleEnum.FIND).id(1).build(), Role.builder().name(RoleEnum.SUPER_ADMIN).id(4).build(), Role.builder().name(RoleEnum.ADMIN).id(3).build(), Role.builder().name(RoleEnum.APPLICANT).id(2).build())).loginJourneyState(LoginJourneyState.USER_READY).build();
+                    User testUser = User.builder().roles(List.of(Role.builder().name(RoleEnum.FIND).id(1).build(),
+                            Role.builder().name(RoleEnum.SUPER_ADMIN).id(4).build(),
+                            Role.builder().name(RoleEnum.ADMIN).id(3).build(),
+                            Role.builder().name(RoleEnum.APPLICANT).id(2).build()))
+                            .loginJourneyState(LoginJourneyState.USER_READY).build();
                     when(userRepository.findBySub(any())).thenReturn(Optional.of(testUser));
                     when(oneLoginUserService.getUserBySub(any())).thenReturn(testUser);
                     doThrow(UnauthorizedException.class).when(oneLoginUserService).validateRoles(any(), any());
@@ -178,7 +183,11 @@ public class CustomJwtServiceImplTest {
                     staticJwt.when(() -> decode(any())).thenCallRealMethod();
                     when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
                     when(jwtBlacklistRepository.existsByJwtIs(jwt)).thenReturn(true);
-                    User testUser = User.builder().roles(List.of(Role.builder().name(RoleEnum.FIND).id(1).build(), Role.builder().name(RoleEnum.SUPER_ADMIN).id(4).build(), Role.builder().name(RoleEnum.ADMIN).id(3).build(), Role.builder().name(RoleEnum.APPLICANT).id(2).build())).loginJourneyState(LoginJourneyState.USER_READY).build();
+                    User testUser = User.builder().roles(List.of(Role.builder().name(RoleEnum.FIND).id(1).build(),
+                            Role.builder().name(RoleEnum.SUPER_ADMIN).id(4).build(),
+                            Role.builder().name(RoleEnum.ADMIN).id(3).build(),
+                            Role.builder().name(RoleEnum.APPLICANT).id(2).build()))
+                            .loginJourneyState(LoginJourneyState.USER_READY).build();
                     when(userRepository.findBySub(any())).thenReturn(Optional.of(testUser));
                     when(oneLoginUserService.getUserBySub(any())).thenReturn(testUser);
 
@@ -203,8 +212,13 @@ public class CustomJwtServiceImplTest {
                     staticJwt.when(() -> decode(any())).thenCallRealMethod();
                     when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
                     staticAlgorithm.when(() -> RSA256(any(), any())).thenReturn(mockAlgorithm);
-                    User testUser = User.builder().roles(List.of(Role.builder().name(RoleEnum.FIND).id(1).build(), Role.builder().name(RoleEnum.SUPER_ADMIN).id(4).build(), Role.builder().name(RoleEnum.ADMIN).id(3).build(), Role.builder().name(RoleEnum.APPLICANT).id(2).build())).loginJourneyState(LoginJourneyState.USER_READY).build();
-                    when(userRepository.findBySub(any())).thenReturn(Optional.of(User.builder().loginJourneyState(LoginJourneyState.USER_READY).build()));
+                    User testUser = User.builder().roles(List.of(Role.builder().name(RoleEnum.FIND).id(1).build(),
+                            Role.builder().name(RoleEnum.SUPER_ADMIN).id(4).build(),
+                            Role.builder().name(RoleEnum.ADMIN).id(3).build(),
+                            Role.builder().name(RoleEnum.APPLICANT).id(2).build()))
+                            .loginJourneyState(LoginJourneyState.USER_READY).build();
+                    when(userRepository.findBySub(any())).thenReturn(Optional.of(
+                            User.builder().loginJourneyState(LoginJourneyState.USER_READY).build()));
                     when(userRepository.findBySub(any())).thenReturn(Optional.of(testUser));
                     when(oneLoginUserService.getUserBySub(any())).thenReturn(testUser);
                     serviceUnderTest.isTokenValid(jwt);
@@ -322,7 +336,8 @@ public class CustomJwtServiceImplTest {
             when(oneLoginUserService.getUserBySub(any())).thenReturn(testUser);
             JwtPayload payload = new JwtPayload();
             payload.setRoles("[FIND, APPLY]");
-            doThrow(UnauthorizedException.class).when(oneLoginUserService).validateRoles(testUser.getRoles(),"[FIND, APPLY]");
+            doThrow(UnauthorizedException.class).when(oneLoginUserService)
+                    .validateRoles(testUser.getRoles(),"[FIND, APPLY]");
 
             assertThrows(UnauthorizedException.class, () -> serviceUnderTest.validateRolesInThePayload(payload));
         }

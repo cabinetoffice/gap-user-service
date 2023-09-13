@@ -206,11 +206,7 @@ public class OneLoginUserService {
     }
 
     public void validateSessionsRoles(String emailAddress, String roles) throws InvalidRequestException {
-        Optional<User> user = userRepository.findByEmailAddress(emailAddress);
-        if(user.isEmpty()){
-            throw new InvalidRequestException("Could not get user from emailAddress");
-        }
-        final List<Role> userRoles = user.get().getRoles();
+        List<Role> userRoles = userRepository.findByEmailAddress(emailAddress).orElseThrow(() -> new InvalidRequestException("Could not get user from emailAddress")).getRoles();
         validateRoles(userRoles, roles);
     }
 }
