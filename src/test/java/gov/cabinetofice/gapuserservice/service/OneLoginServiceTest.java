@@ -12,6 +12,8 @@ import gov.cabinetofice.gapuserservice.model.*;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
+import gov.cabinetofice.gapuserservice.util.LoggingUtils;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -50,9 +52,17 @@ public class OneLoginServiceTest {
 
     @InjectMocks
     private OneLoginService oneLoginService;
+    @Mock
+    private JwtBlacklistService jwtBlacklistService;
 
     @Mock
     private CustomJwtServiceImpl customJwtService;
+
+    @Mock
+    private LoggingUtils loggingUtils;
+
+    @Mock
+    private OneLoginUserService oneLoginUserService;
 
     private static MockedStatic<RestUtils> mockedStatic;
 
