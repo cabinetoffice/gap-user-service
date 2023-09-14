@@ -9,8 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class StateCookieDto {
-    private String state;
-    private String redirectUrl;
+public class SaltHashDto {
     private String saltId;
+    private String hash;
 }
