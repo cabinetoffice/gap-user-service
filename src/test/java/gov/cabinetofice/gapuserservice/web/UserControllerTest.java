@@ -3,6 +3,7 @@ package gov.cabinetofice.gapuserservice.web;
 import gov.cabinetofice.gapuserservice.dto.ChangeDepartmentPageDto;
 import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
 import gov.cabinetofice.gapuserservice.dto.UserDto;
+import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
@@ -129,6 +130,7 @@ class UserControllerTest {
     @Test
     void shouldThrowErrorWhenAdminTriesToDeleteThemselves() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        when(httpRequest.getCookies()).thenReturn(new Cookie[] {new Cookie("userServiceCookieName", "1")});
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(1).build()));
 
@@ -138,6 +140,7 @@ class UserControllerTest {
     @Test
     void shouldThrowErrorWhenUserIsEmpty() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        when(httpRequest.getCookies()).thenReturn(new Cookie[] {new Cookie("userServiceCookieName", "1")});
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.empty());
 
