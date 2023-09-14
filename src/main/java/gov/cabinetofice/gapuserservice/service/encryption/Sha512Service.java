@@ -18,7 +18,7 @@ import static gov.cabinetofice.gapuserservice.util.HelperUtils.generateUUID;
 @Service
 public class Sha512Service {
     private final SaltRepository saltRepository;
-    private final int SALT_LENGTH = 255;
+    private final static int SALT_LENGTH = 255;
 
     private String generateSalt() {
         return generateSecureRandomString(SALT_LENGTH);
