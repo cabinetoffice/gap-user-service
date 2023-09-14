@@ -169,7 +169,7 @@ public class OneLoginUserService {
         final User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("user with id: " + id + "not found"));
         webClientBuilder.build()
                 .delete()
-                .uri(adminBackend + "/users/delete/" + user.getSub() + (user.hasColaSub() ? "?colaSub=" + user.getColaSub() : ""))
+                .uri(adminBackend + "/users/delete/" + (user.hasSub() ? user.getSub() : "") + (user.hasColaSub() ? "?colaSub=" + user.getColaSub() : ""))
                 .header("Authorization", "Bearer " + jwt)
                 .retrieve()
                 .bodyToMono(Void.class)
