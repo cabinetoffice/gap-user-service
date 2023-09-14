@@ -138,10 +138,11 @@ public class OneLoginService {
         return generateSecureRandomString(64);
     }
 
-    public String buildEncodedStateJson(final String redirectUrl, final String state) {
+    public String buildEncodedStateJson(final String redirectUrl, final String state, final String saltId) {
         JSONObject stateJsonObject = new JSONObject();
         stateJsonObject.put("state", state);
         stateJsonObject.put("redirectUrl", redirectUrl);
+        stateJsonObject.put("saltId", saltId);
         final String stateJsonString = stateJsonObject.toString();
         return Base64.getEncoder().encodeToString(stateJsonString.getBytes());
     }
@@ -159,9 +160,9 @@ public class OneLoginService {
         return stateCookieDto;
     }
 
-    public String generateAndStoreState(final HttpServletResponse response, final String redirectUrl) {
+    public String generateAndStoreState(final HttpServletResponse response, final String redirectUrl, final String saltId) {
         final String state = this.generateState();
-        final String encodedStateJsonString = this.buildEncodedStateJson(redirectUrl, state);
+        final String encodedStateJsonString = this.buildEncodedStateJson(redirectUrl, state, saltId);
         String STATE_COOKIE = "state";
         final Cookie stateCookie = WebUtil.buildSecureCookie(STATE_COOKIE, encodedStateJsonString, 3600);
         response.addCookie(stateCookie);

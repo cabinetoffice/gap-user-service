@@ -8,10 +8,7 @@ import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.*;
-import gov.cabinetofice.gapuserservice.model.Department;
-import gov.cabinetofice.gapuserservice.model.Role;
-import gov.cabinetofice.gapuserservice.model.RoleEnum;
-import gov.cabinetofice.gapuserservice.model.User;
+import gov.cabinetofice.gapuserservice.model.*;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
@@ -28,10 +25,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -41,14 +35,16 @@ import java.io.IOException;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 
 import static io.jsonwebtoken.impl.crypto.RsaProvider.generateKeyPair;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -69,7 +65,6 @@ public class OneLoginServiceTest {
     private OneLoginUserService oneLoginUserService;
 
     private static MockedStatic<RestUtils> mockedStatic;
-
 
     private Map<String, String> testKeyPair;
 
@@ -230,7 +225,7 @@ public class OneLoginServiceTest {
     }
 
     @Nested
-    class createUser {
+    class CreateUserTest {
         @Test
         void shouldReturnSavedUser() {
             when(roleRepository.findByName(any())).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
@@ -263,7 +258,7 @@ public class OneLoginServiceTest {
     }
 
     @Nested
-    class setUsersLoginJourneyState {
+    class SetUsersLoginJourneyStateTest {
         @Test
         void shouldSetUsersLoginJourneyState() {
             final User user = User.builder()
@@ -279,7 +274,7 @@ public class OneLoginServiceTest {
     }
 
     @Nested
-    class generateCustomJwtClaims {
+    class GenerateCustomJwtClaimsTest {
 
         final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
                 .sub("sub")
@@ -344,7 +339,7 @@ public class OneLoginServiceTest {
     }
 
     @Nested
-    class createOrGetUserFromInfo {
+    class CreateOrGetUserFromInfoTest {
         @Test
         void getExistingUser() {
             final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
@@ -378,7 +373,7 @@ public class OneLoginServiceTest {
     }
 
     @Nested
-    class migrateUser {
+    class MigrateUserTest {
         @Test
         void shouldMigrateUser() {
             final User user = User.builder()
@@ -414,7 +409,6 @@ public class OneLoginServiceTest {
             verify(mockRequestBodySpec).bodyValue(migrateUserDto);
         }
 
-
         @Test
         void testLogoutUser() throws IOException, JSONException {
             String tokenValue = "token.in.threeParts";
@@ -440,17 +434,19 @@ public class OneLoginServiceTest {
     void generateStateJson() {
         final String redirectUrl = "redirectUrl";
         final String state = "state";
-        final String expected = "eyJyZWRpcmVjdFVybCI6InJlZGlyZWN0VXJsIiwic3RhdGUiOiJzdGF0ZSJ9";
-        final String result = oneLoginService.buildEncodedStateJson(redirectUrl, state);
+        final String saltId = "saltId";
+        final String expected = "eyJyZWRpcmVjdFVybCI6InJlZGlyZWN0VXJsIiwic2FsdElkIjoic2FsdElkIiwic3RhdGUiOiJzdGF0ZSJ9";
+        final String result = oneLoginService.buildEncodedStateJson(redirectUrl, state, saltId);
         Assertions.assertEquals(result, expected);
     }
 
     @Test
     void decodeStateCookie() {
-        final String encodedStateCookie = "eyJyZWRpcmVjdFVybCI6InJlZGlyZWN0VXJsIiwic3RhdGUiOiJzdGF0ZSJ9";
+        final String encodedStateCookie = "eyJyZWRpcmVjdFVybCI6InJlZGlyZWN0VXJsIiwic2FsdElkIjoic2FsdElkIiwic3RhdGUiOiJzdGF0ZSJ9";
         final StateCookieDto.StateCookieDtoBuilder stateCookieDtoBuilder = StateCookieDto.builder()
                 .state("state")
-                .redirectUrl("redirectUrl");
+                .redirectUrl("redirectUrl")
+                .saltId("saltId");
         final StateCookieDto expected = stateCookieDtoBuilder.build();
         final StateCookieDto result = oneLoginService.decodeStateCookie(encodedStateCookie);
         Assertions.assertEquals(result, expected);
@@ -469,7 +465,37 @@ public class OneLoginServiceTest {
     }
 
     @Nested
-    class validateIdToken {
+    class IsNonceExpiredTest {
+
+        @Test
+        void testNonceNotExpired() {
+            final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
+                    .nonceId(1)
+                    .nonceString("nonce")
+                    .createdAt(new Date());
+            final Nonce nonceObj = nonceBuilder.build();
+            assertFalse(oneLoginService.isNonceExpired(nonceObj));
+        }
+
+        @Test
+        void testNonceIsExpired() throws ParseException {
+            DateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH);
+            final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
+                    .nonceId(1)
+                    .nonceString("nonce")
+                    .createdAt(format.parse("1970-01-01"));
+            final Nonce nonceObj = nonceBuilder.build();
+            assertTrue(oneLoginService.isNonceExpired(nonceObj));
+        }
+
+        @Test
+        void testNonceDoesNotExist() {
+            assertTrue(oneLoginService.isNonceExpired(new Nonce()));
+        }
+    }
+
+    @Nested
+    class ValidateIdTokenTest {
 
         @Test
         void testValidIdToken() {

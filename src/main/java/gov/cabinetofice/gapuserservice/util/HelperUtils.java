@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.UUID;
 
 public class HelperUtils {
 
@@ -76,5 +77,9 @@ public class HelperUtils {
                 .mapToObj(chrs::charAt)
                 .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
                 .toString();
+    }
+
+    public static String generateUUID() {
+        return UUID.randomUUID().toString();
     }
 }
