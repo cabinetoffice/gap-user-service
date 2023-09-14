@@ -82,6 +82,7 @@ public class CustomJwtServiceImplTest {
         serviceUnderTest = spy(new CustomJwtServiceImpl(
                 oneLoginUserService, jwtProperties, jwtBlacklistRepository, userRepository, clock));
         ReflectionTestUtils.setField(serviceUnderTest, "userServiceCookieName", "userServiceCookieName");
+        ReflectionTestUtils.setField(serviceUnderTest, "validateUserRolesInMiddleware", true);
     }
 
     @AfterEach

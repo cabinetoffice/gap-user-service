@@ -53,7 +53,13 @@ public class CustomJwtServiceImpl implements JwtService {
     @Value("${feature.onelogin.enabled}")
     public boolean oneLoginEnabled;
 
-    public CustomJwtServiceImpl(OneLoginUserService oneLoginUserService, JwtProperties jwtProperties, JwtBlacklistRepository jwtBlacklistRepository, UserRepository userRepository, Clock clock) throws JOSEException {
+    @Value("${feature.validate-user-roles-in-middleware}")
+    public boolean validateUserRolesInMiddleware;
+
+
+    public CustomJwtServiceImpl(OneLoginUserService oneLoginUserService,
+                                JwtProperties jwtProperties, JwtBlacklistRepository jwtBlacklistRepository,
+                                UserRepository userRepository, Clock clock) throws JOSEException {
         this.oneLoginUserService = oneLoginUserService;
         this.jwtProperties = jwtProperties;
         this.jwtBlacklistRepository = jwtBlacklistRepository;
@@ -86,7 +92,9 @@ public class CustomJwtServiceImpl implements JwtService {
                 Optional<User> user = userRepository.findBySub(jwtPayload.getSub());
                 if (user.isEmpty()) user = userRepository.findByEmailAddress(jwtPayload.getEmail());
                 if (user.isEmpty()) return false;
-                validateRolesInThePayload(jwtPayload);
+                if(validateUserRolesInMiddleware){
+                    validateRolesInThePayload(jwtPayload);
+                }
                 if (user.get().getLoginJourneyState().equals(LoginJourneyState.PRIVACY_POLICY_PENDING)) return false;
             }
 
