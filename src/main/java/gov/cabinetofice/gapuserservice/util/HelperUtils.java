@@ -8,7 +8,10 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.security.SecureRandom;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 public class HelperUtils {
@@ -56,6 +59,12 @@ public class HelperUtils {
         catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static Set<String> removeSquareBracketsAndTrim(List<String> inputList) {
+        return inputList.stream()
+                .map(input -> input.replace("[", "").replace("]", "").trim())
+                .collect(Collectors.toSet());
     }
 
     public static String generateSecureRandomString(final Integer strLen) {

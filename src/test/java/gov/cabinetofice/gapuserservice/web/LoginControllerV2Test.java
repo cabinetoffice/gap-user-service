@@ -8,6 +8,7 @@ import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedClientException;
+import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.exceptions.NonceExpiredException;
 import gov.cabinetofice.gapuserservice.model.Nonce;
 import gov.cabinetofice.gapuserservice.model.Role;
@@ -15,18 +16,26 @@ import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.NonceRepository;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
+import gov.cabinetofice.gapuserservice.service.RoleService;
 import gov.cabinetofice.gapuserservice.service.encryption.Sha512Service;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import gov.cabinetofice.gapuserservice.util.LoggingUtils;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -34,7 +43,6 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
-import org.json.JSONObject;
 
 import java.util.*;
 
@@ -60,10 +68,17 @@ class LoginControllerV2Test {
     private CustomJwtServiceImpl customJwtService;
 
     @Mock
+    private RoleService roleService;
+
+    @Mock
     private Sha512Service encryptionService;
 
     @Mock
+    private OneLoginUserService oneLoginUserService;
+
+    @Mock
     private NonceRepository nonceRepository;
+
 
     @Mock
     private LoggingUtils loggingUtils;
@@ -78,7 +93,7 @@ class LoginControllerV2Test {
                 .defaultRedirectUrl("https://www.find-government-grants.service.gov.uk/")
                 .build();
 
-        loginController = new LoginControllerV2(oneLoginService, customJwtService, configProperties, encryptionService, nonceRepository, findProperties, loggingUtils);
+        loginController = new LoginControllerV2(oneLoginService, roleService, customJwtService, configProperties, encryptionService, nonceRepository, oneLoginUserService, findProperties, loggingUtils);
         ReflectionTestUtils.setField(loginController, "userServiceCookieName", "userServiceCookieName");
         ReflectionTestUtils.setField(loginController, "adminBaseUrl", "/adminBaseUrl");
         ReflectionTestUtils.setField(loginController, "applicantBaseUrl", "/applicantBaseUrl");
@@ -769,5 +784,20 @@ class LoginControllerV2Test {
                 Assertions.assertEquals(applicantBaseUrl, methodResponse.getUrl());
             }
         }
+    }
+
+    @Test
+    void testValidateSessionsRoles() {
+        String emailAddress = "test@email.com";
+        String roles = "[FIND, APPLY]";
+        ResponseEntity<Boolean> response = loginController.validateSessionsRoles(emailAddress, roles);
+        assertThat(response).isEqualTo(ResponseEntity.ok(Boolean.TRUE));
+    }
+    @Test
+    void testValidateSessionsRolesWithInvalidSession() {
+        String emailAddress = "test@email.com";
+        String roles = "[FIND, APPLY]";
+        doThrow(UnauthorizedException.class).when(oneLoginUserService).validateSessionsRoles(emailAddress, roles);
+        assertThrows(UnauthorizedException.class, () -> loginController.validateSessionsRoles(emailAddress, roles));
     }
 }

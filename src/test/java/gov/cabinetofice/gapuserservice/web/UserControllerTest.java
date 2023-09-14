@@ -10,17 +10,20 @@ import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
+import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -35,6 +38,9 @@ class UserControllerTest {
 
     @Mock
     private DepartmentService departmentService;
+    
+    @Mock
+    private CustomJwtServiceImpl customJwtService;
 
     @Mock
     private RoleService roleService;
@@ -43,10 +49,30 @@ class UserControllerTest {
     void updateRolesForUserId() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
+        when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(2).build()));
         final ResponseEntity<String> methodResponse = controller.updateRoles(httpRequest, List.of(1,2), 1);
 
         assertThat(methodResponse).isEqualTo(ResponseEntity.ok("success"));
     }
+
+    @Test
+    void testSuperAdminCannotBlockThemselves() {
+        final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
+        when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(1).build()));
+
+        assertThrows(UnsupportedOperationException.class, () -> controller.updateRoles(httpRequest, List.of(), 1));
+    }
+
+    @Test
+    void testSuperAdminThrowsInvalidRequestWithNoUser() {
+        final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
+        when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.empty());
+
+        assertThrows(InvalidRequestException.class, () -> controller.updateRoles(httpRequest, List.of(), 1));
+    }
+
     @Test
     void shouldReturnUserWhenValidIdIsGiven() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
@@ -86,11 +112,58 @@ class UserControllerTest {
     void shouldDeleteUserWhenValidIdIsGiven() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
+        when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(2).build()));
         final ResponseEntity<String> methodResponse = controller.deleteUser(httpRequest, 1);
 
         assertThat(methodResponse).isEqualTo(ResponseEntity.ok("success"));
     }
 
+    @Test
+    void shouldThrowErrorWhenAdminTriesToDeleteThemselves() {
+        final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
+        when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(1).build()));
+
+        assertThrows(UnsupportedOperationException.class, () -> controller.deleteUser(httpRequest, 1));
+    }
+
+    @Test
+    void shouldThrowErrorWhenUserIsEmpty() {
+        final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
+        when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.empty());
+
+        assertThrows(InvalidRequestException.class, () -> controller.deleteUser(httpRequest, 1));
+    }
+
+
+    @Test
+    public void testGetUserFromJwt() {
+        User mockUser = User.builder().gapUserId(1).build();
+        when(roleService.isSuperAdmin(any(HttpServletRequest.class)))
+                .thenReturn(true);
+        when(customJwtService.getUserFromJwt(any(HttpServletRequest.class)))
+                .thenReturn(Optional.of(mockUser));
+        final ResponseEntity<UserDto> methodResponse = controller.getUserFromJwt(mock(HttpServletRequest.class));
+
+        assertThat(methodResponse.getBody()).isEqualTo(new UserDto(mockUser));
+    }
+
+    @Test
+    public void testGetUserFromJwtThrowsErrorWhenNotSuperAdmin() {
+        Mockito.doThrow(ForbiddenException.class).when(roleService).isSuperAdmin(any(HttpServletRequest.class));
+        assertThrows(ForbiddenException.class, () -> controller.getUserFromJwt(mock(HttpServletRequest.class)));
+    }
+
+    @Test
+    public void testGetUserFromJwtThrowsInvalidRequestWhenUserIsEmpty()  {
+        when(roleService.isSuperAdmin(any(HttpServletRequest.class)))
+                .thenReturn(true);
+        when(customJwtService.getUserFromJwt(any(HttpServletRequest.class)))
+                .thenReturn(Optional.empty());
+        assertThrows(InvalidRequestException.class, () -> controller.getUserFromJwt(mock(HttpServletRequest.class)));
+    }
+    
     @Test
     void updateDepartmentCantBeCalledOnApplicantAndFindUser() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);

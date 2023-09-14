@@ -8,11 +8,19 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.Verification;
 import com.nimbusds.jose.JOSEException;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
+import gov.cabinetofice.gapuserservice.dto.JwtPayload;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
+import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
+import gov.cabinetofice.gapuserservice.model.Role;
+import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.JwtBlacklistRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -22,21 +30,21 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.util.WebUtils;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static com.auth0.jwt.JWT.decode;
 import static com.auth0.jwt.JWT.require;
 import static com.auth0.jwt.algorithms.Algorithm.RSA256;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 
@@ -47,25 +55,41 @@ public class CustomJwtServiceImplTest {
     private CustomJwtServiceImpl serviceUnderTest;
 
     @Mock
+    private OneLoginUserService oneLoginUserService;
+
+    @Mock
     private JwtBlacklistRepository jwtBlacklistRepository;
+
+    @Mock
+    private JwtProperties jwtProperties;
 
     @Mock
     private UserRepository userRepository;
 
     private final String CHRISTMAS_2022_MIDDAY = "2022-12-25T12:00:00.00z";
     private final Clock clock = Clock.fixed(Instant.parse(CHRISTMAS_2022_MIDDAY), ZoneId.of("UTC"));
+    private static MockedStatic<WebUtils> mockedWebUtils;
 
     @BeforeEach
     void setup() throws JOSEException {
+        mockedWebUtils = mockStatic(WebUtils.class);
         final JwtProperties jwtProperties = JwtProperties.builder()
                 .signingKey("test-signing-key")
                 .issuer("test-issuer")
                 .audience("test-audience")
                 .expiresAfter(60)
                 .build();
-
-        serviceUnderTest = spy(new CustomJwtServiceImpl(jwtProperties, jwtBlacklistRepository, userRepository, clock));
+        serviceUnderTest = spy(new CustomJwtServiceImpl(
+                oneLoginUserService, jwtProperties, jwtBlacklistRepository, userRepository, clock));
+        ReflectionTestUtils.setField(serviceUnderTest, "userServiceCookieName", "userServiceCookieName");
+        ReflectionTestUtils.setField(serviceUnderTest, "validateUserRolesInMiddleware", true);
     }
+
+    @AfterEach
+    public void close() {
+        mockedWebUtils.close();
+    }
+
 
     @Nested
     class IsTokenValid {
@@ -89,11 +113,31 @@ public class CustomJwtServiceImplTest {
                     staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
                     staticJwt.when(() -> decode(any())).thenCallRealMethod();
                     when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
-                    when(userRepository.findBySub(any())).thenReturn(Optional.of(User.builder().loginJourneyState(LoginJourneyState.USER_READY).build()));
-
+                    User testUser = User.builder().roles(List.of(Role.builder().name(RoleEnum.FIND).id(1).build(), Role.builder().name(RoleEnum.SUPER_ADMIN).id(4).build(), Role.builder().name(RoleEnum.ADMIN).id(3).build(), Role.builder().name(RoleEnum.APPLICANT).id(2).build())).loginJourneyState(LoginJourneyState.USER_READY).build();
+                    when(userRepository.findBySub(any())).thenReturn(Optional.of(testUser));
+                    when(oneLoginUserService.getUserBySub(any())).thenReturn(testUser);
                     final boolean response = serviceUnderTest.isTokenValid(jwt);
                     assertThat(response).isTrue();
                     verify(mockedJwtVerifier, times(1)).verify(jwt);
+                }
+            }
+        }
+
+        @Test
+        void shouldNotCallValidateRolesInThePayloadWhenFlagIsDisabled(){
+            final Algorithm mockAlgorithm = mock(Algorithm.class);
+            final Verification spiedVerification = spy(verification);
+            ReflectionTestUtils.setField(serviceUnderTest, "validateUserRolesInMiddleware", false);
+
+            try (MockedStatic<Algorithm> staticAlgorithm = Mockito.mockStatic(Algorithm.class)) {
+                staticAlgorithm.when(() -> RSA256(any(), any())).thenReturn(mockAlgorithm);
+                try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
+                    staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
+                    staticJwt.when(() -> decode(any())).thenCallRealMethod();
+                    when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
+                    serviceUnderTest.isTokenValid(jwt);
+                    JwtPayload payload = new JwtPayload();
+                    Mockito.verify(serviceUnderTest, Mockito.never()).validateRolesInThePayload(payload);
                 }
             }
         }
@@ -119,6 +163,34 @@ public class CustomJwtServiceImplTest {
         }
 
         @Test
+        void ReturnsFalse_ifInvalidPayload() {
+            final Algorithm mockAlgorithm = mock(Algorithm.class);
+            final Verification spiedVerification = spy(verification);
+            ReflectionTestUtils.setField(serviceUnderTest, "oneLoginEnabled", true);
+
+            try (MockedStatic<Algorithm> staticAlgorithm = Mockito.mockStatic(Algorithm.class)) {
+                staticAlgorithm.when(() -> RSA256(any(), any())).thenReturn(mockAlgorithm);
+                try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
+                    staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
+                    staticJwt.when(() -> decode(any())).thenCallRealMethod();
+                    when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
+                    User testUser = User.builder().roles(List.of(Role.builder().name(RoleEnum.FIND).id(1).build(),
+                            Role.builder().name(RoleEnum.SUPER_ADMIN).id(4).build(),
+                            Role.builder().name(RoleEnum.ADMIN).id(3).build(),
+                            Role.builder().name(RoleEnum.APPLICANT).id(2).build()))
+                            .loginJourneyState(LoginJourneyState.USER_READY).build();
+                    when(userRepository.findBySub(any())).thenReturn(Optional.of(testUser));
+                    when(oneLoginUserService.getUserBySub(any())).thenReturn(testUser);
+                    doThrow(UnauthorizedException.class).when(oneLoginUserService).validateRoles(any(), any());
+
+                    final boolean response = serviceUnderTest.isTokenValid(jwt);
+                    assertThat(response).isFalse();
+                    verify(mockedJwtVerifier, times(1)).verify(jwt);
+                }
+            }
+        }
+
+        @Test
         void ReturnsFalse_IfBlacklisted() {
             final Algorithm mockAlgorithm = mock(Algorithm.class);
             final Verification spiedVerification = spy(verification);
@@ -131,7 +203,13 @@ public class CustomJwtServiceImplTest {
                     staticJwt.when(() -> decode(any())).thenCallRealMethod();
                     when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
                     when(jwtBlacklistRepository.existsByJwtIs(jwt)).thenReturn(true);
-                    when(userRepository.findBySub(any())).thenReturn(Optional.of(User.builder().loginJourneyState(LoginJourneyState.USER_READY).build()));
+                    User testUser = User.builder().roles(List.of(Role.builder().name(RoleEnum.FIND).id(1).build(),
+                            Role.builder().name(RoleEnum.SUPER_ADMIN).id(4).build(),
+                            Role.builder().name(RoleEnum.ADMIN).id(3).build(),
+                            Role.builder().name(RoleEnum.APPLICANT).id(2).build()))
+                            .loginJourneyState(LoginJourneyState.USER_READY).build();
+                    when(userRepository.findBySub(any())).thenReturn(Optional.of(testUser));
+                    when(oneLoginUserService.getUserBySub(any())).thenReturn(testUser);
 
                     final boolean response = serviceUnderTest.isTokenValid(jwt);
 
@@ -154,10 +232,16 @@ public class CustomJwtServiceImplTest {
                     staticJwt.when(() -> decode(any())).thenCallRealMethod();
                     when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
                     staticAlgorithm.when(() -> RSA256(any(), any())).thenReturn(mockAlgorithm);
-                    when(userRepository.findBySub(any())).thenReturn(Optional.of(User.builder().loginJourneyState(LoginJourneyState.USER_READY).build()));
-
+                    User testUser = User.builder().roles(List.of(Role.builder().name(RoleEnum.FIND).id(1).build(),
+                            Role.builder().name(RoleEnum.SUPER_ADMIN).id(4).build(),
+                            Role.builder().name(RoleEnum.ADMIN).id(3).build(),
+                            Role.builder().name(RoleEnum.APPLICANT).id(2).build()))
+                            .loginJourneyState(LoginJourneyState.USER_READY).build();
+                    when(userRepository.findBySub(any())).thenReturn(Optional.of(
+                            User.builder().loginJourneyState(LoginJourneyState.USER_READY).build()));
+                    when(userRepository.findBySub(any())).thenReturn(Optional.of(testUser));
+                    when(oneLoginUserService.getUserBySub(any())).thenReturn(testUser);
                     serviceUnderTest.isTokenValid(jwt);
-
                     staticAlgorithm.verify(() -> RSA256(any(), any()), times(1));
                     staticJwt.verify(() -> JWT.require(mockAlgorithm), times(1));
                     verify(mockedJwtVerifier, times(1)).verify(jwt);
@@ -249,6 +333,63 @@ public class CustomJwtServiceImplTest {
 
                 assertThat(response).isEqualTo("a-custom-jwt");
             }
+        }
+    }
+
+    @Nested
+    class ValidateRolesInTheyPayload {
+        @Test
+        void testValidateRolesInThePayloadWithValidPayload() {
+            User testUser = User.builder().gapUserId(1).sub("sub").build();
+            JwtPayload payload = new JwtPayload();
+            payload.setRoles("[FIND, APPLY]");
+            when(oneLoginUserService.getUserBySub(any())).thenReturn(testUser);
+            doNothing().when(oneLoginUserService).validateRoles(testUser.getRoles(),"[FIND, APPLY]");
+            JwtPayload response = serviceUnderTest.validateRolesInThePayload(payload);
+
+            assertThat(response).isSameAs(payload);
+        }
+
+        @Test
+        void testValidateRolesInThePayloadWithInvalidPayload() {
+            User testUser = User.builder().gapUserId(1).sub("sub").build();
+            when(oneLoginUserService.getUserBySub(any())).thenReturn(testUser);
+            JwtPayload payload = new JwtPayload();
+            payload.setRoles("[FIND, APPLY]");
+            doThrow(UnauthorizedException.class).when(oneLoginUserService)
+                    .validateRoles(testUser.getRoles(),"[FIND, APPLY]");
+
+            assertThrows(UnauthorizedException.class, () -> serviceUnderTest.validateRolesInThePayload(payload));
+        }
+    }
+
+    @Nested
+    class GetUserFromJwt {
+        @Test
+        void testGetUserFromJwtWithValidJwt() {
+            String validJwt = "eyJraWQiOiIxODNjZTQ5YS0xYjExLTRiYjgtOWExMi1iYTViNzVmNGVmZjQiLCJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1cm46ZmRjOmdvdi51azoyMDIyOmliZDJyejJDZ3lpZG5kWHlxMnp5ZmNuUXd5WUk1N2gzNHZNbFNyODdDRGYiLCJhdWQiOiJGR1AiLCJpZFRva2VuIjoienFybiIsInJvbGVzIjoiW0FQUExJQ0FOVCwgRklORCwgQURNSU4sIFNVUEVSX0FETUlOXSIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MiIsImRlcGFydG1lbnQiOiJDYWJpbmV0IE9mZmljZSIsImV4cCI6MTY5MDQ1MjkzNCwiaWF0IjoxNjkwNDQ5MzM0LCJlbWFpbCI6InRlc3QudXNlckBnb3YudWsiLCJqdGkiOiIxOWQyMGYzMi0xZDIyLTQ0NzgtYjkwNi0wMzc5Mzg5ODUxODMifQ.H0xj5yob8u7eJs8zaCgjlTm_pt4fKrNhzFsmMcBNHghUaK3SQUoJcjUea31rKFppl5Dju90lq7n1fmNhVAk3Hpli6KvU2KNSgJZbCiMU5PbjJRZ3ogssjYjhOvor7fQrpComwZqA5-1I2jq9bQEIBwMyoSIpEJh1XFnk_GexedhlTY3ws0C9pX5gev7TL13cuc7xMRDRQE2G6-0sSOdTc5z0ib-Xjqz7D6tkLSOZJ4EKrbNnXpfar8KTSAUX6bO8Huj8q-FousOTpnlgOuUtNWXgdL928wP3fHgaCKsiALCDoHfoRSK2-0do0rsMmFHIrnIeZkJqvULgjgd55FLsAg";
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+            User testUser = User.builder().gapUserId(1).sub("sub").build();
+            Cookie cookie = new Cookie("userServiceCookieName", validJwt);
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                    .thenReturn(cookie);
+            when(userRepository.findBySub(any())).thenReturn(Optional.of(testUser));
+            Optional<User> response = serviceUnderTest.getUserFromJwt(request);
+
+            assertThat(response).isEqualTo(Optional.of(testUser));
+        }
+
+        @Test
+        void testGetUserFromJwtThrowsUnauthorizedWithNullJwt() {
+            HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+            assertThrows(UnauthorizedException.class, () -> serviceUnderTest.getUserFromJwt(mockRequest));
+        }
+
+        @Test
+        void testGetUserFromJwtWithNullValueInJwt() {
+            HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+            when(WebUtils.getCookie(mockRequest, "userServiceCookieName")).thenReturn(null);
+            assertThrows(UnauthorizedException.class, () -> serviceUnderTest.getUserFromJwt(mockRequest));
         }
     }
 }

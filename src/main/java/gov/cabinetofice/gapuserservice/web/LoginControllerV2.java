@@ -12,8 +12,10 @@ import gov.cabinetofice.gapuserservice.model.Nonce;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.NonceRepository;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
+import gov.cabinetofice.gapuserservice.service.RoleService;
 import gov.cabinetofice.gapuserservice.service.encryption.Sha512Service;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import gov.cabinetofice.gapuserservice.util.LoggingUtils;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
@@ -23,10 +25,10 @@ import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import static net.logstash.logback.argument.StructuredArguments.*;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -39,6 +41,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import static net.logstash.logback.argument.StructuredArguments.entries;
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
+
 @RequiredArgsConstructor
 @Controller
 @RequestMapping("v2")
@@ -47,10 +52,12 @@ import java.util.Optional;
 @Getter
 public class LoginControllerV2 {
     private final OneLoginService oneLoginService;
+    private final RoleService roleService;
     private final CustomJwtServiceImpl customJwtService;
     private final ApplicationConfigProperties configProperties;
     private final Sha512Service encryptionService;
     private final NonceRepository nonceRepository;
+    private final OneLoginUserService oneLoginUserService;
     private final FindAGrantConfigProperties findProperties;
     private final LoggingUtils loggingUtils;
 
@@ -74,6 +81,13 @@ public class LoginControllerV2 {
 
     @Value("${feature.onelogin.migration.enabled}")
     public String migrationEnabled;
+
+    @GetMapping("/validateSessionsRoles")
+    public ResponseEntity<Boolean> validateSessionsRoles(@RequestParam("emailAddress") String emailAddress,
+                                                         @RequestParam("roles") String roles){
+        oneLoginUserService.validateSessionsRoles(emailAddress, roles);
+        return ResponseEntity.ok(Boolean.TRUE);
+    }
 
     @GetMapping("/login")
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
