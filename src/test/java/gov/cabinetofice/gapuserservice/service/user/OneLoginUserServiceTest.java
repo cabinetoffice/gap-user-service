@@ -1,8 +1,12 @@
 package gov.cabinetofice.gapuserservice.service.user;
 
+import gov.cabinetofice.gapuserservice.dto.RoleDto;
 import gov.cabinetofice.gapuserservice.dto.UserQueryDto;
 import gov.cabinetofice.gapuserservice.exceptions.DepartmentNotFoundException;
+import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
+import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
+import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
 import gov.cabinetofice.gapuserservice.model.Department;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
@@ -27,8 +31,7 @@ import reactor.core.publisher.Mono;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
@@ -43,6 +46,9 @@ public class OneLoginUserServiceTest {
 
     @Mock
     private DepartmentRepository departmentRepository;
+
+    @Mock
+    private RoleMapper roleMapper;
 
     @Mock
     private RoleRepository roleRepository;
@@ -89,15 +95,14 @@ public class OneLoginUserServiceTest {
     }
 
     @Test
-    void shouldReturnUserWhenValidOneLoginSubIsGiven() {
+    void shouldReturnUserWhenValidSubIsGiven() {
+            User mockedUser = User.builder().gapUserId(1).build();
+            when(userRepository.findBySub("1234")).thenReturn(Optional.of(mockedUser));
+            User result = oneLoginUserService.getUserByUserSub("1234");
 
-        User mockedUser = User.builder().gapUserId(1).build();
-        when(userRepository.findBySub("1234")).thenReturn(Optional.of(mockedUser));
-        User result = oneLoginUserService.getUserByUserSub("1234");
-
-        assertThat(result).isNotNull();
-        assertThat(result).isEqualTo(mockedUser);
-        verify(userRepository, times(1)).findBySub("1234");
+            assertThat(result).isNotNull();
+            assertThat(result).isEqualTo(mockedUser);
+            verify(userRepository, times(1)).findBySub("1234");
     }
 
     @Test
@@ -144,6 +149,12 @@ public class OneLoginUserServiceTest {
     void shouldThrowUserNotFoundExceptionWhenInValidIdIsGiven() {
         when(userRepository.findById(anyInt())).thenReturn(Optional.empty());
         assertThrows(UserNotFoundException.class, () -> oneLoginUserService.getUserById(100));
+    }
+
+    @Test
+    void shouldThrowUserNotFoundExceptionWhenInValidSubIsGiven() {
+        when(userRepository.findBySub(anyString())).thenReturn(Optional.empty());
+        assertThrows(UserNotFoundException.class, () -> oneLoginUserService.getUserBySub("100"));
     }
 
     @Nested
@@ -414,6 +425,58 @@ public class OneLoginUserServiceTest {
         assertThat(updatedUser.getRoles().size()).isEqualTo(4);
         assertThat(updatedUser.getRoles().stream().anyMatch(role -> role.getName().equals(RoleEnum.APPLICANT))).isTrue();
         assertThat(updatedUser.getRoles().stream().anyMatch(role -> role.getName().equals(RoleEnum.FIND))).isTrue();
+    }
+
+    @Test
+    void testValidateRolesWhenRolesMatch() {
+        Role find = Role.builder().name(RoleEnum.FIND).id(1).build();
+        Role applicant = Role.builder().name(RoleEnum.APPLICANT).id(2).build();
+        String testPayloadRoles = "[FIND, APPLICANT]";
+        List<Role> testUserRoles = List.of(find,applicant);
+        when(roleMapper.roleToRoleDto(find)).thenReturn(RoleDto.builder().name("FIND").build());
+        when(roleMapper.roleToRoleDto(applicant)).thenReturn(RoleDto.builder().name("APPLICANT").build());
+
+        assertDoesNotThrow(() -> oneLoginUserService.validateRoles(testUserRoles, testPayloadRoles));
+    }
+
+    @Test
+    void testValidateRolesWhenPayloadHasExtraRoles() {
+        Role find = Role.builder().name(RoleEnum.FIND).id(1).build();
+        Role applicant = Role.builder().name(RoleEnum.APPLICANT).id(2).build();
+        String testPayloadRoles = "[FIND, APPLICANT, ADMIN]";
+        List<Role> testUserRoles = List.of(find,applicant);
+        when(roleMapper.roleToRoleDto(find)).thenReturn(RoleDto.builder().name("FIND").build());
+        when(roleMapper.roleToRoleDto(applicant)).thenReturn(RoleDto.builder().name("APPLICANT").build());
+
+        assertThrows(UnauthorizedException.class, () -> oneLoginUserService.validateRoles(testUserRoles, testPayloadRoles));
+    }
+
+    @Test
+    void testValidateRolesWhenPayloadHasMissingRoles() {
+        Role find = Role.builder().name(RoleEnum.FIND).id(1).build();
+        Role applicant = Role.builder().name(RoleEnum.APPLICANT).id(2).build();
+        String testPayloadRoles = "[FIND]";
+        List<Role> testUserRoles = List.of(find,applicant);
+        when(roleMapper.roleToRoleDto(find)).thenReturn(RoleDto.builder().name("FIND").build());
+        when(roleMapper.roleToRoleDto(applicant)).thenReturn(RoleDto.builder().name("APPLICANT").build());
+
+        assertThrows(UnauthorizedException.class, () -> oneLoginUserService.validateRoles(testUserRoles, testPayloadRoles));
+    }
+
+    @Test
+    void testValidateRolesWhenUserHasNoRoles() {
+        String testPayloadRoles = "[FIND, APPLICANT]";
+        List<Role> testUserRoles = List.of();
+
+        assertThrows(UnauthorizedException.class, () -> oneLoginUserService.validateRoles(testUserRoles, testPayloadRoles));
+    }
+
+    @Test
+    void testValidateSessionsRolesThrowsInvalidExceptionWithEmptyUser() {
+        String  email = "email";
+        String roles = "APPLICANT";
+        when(userRepository.findByEmailAddress(email)).thenReturn(Optional.empty());
+        assertThrows(InvalidRequestException.class, () -> oneLoginUserService.validateSessionsRoles(email, roles));
     }
 
     @Test
