@@ -757,14 +757,14 @@ class LoginControllerV2Test {
     }
 
     @Test
-    void testValidateAdminSession() {
+    void testValidateSessionsRoles() {
         String emailAddress = "test@email.com";
         String roles = "[FIND, APPLY]";
         ResponseEntity<Boolean> response = loginController.validateSessionsRoles(emailAddress, roles);
         assertThat(response).isEqualTo(ResponseEntity.ok(Boolean.TRUE));
     }
     @Test
-    void testValidateAdminSessionWithInvalidSession() {
+    void testValidateSessionsRolesWithInvalidSession() {
         String emailAddress = "test@email.com";
         String roles = "[FIND, APPLY]";
         doThrow(UnauthorizedException.class).when(oneLoginUserService).validateSessionsRoles(emailAddress, roles);

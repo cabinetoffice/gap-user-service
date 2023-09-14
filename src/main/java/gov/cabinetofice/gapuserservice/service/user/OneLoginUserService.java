@@ -192,7 +192,7 @@ public class OneLoginUserService {
         response.addCookie(thirdPartyAuthToken);
     }
 
-    public void validateRoles(List<Role> userRoles, String payloadRoles) throws UnauthorizedException {
+    public void validateRoles(List<Role> userRoles, String payloadRoles) {
         final Set<String> formattedPayloadRoles = removeSquareBracketsAndTrim(Arrays.asList(payloadRoles
                 .split(",")));
         final Set<String> formattedUserRoles = userRoles.stream()
@@ -205,7 +205,7 @@ public class OneLoginUserService {
         }
     }
 
-    public void validateSessionsRoles(String emailAddress, String roles) throws InvalidRequestException {
+    public void validateSessionsRoles(String emailAddress, String roles) {
         List<Role> userRoles = userRepository.findByEmailAddress(emailAddress).orElseThrow(() -> new InvalidRequestException("Could not get user from emailAddress")).getRoles();
         validateRoles(userRoles, roles);
     }
