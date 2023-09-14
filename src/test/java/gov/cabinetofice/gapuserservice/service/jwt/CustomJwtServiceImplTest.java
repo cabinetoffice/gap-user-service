@@ -124,6 +124,25 @@ public class CustomJwtServiceImplTest {
         }
 
         @Test
+        void shouldNotCallValidateRolesInThePayloadWhenFlagIsDisabled(){
+            final Algorithm mockAlgorithm = mock(Algorithm.class);
+            final Verification spiedVerification = spy(verification);
+            ReflectionTestUtils.setField(serviceUnderTest, "validateUserRolesInMiddleware", false);
+
+            try (MockedStatic<Algorithm> staticAlgorithm = Mockito.mockStatic(Algorithm.class)) {
+                staticAlgorithm.when(() -> RSA256(any(), any())).thenReturn(mockAlgorithm);
+                try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
+                    staticJwt.when(() -> require(any())).thenReturn(spiedVerification);
+                    staticJwt.when(() -> decode(any())).thenCallRealMethod();
+                    when(spiedVerification.build()).thenReturn(mockedJwtVerifier);
+                    serviceUnderTest.isTokenValid(jwt);
+                    JwtPayload payload = new JwtPayload();
+                    Mockito.verify(serviceUnderTest, Mockito.never()).validateRolesInThePayload(payload);
+                }
+            }
+        }
+
+        @Test
         void ReturnsFalse_IfInvalid() {
             final Algorithm mockAlgorithm = mock(Algorithm.class);
             final Verification spiedVerification = spy(verification);
