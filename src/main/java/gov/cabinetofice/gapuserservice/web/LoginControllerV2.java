@@ -117,7 +117,6 @@ public class LoginControllerV2 {
         IdTokenDto decodedIdToken = oneLoginService.decodeTokenId(idToken);
 
         if (!Objects.equals(this.configProperties.getProfile(), "LOCAL")) {
-            // FIXME fix mocks so we don't have to ignore validation locally
             oneLoginService.validateIdToken(decodedIdToken);
             oneLoginService.validateAuthTokenSignatureAndAlgorithm(authToken);
         }
@@ -130,7 +129,6 @@ public class LoginControllerV2 {
         final OneLoginUserInfoDto userInfo = oneLoginService.getOneLoginUserInfoDto(authToken);
 
         if (!Objects.equals(this.configProperties.getProfile(), "LOCAL")) {
-            // FIXME fix mocks so we don't have to ignore validation locally
             oneLoginService.validateUserSub(decodedIdToken.getSub(), userInfo.getSub());
         }
 
@@ -226,7 +224,6 @@ public class LoginControllerV2 {
                     keyValue("hashedStateFromCookie", hashedStateCookie),
                     keyValue("stateFromCookie", encodedStateJson)
             );
-            // TODO take action against malicious activity e.g. temp block user and send email
             throw new UnauthorizedClientException("User authorization failed");
         } else if (isNonceExpired) {
             log.error(

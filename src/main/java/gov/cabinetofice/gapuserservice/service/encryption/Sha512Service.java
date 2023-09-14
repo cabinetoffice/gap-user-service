@@ -36,16 +36,17 @@ public class Sha512Service {
     }
 
     private String getSalt(String saltId) {
-        final Optional<Salt> saltModel = this.saltRepository.findFirstBySaltIdOrderBySaltIdAsc(saltId);
-        if (!saltModel.isPresent()) {
-            throw new NonceExpiredException("Salt not found");
-        }
-        return saltModel.get().getSalt();
+        final Salt saltModel = this.saltRepository
+                .findFirstBySaltIdOrderBySaltIdAsc(saltId)
+                .orElseThrow(() -> new NonceExpiredException("Salt not found"));
+
+        return saltModel.getSalt();
     }
 
     public void deleteSalt(String saltId) {
-        final Optional<Salt> saltModel = this.saltRepository.findFirstBySaltIdOrderBySaltIdAsc(saltId);
-        saltModel.ifPresent(this.saltRepository::delete);
+        saltRepository
+                .findFirstBySaltIdOrderBySaltIdAsc(saltId)
+                .ifPresent(this.saltRepository::delete);
     }
 
     public String getSHA512SecurePassword(String passwordToHash, String saltId) {
