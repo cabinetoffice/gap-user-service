@@ -4,6 +4,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.FindAGrantConfigProperties;
+// import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
@@ -136,11 +137,16 @@ public class LoginControllerV2 {
 
     @GetMapping("/updated-email")
     public ModelAndView updatedEmailPage(
-            final HttpServletRequest request) {
+            final HttpServletRequest request,
+            final @CookieValue(name = REDIRECT_URL_NAME, required = false) Optional<String> redirectUrlCookie) {
         final Cookie customJWTCookie = getCustomJwtCookieFromRequest(request);
         final User user = getUserFromCookie(customJWTCookie)
-                .orElseThrow(() -> new UserNotFoundException("Privacy policy: Could not fetch user from jwt"));
-        return new ModelAndView(UPDATED_EMAIL_PAGE_VIEW).addObject("email", user.getEmailAddress());
+                .orElseThrow(() -> new UserNotFoundException("Update email: Could not fetch user from jwt"));
+        final String redirectUrl = runStateMachine(redirectUrlCookie.orElse(configProperties.getDefaultRedirectUrl()),
+                user,
+                customJWTCookie.getValue(), true, null);
+        return new ModelAndView(UPDATED_EMAIL_PAGE_VIEW).addObject("email", user.getEmailAddress())
+                .addObject("redirectUrl", redirectUrl);
     }
 
     @GetMapping("/privacy-policy")

@@ -114,7 +114,6 @@ public enum LoginJourneyState {
     MIGRATING_FIND_EMAILS {
         @Override
         public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
-            // TODO Update emails in find
             nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), USER_READY);
             return this;
         }

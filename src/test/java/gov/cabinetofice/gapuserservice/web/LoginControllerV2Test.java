@@ -8,6 +8,7 @@ import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedClientException;
+import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.model.Nonce;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
@@ -22,6 +23,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
@@ -29,18 +31,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
-import org.json.JSONObject;
 
 import java.util.*;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
@@ -454,7 +454,7 @@ class LoginControllerV2Test {
         void shouldRequireReauthentication_ifStateDoesNotMatch() throws JSONException {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final JSONObject tokenResponse = new JSONObject();
-            tokenResponse.put("id_token", idToken).put("access_token", accessToken);;
+            tokenResponse.put("id_token", idToken).put("access_token", accessToken);
             final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
                     .nonceId(1)
                     .nonceString("nonce")
@@ -472,6 +472,43 @@ class LoginControllerV2Test {
             assertThat(exception.getMessage()).isEqualTo("User authorization failed");
         }
     }
+
+    @Nested
+    class updatedEmail {
+        private final String mockJwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdWIiLCJlbWFpbCI6ImVtYWlsIiwicm9sZXMiOlsiRklORCIsIkFQUExJQ0FOVCJdfQ.MrlNeug1Wos6UYKgwSBHxFw0XxdgQvcCdO-Xi3RMqBk";
+        @Test
+        void willShowUpdatedEmailPage_whenUserIsFound() {
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+            final String redirectUrl = "redirectUrl";
+            final User user = User.builder()
+                    .sub("sub")
+                    .loginJourneyState(LoginJourneyState.USER_READY)
+                    .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
+                    .emailAddress("email")
+                    .build();
+
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                    .thenReturn(new Cookie("userServiceCookieName", mockJwt));
+            when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
+
+
+            final ModelAndView methodResponse = loginController.updatedEmailPage(request, Optional.of(redirectUrl));
+            assertThat(methodResponse.getViewName()).isEqualTo(LoginControllerV2.UPDATED_EMAIL_PAGE_VIEW);
+            assertThat(methodResponse.getModel()).containsEntry("email", user.getEmailAddress());
+        }
+
+        @Test
+        void willThrowException_whenUserIsNotFound() {
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+            final String redirectUrl = "redirectUrl";
+
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                    .thenReturn(new Cookie("userServiceCookieName", mockJwt));
+            doThrow(new UserNotFoundException("User not found")).when(oneLoginService).getUserFromSub(anyString());
+            assertThrows(UserNotFoundException.class, () -> loginController.updatedEmailPage(request, Optional.of(redirectUrl)));
+        }
+    }
+
 
     @Nested
     class privacyPolicy {
