@@ -17,12 +17,14 @@ import gov.cabinetofice.gapuserservice.util.UserQueryCondition;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.*;
 import java.util.function.BiFunction;
@@ -41,10 +43,14 @@ public class OneLoginUserService {
     private final JwtBlacklistService jwtBlacklistService;
     private final ApplicationConfigProperties configProperties;
     private final ThirdPartyAuthProviderProperties authenticationProvider;
+    private final WebClient.Builder webClientBuilder;
     private final RoleMapper roleMapper;
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
+
+    @Value("${admin-backend}")
+    private String adminBackend;
 
     public Page<User> getPaginatedUsers(Pageable pageable, UserQueryDto userQueryDto) {
         final Map<UserQueryCondition, BiFunction<UserQueryDto, Pageable, Page<User>>> conditionMap = createUserQueryConditionMap();
@@ -76,10 +82,8 @@ public class OneLoginUserService {
     }
 
     public User getUserByUserSub(String userSub) {
-
         // Get user by One Login sub first
         Optional<User> user = userRepository.findBySub(userSub);
-
         if (user.isEmpty()) {
             // If user is not found by One Login sub, get user by Cola sub
             try {
@@ -91,7 +95,6 @@ public class OneLoginUserService {
                 throw new UserNotFoundException("Invalid UUID: " + userSub);
             }
         }
-
         return user.get();
     }
 
@@ -161,10 +164,17 @@ public class OneLoginUserService {
         return user.getDepartment() != null;
     }
 
-    public User deleteUser(Integer id) {
-        User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User not found"));
-        userRepository.delete(user);
-        return user;
+    @Transactional
+    public void deleteUser(Integer id, String jwt) {
+        final User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("user with id: " + id + "not found"));
+        webClientBuilder.build()
+                .delete()
+                .uri(adminBackend + "/users/delete/" + (user.hasSub() ? user.getSub() : "") + (user.hasColaSub() ? "?colaSub=" + user.getColaSub() : ""))
+                .header("Authorization", "Bearer " + jwt)
+                .retrieve()
+                .bodyToMono(Void.class)
+                .block();
+        userRepository.deleteById(id);
     }
 
     public void invalidateUserJwt(final Cookie customJWTCookie, final HttpServletResponse response) {

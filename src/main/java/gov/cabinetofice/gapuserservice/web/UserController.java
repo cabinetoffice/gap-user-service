@@ -11,8 +11,10 @@ import gov.cabinetofice.gapuserservice.service.RoleService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.SecretAuthService;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +23,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+
+import static gov.cabinetofice.gapuserservice.util.HelperUtils.getCustomJwtCookieFromRequest;
 
 
 @RequiredArgsConstructor
@@ -33,6 +37,9 @@ public class UserController {
     private final RoleService roleService;
     private final CustomJwtServiceImpl jwtService;
     private final SecretAuthService secretAuthService;
+
+    @Value("${jwt.cookie-name}")
+    public String userServiceCookieName;
 
     @GetMapping("/userFromJwt")
     public ResponseEntity<UserDto> getUserFromJwt(HttpServletRequest httpRequest) {
@@ -129,6 +136,7 @@ public class UserController {
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
+        final Cookie customJWTCookie = getCustomJwtCookieFromRequest(httpRequest, userServiceCookieName);
         Optional<User> user = jwtService.getUserFromJwt(httpRequest);
         if(user.isEmpty()){
             throw new InvalidRequestException("Could not get user from jwt");
@@ -137,7 +145,7 @@ public class UserController {
             throw new UnsupportedOperationException("You can't delete yourself");
         }
 
-        oneLoginUserService.deleteUser(id);
+        oneLoginUserService.deleteUser(id, customJWTCookie.getValue());
         return ResponseEntity.ok("success");
 
     }

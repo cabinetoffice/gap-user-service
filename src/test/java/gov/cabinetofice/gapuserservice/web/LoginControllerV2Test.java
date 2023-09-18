@@ -7,6 +7,7 @@ import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
+import gov.cabinetofice.gapuserservice.exceptions.NonceExpiredException;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedClientException;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.exceptions.NonceExpiredException;
@@ -35,7 +36,6 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -134,7 +134,7 @@ class LoginControllerV2Test {
             verify(response).addCookie(argument.capture());
             Cookie stateCookie = argument.getValue();
 
-            assertThat(stateCookie.getName()).isEqualTo(loginController.getSTATE_COOKIE());
+            assertThat(stateCookie.getName()).isEqualTo("state");
             assertThat(stateCookie.getValue()).isEqualTo("eyJyZWRpcmVjdFVybCI6Imh0dHBzOi8vd3d3LmZpbmQtZ292ZXJubWVudC1ncmFudHMuc2VydmljZS5nb3YudWsvIiwic2FsdElkIjoic2FsdElkIiwic3RhdGUiOiJzdGF0ZSJ9");
             assertThat(stateCookie.isHttpOnly()).isEqualTo(true);
             assertThat(stateCookie.getSecure()).isEqualTo(true);
@@ -495,7 +495,7 @@ class LoginControllerV2Test {
         void shouldRequireReauthentication_ifStateDoesNotMatch() throws JSONException {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final JSONObject tokenResponse = new JSONObject();
-            tokenResponse.put("id_token", idToken).put("access_token", accessToken);;
+            tokenResponse.put("id_token", idToken).put("access_token", accessToken);
             final Nonce.NonceBuilder nonceBuilder = Nonce.builder()
                     .nonceId(1)
                     .nonceString(nonce)
