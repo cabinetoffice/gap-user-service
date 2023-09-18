@@ -2,7 +2,6 @@ package gov.cabinetofice.gapuserservice.enums;
 
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 
-// TODO inject logger here?
 public enum LoginJourneyState {
     PRIVACY_POLICY_PENDING {
         @Override
