@@ -8,7 +8,11 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.security.SecureRandom;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.UUID;
 
 public class HelperUtils {
 
@@ -57,6 +61,12 @@ public class HelperUtils {
         }
     }
 
+    public static Set<String> removeSquareBracketsAndTrim(List<String> inputList) {
+        return inputList.stream()
+                .map(input -> input.replace("[", "").replace("]", "").trim())
+                .collect(Collectors.toSet());
+    }
+
     public static String generateSecureRandomString(final Integer strLen) {
         final String chrs = "0123456789abcdefghijklmnopqrstuvwxyz-_ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -67,5 +77,9 @@ public class HelperUtils {
                 .mapToObj(chrs::charAt)
                 .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
                 .toString();
+    }
+
+    public static String generateUUID() {
+        return UUID.randomUUID().toString();
     }
 }

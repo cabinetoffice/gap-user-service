@@ -3,9 +3,8 @@ package gov.cabinetofice.gapuserservice.service.user;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.dto.UserQueryDto;
-import gov.cabinetofice.gapuserservice.exceptions.DepartmentNotFoundException;
-import gov.cabinetofice.gapuserservice.exceptions.RoleNotFoundException;
-import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
+import gov.cabinetofice.gapuserservice.exceptions.*;
+import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
 import gov.cabinetofice.gapuserservice.model.Department;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
@@ -27,6 +26,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+
+import static gov.cabinetofice.gapuserservice.util.HelperUtils.removeSquareBracketsAndTrim;
 
 @RequiredArgsConstructor
 @Service
@@ -39,6 +41,7 @@ public class OneLoginUserService {
     private final JwtBlacklistService jwtBlacklistService;
     private final ApplicationConfigProperties configProperties;
     private final ThirdPartyAuthProviderProperties authenticationProvider;
+    private final RoleMapper roleMapper;
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
@@ -66,6 +69,10 @@ public class OneLoginUserService {
     public User getUserById(int id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("user with id: " + id + "not found"));
+    }
+    public User getUserBySub(String sub) {
+        return userRepository.findBySub(sub)
+                .orElseThrow(() -> new UserNotFoundException("user with sub: " + sub + "not found"));
     }
 
     public User getUserByUserSub(String userSub) {
@@ -183,5 +190,23 @@ public class OneLoginUserService {
         );
         thirdPartyAuthToken.setMaxAge(0);
         response.addCookie(thirdPartyAuthToken);
+    }
+
+    public void validateRoles(List<Role> userRoles, String payloadRoles) {
+        final Set<String> formattedPayloadRoles = removeSquareBracketsAndTrim(Arrays.asList(payloadRoles
+                .split(",")));
+        final Set<String> formattedUserRoles = userRoles.stream()
+                .map(role -> roleMapper.roleToRoleDto(role).getName())
+                .collect(Collectors.toSet());
+        final boolean rolesAreValid = formattedPayloadRoles.equals(formattedUserRoles);
+
+        if(!rolesAreValid){
+            throw new UnauthorizedException("Roles in payload do not match roles in database");
+        }
+    }
+
+    public void validateSessionsRoles(String emailAddress, String roles) {
+        List<Role> userRoles = userRepository.findByEmailAddress(emailAddress).orElseThrow(() -> new InvalidRequestException("Could not get user from emailAddress")).getRoles();
+        validateRoles(userRoles, roles);
     }
 }
