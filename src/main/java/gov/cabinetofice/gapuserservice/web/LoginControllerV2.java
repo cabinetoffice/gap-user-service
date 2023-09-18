@@ -156,7 +156,7 @@ public class LoginControllerV2 {
     public ModelAndView updatedEmailPage(
             final HttpServletRequest request,
             final @CookieValue(name = REDIRECT_URL_NAME, required = false) Optional<String> redirectUrlCookie) {
-        final Cookie customJWTCookie = getCustomJwtCookieFromRequest(request, redirectUrlCookie.orElse(null));
+        final Cookie customJWTCookie = getCustomJwtCookieFromRequest(request, userServiceCookieName);
         final User user = getUserFromCookie(customJWTCookie)
                 .orElseThrow(() -> new UserNotFoundException("Update email: Could not fetch user from jwt"));
         final String redirectUrl = runStateMachine(redirectUrlCookie.orElse(configProperties.getDefaultRedirectUrl()),
