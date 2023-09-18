@@ -12,7 +12,9 @@ import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Objects;
@@ -38,12 +41,17 @@ class UserControllerTest {
 
     @Mock
     private DepartmentService departmentService;
-    
+
     @Mock
     private CustomJwtServiceImpl customJwtService;
 
     @Mock
     private RoleService roleService;
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(controller, "userServiceCookieName", "userServiceCookieName");
+    }
 
     @Test
     void updateRolesForUserId() {
@@ -111,6 +119,7 @@ class UserControllerTest {
     @Test
     void shouldDeleteUserWhenValidIdIsGiven() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        when(httpRequest.getCookies()).thenReturn(new Cookie[] {new Cookie("userServiceCookieName", "1")});
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(2).build()));
         final ResponseEntity<String> methodResponse = controller.deleteUser(httpRequest, 1);
@@ -121,6 +130,7 @@ class UserControllerTest {
     @Test
     void shouldThrowErrorWhenAdminTriesToDeleteThemselves() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        when(httpRequest.getCookies()).thenReturn(new Cookie[] {new Cookie("userServiceCookieName", "1")});
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(1).build()));
 
@@ -130,6 +140,7 @@ class UserControllerTest {
     @Test
     void shouldThrowErrorWhenUserIsEmpty() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        when(httpRequest.getCookies()).thenReturn(new Cookie[] {new Cookie("userServiceCookieName", "1")});
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.empty());
 
@@ -163,7 +174,7 @@ class UserControllerTest {
                 .thenReturn(Optional.empty());
         assertThrows(InvalidRequestException.class, () -> controller.getUserFromJwt(mock(HttpServletRequest.class)));
     }
-    
+
     @Test
     void updateDepartmentCantBeCalledOnApplicantAndFindUser() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);

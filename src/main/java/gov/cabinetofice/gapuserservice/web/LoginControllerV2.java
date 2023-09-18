@@ -22,7 +22,6 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
@@ -44,12 +43,13 @@ import java.util.Optional;
 import static net.logstash.logback.argument.StructuredArguments.entries;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
+import static gov.cabinetofice.gapuserservice.util.HelperUtils.getCustomJwtCookieFromRequest;
+
 @RequiredArgsConstructor
 @Controller
 @RequestMapping("v2")
 @ConditionalOnProperty(value = "feature.onelogin.enabled", havingValue = "true")
 @Slf4j
-@Getter
 public class LoginControllerV2 {
     private final OneLoginService oneLoginService;
     private final RoleService roleService;
@@ -169,7 +169,7 @@ public class LoginControllerV2 {
     ) {
         if (result.hasErrors())
             return submitToPrivacyPolicyPage(privacyPolicyDto);
-        final Cookie customJWTCookie = getCustomJwtCookieFromRequest(request);
+        final Cookie customJWTCookie = getCustomJwtCookieFromRequest(request, userServiceCookieName);
         final User user = getUserFromCookie(customJWTCookie)
                 .orElseThrow(() -> new UserNotFoundException("Privacy policy: Could not fetch user from jwt"));
         return new ModelAndView("redirect:" + runStateMachine(redirectUrlCookie
@@ -197,13 +197,6 @@ public class LoginControllerV2 {
     private Optional<User> getUserFromCookie(final Cookie customJWTCookie) {
         final DecodedJWT decodedJWT = JWT.decode(customJWTCookie.getValue());
         return oneLoginService.getUserFromSub(decodedJWT.getSubject());
-    }
-
-    private Cookie getCustomJwtCookieFromRequest(final HttpServletRequest request) {
-        final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
-        if (customJWTCookie == null)
-            throw new UnauthorizedClientException(userServiceCookieName + " cookie not found");
-        return customJWTCookie;
     }
 
     private void verifyStateAndNonce(final String nonce, final StateCookieDto stateCookieDto, final String state) {
