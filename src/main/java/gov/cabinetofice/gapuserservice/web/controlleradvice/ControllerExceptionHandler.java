@@ -1,6 +1,8 @@
 package gov.cabinetofice.gapuserservice.web.controlleradvice;
 
+import gov.cabinetofice.gapuserservice.exceptions.NonceExpiredException;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
+import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.util.LoggingUtils;
 
 import jakarta.servlet.RequestDispatcher;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.ModelAndView;
 
 import static net.logstash.logback.argument.StructuredArguments.*;
 
@@ -23,6 +26,8 @@ import static net.logstash.logback.argument.StructuredArguments.*;
 @RequiredArgsConstructor
 @Slf4j
 public class ControllerExceptionHandler {
+
+    private static final String SESSION_EXPIRED = "session-expired";
 
     private final LoggingUtils loggingUtils;
 
@@ -34,6 +39,14 @@ public class ControllerExceptionHandler {
         return ErrorMessage.builder()
                 .message(ex.getMessage())
                 .build();
+    }
+
+    @ExceptionHandler(value = {
+            NonceExpiredException.class,
+    })
+    @ResponseStatus(value = HttpStatus.UNAUTHORIZED)
+    public ModelAndView handleNonceExpiredException(Exception ex, WebRequest request) {
+        return new ModelAndView(SESSION_EXPIRED);
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
