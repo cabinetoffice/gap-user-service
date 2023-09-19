@@ -41,10 +41,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import static gov.cabinetofice.gapuserservice.util.HelperUtils.getCustomJwtCookieFromRequest;
 import static net.logstash.logback.argument.StructuredArguments.entries;
 import static net.logstash.logback.argument.StructuredArguments.keyValue;
-
-import static gov.cabinetofice.gapuserservice.util.HelperUtils.getCustomJwtCookieFromRequest;
 
 @RequiredArgsConstructor
 @Controller
@@ -85,10 +84,9 @@ public class LoginControllerV2 {
     @Value("${feature.onelogin.migration.enabled}")
     public String migrationEnabled;
 
-    @GetMapping("/validateSessionsRoles")
-    public ResponseEntity<Boolean> validateSessionsRoles(@RequestParam("emailAddress") String emailAddress,
-                                                         @RequestParam("roles") String roles){
-        oneLoginUserService.validateSessionsRoles(emailAddress, roles);
+    @PostMapping("/validateSessionsRoles")
+    public ResponseEntity<Boolean> validateSessionsRoles(@RequestBody final ValidateSessionsRolesRequestBodyDto requestBody){
+        oneLoginUserService.validateSessionsRoles(requestBody.getEmailAddress(), requestBody.getRoles());
         return ResponseEntity.ok(Boolean.TRUE);
     }
 
