@@ -104,6 +104,7 @@ public class User {
         return this.roles.stream().anyMatch(role -> role.getName().equals(RoleEnum.TECHNICAL_SUPPORT));
     }
 
+    @SuppressWarnings("OptionalGetWithoutIsPresent")
     public Role getHighestRole() {
         if (isSuperAdmin())
             return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.SUPER_ADMIN)).findFirst().get();
@@ -115,6 +116,10 @@ public class User {
         if (isApplicant())
             return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.APPLICANT)).findFirst().get();
         return null;
+    }
+
+    public boolean hasAcceptedPrivacyPolicy() {
+        return this.getLoginJourneyState() != LoginJourneyState.PRIVACY_POLICY_PENDING;
     }
 
     public void removeAllRoles() {

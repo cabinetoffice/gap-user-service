@@ -10,6 +10,8 @@ import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.NonceExpiredException;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedClientException;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
+import gov.cabinetofice.gapuserservice.exceptions.NonceExpiredException;
+import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.model.Nonce;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
@@ -45,7 +47,7 @@ import org.springframework.web.util.WebUtils;
 
 import java.util.*;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
@@ -514,6 +516,43 @@ class LoginControllerV2Test {
             assertThat(exception.getMessage()).isEqualTo("User authorization failed");
         }
     }
+
+    @Nested
+    class updatedEmail {
+        private final String mockJwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdWIiLCJlbWFpbCI6ImVtYWlsIiwicm9sZXMiOlsiRklORCIsIkFQUExJQ0FOVCJdfQ.MrlNeug1Wos6UYKgwSBHxFw0XxdgQvcCdO-Xi3RMqBk";
+        @Test
+        void willShowUpdatedEmailPage_whenUserIsFound() {
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+            final String redirectUrl = "redirectUrl";
+            final User user = User.builder()
+                    .sub("sub")
+                    .loginJourneyState(LoginJourneyState.USER_READY)
+                    .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
+                    .emailAddress("email")
+                    .build();
+
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                    .thenReturn(new Cookie("userServiceCookieName", mockJwt));
+            when(oneLoginService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
+
+
+            final ModelAndView methodResponse = loginController.updatedEmailPage(request, Optional.of(redirectUrl));
+            assertThat(methodResponse.getViewName()).isEqualTo(LoginControllerV2.UPDATED_EMAIL_PAGE_VIEW);
+            assertThat(methodResponse.getModel()).containsEntry("email", user.getEmailAddress());
+        }
+
+        @Test
+        void willThrowException_whenUserIsNotFound() {
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+            final String redirectUrl = "redirectUrl";
+
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                    .thenReturn(new Cookie("userServiceCookieName", mockJwt));
+            doThrow(new UserNotFoundException("User not found")).when(oneLoginService).getUserFromSub(anyString());
+            assertThrows(UserNotFoundException.class, () -> loginController.updatedEmailPage(request, Optional.of(redirectUrl)));
+        }
+    }
+
 
     @Nested
     class PrivacyPolicyTest {

@@ -438,5 +438,9 @@ public class OneLoginService {
         );
     }
 
+    public void setUsersEmail(User user, String newEmail) {
+        user.setEmailAddress(newEmail);
+        userRepository.save(user);
+    }
 }
 
