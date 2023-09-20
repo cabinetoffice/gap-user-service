@@ -91,6 +91,7 @@ public class OneLoginServiceTest {
         ReflectionTestUtils.setField(oneLoginService, "clientId", DUMMY_CLIENT_ID);
         ReflectionTestUtils.setField(oneLoginService, "serviceRedirectUrl", DUMMY_BASE_URL + "/redirect");
         ReflectionTestUtils.setField(oneLoginService, "adminBackend", "adminBackend");
+        ReflectionTestUtils.setField(oneLoginService, "mfaEnabled", true);
     }
 
     @AfterEach
@@ -553,6 +554,48 @@ public class OneLoginServiceTest {
         }
     }
 
+
+    @Nested
+    class getOneLoginAuthorizeUrl {
+
+        @Test
+        void testStateSetCorrectly(){
+            String state = "state";
+            String nonce = "nonce";
+            String actualUrl = oneLoginService.getOneLoginAuthorizeUrl(state, nonce);
+
+            assertThat(actualUrl).contains("&state=" + state);
+        }
+
+        @Test
+        void testNonceSetCorrectly(){
+            String state = "state";
+            String nonce = "nonce";
+            String actualUrl = oneLoginService.getOneLoginAuthorizeUrl(state, nonce);
+
+            assertThat(actualUrl).contains("&nonce=" + nonce);
+        }
+
+        @Test
+        void testMfaEnabled(){
+            String nonce = "nonce";
+            String state = "state";
+            String actualUrl = oneLoginService.getOneLoginAuthorizeUrl(state, nonce);
+
+            assertThat(actualUrl).contains("&vtr=[\"Cl.Cm\"]");
+        }
+
+        @Test
+        void testMfaDisabled(){
+            ReflectionTestUtils.setField(oneLoginService, "mfaEnabled", false);
+            String nonce = "nonce";
+            String state = "state";
+            String actualUrl = oneLoginService.getOneLoginAuthorizeUrl(state, nonce);
+
+            assertThat(actualUrl).contains("&vtr=[\"Cl\"]");
+        }
+    }
+
     private Claims getClaims(String jwtToken) throws NoSuchAlgorithmException, InvalidKeySpecException {
 
             byte[] publicKeyBytes = Base64.getDecoder().decode(testKeyPair.get("public"));
@@ -580,4 +623,5 @@ public class OneLoginServiceTest {
 
         return keyPairMap;
     }
+
 }
