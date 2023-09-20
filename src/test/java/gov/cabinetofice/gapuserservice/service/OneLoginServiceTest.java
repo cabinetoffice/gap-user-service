@@ -91,7 +91,7 @@ public class OneLoginServiceTest {
         ReflectionTestUtils.setField(oneLoginService, "clientId", DUMMY_CLIENT_ID);
         ReflectionTestUtils.setField(oneLoginService, "serviceRedirectUrl", DUMMY_BASE_URL + "/redirect");
         ReflectionTestUtils.setField(oneLoginService, "adminBackend", "adminBackend");
-        ReflectionTestUtils.setField(oneLoginService, "enableMfa", true);
+        ReflectionTestUtils.setField(oneLoginService, "mfaEnabled", true);
     }
 
     @AfterEach
@@ -587,7 +587,7 @@ public class OneLoginServiceTest {
 
         @Test
         void testMfaDisabled(){
-            ReflectionTestUtils.setField(oneLoginService, "enableMfa", false);
+            ReflectionTestUtils.setField(oneLoginService, "mfaEnabled", false);
             String nonce = "nonce";
             String state = "state";
             String actualUrl = oneLoginService.getOneLoginAuthorizeUrl(state, nonce);

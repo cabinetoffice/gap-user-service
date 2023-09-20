@@ -85,8 +85,8 @@ public class OneLoginService {
     @Value("${onelogin.post-logout-redirect-uri}")
     public String postLogoutRedirectUri;
 
-    @Value("${onelogin.enable-mfa}")
-    public Boolean enableMfa;
+    @Value("${onelogin.mfa.enabled}")
+    public Boolean mfaEnabled;
 
 
     private static final String SCOPE = "openid email";
@@ -208,7 +208,7 @@ public class OneLoginService {
                         "&state=" + state +
                         "&redirect_uri=" + serviceRedirectUrl +
                         "&nonce=" + nonce +
-                        "&vtr=" + (enableMfa ? VTR_MFA_ENABLED : VTR_MFA_DISABLED) +
+                        "&vtr=" + (mfaEnabled ? VTR_MFA_ENABLED : VTR_MFA_DISABLED) +
                         "&ui_locales=" + UI;
     }
 
