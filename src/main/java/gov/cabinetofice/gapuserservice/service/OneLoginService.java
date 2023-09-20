@@ -91,7 +91,6 @@ public class OneLoginService {
 
     private static final String SCOPE = "openid email";
     private static final String VTR_MFA_ENABLED = "[\"Cl.Cm\"]";
-
     private static final String VTR_MFA_DISABLED = "[\"Cl\"]";
     private static final String UI = "en";
     private static final String GRANT_TYPE = "authorization_code";
