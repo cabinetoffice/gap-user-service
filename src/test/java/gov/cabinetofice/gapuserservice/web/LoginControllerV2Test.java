@@ -2,15 +2,11 @@ package gov.cabinetofice.gapuserservice.web;
 
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.FindAGrantConfigProperties;
-import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
-import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
-import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
-import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
+import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.NonceExpiredException;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedClientException;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
-import gov.cabinetofice.gapuserservice.exceptions.NonceExpiredException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.model.Nonce;
 import gov.cabinetofice.gapuserservice.model.Role;
@@ -828,14 +824,20 @@ class LoginControllerV2Test {
     void testValidateSessionsRoles() {
         String emailAddress = "test@email.com";
         String roles = "[FIND, APPLY]";
-        ResponseEntity<Boolean> response = loginController.validateSessionsRoles(emailAddress, roles);
+        ValidateSessionsRolesRequestBodyDto requestBodyDto = new ValidateSessionsRolesRequestBodyDto();
+        requestBodyDto.setRoles(roles);
+        requestBodyDto.setEmailAddress(emailAddress);
+        ResponseEntity<Boolean> response = loginController.validateSessionsRoles(requestBodyDto);
         assertThat(response).isEqualTo(ResponseEntity.ok(Boolean.TRUE));
     }
     @Test
     void testValidateSessionsRolesWithInvalidSession() {
         String emailAddress = "test@email.com";
         String roles = "[FIND, APPLY]";
+        ValidateSessionsRolesRequestBodyDto requestBodyDto = new ValidateSessionsRolesRequestBodyDto();
+        requestBodyDto.setRoles(roles);
+        requestBodyDto.setEmailAddress(emailAddress);
         doThrow(UnauthorizedException.class).when(oneLoginUserService).validateSessionsRoles(emailAddress, roles);
-        assertThrows(UnauthorizedException.class, () -> loginController.validateSessionsRoles(emailAddress, roles));
+        assertThrows(UnauthorizedException.class, () -> loginController.validateSessionsRoles(requestBodyDto));
     }
 }
