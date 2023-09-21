@@ -30,8 +30,6 @@ import java.util.*;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
-import static gov.cabinetofice.gapuserservice.util.HelperUtils.removeSquareBracketsAndTrim;
-
 @RequiredArgsConstructor
 @Service
 @Slf4j
@@ -202,21 +200,17 @@ public class OneLoginUserService {
         response.addCookie(thirdPartyAuthToken);
     }
 
-    public void validateRoles(List<Role> userRoles, String payloadRoles) {
-        final Set<String> formattedPayloadRoles = removeSquareBracketsAndTrim(Arrays.asList(payloadRoles
-                .split(",")));
+    public void validateRoles(List<Role> userRoles) {
         final Set<String> formattedUserRoles = userRoles.stream()
                 .map(role -> roleMapper.roleToRoleDto(role).getName())
                 .collect(Collectors.toSet());
-        final boolean rolesAreValid = formattedPayloadRoles.equals(formattedUserRoles);
-
-        if(!rolesAreValid){
-            throw new UnauthorizedException("Roles in payload do not match roles in database");
+        if(formattedUserRoles.isEmpty()){
+            throw new UnauthorizedException("User is blocked");
         }
     }
 
-    public void validateSessionsRoles(String emailAddress, String roles) {
+    public void validateSessionsRoles(String emailAddress) {
         List<Role> userRoles = userRepository.findByEmailAddress(emailAddress).orElseThrow(() -> new InvalidRequestException("Could not get user from emailAddress")).getRoles();
-        validateRoles(userRoles, roles);
+        validateRoles(userRoles);
     }
 }
