@@ -99,18 +99,6 @@ public enum LoginJourneyState {
 
             nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), nextState);
             return nextState.nextState(nextStateArgs);
-
-            return this;
-        }
-
-        @Override
-        public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
-            return switch (role) {
-                case SUPER_ADMIN -> LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD;
-                case TECHNICAL_SUPPORT ->  LoginJourneyRedirect.TECHNICAL_SUPPORT_DASHBOARD;
-                case ADMIN -> LoginJourneyRedirect.ADMIN_DASHBOARD;
-                case APPLICANT, FIND -> LoginJourneyRedirect.APPLICANT_APP;
-            };
         }
     },
 
