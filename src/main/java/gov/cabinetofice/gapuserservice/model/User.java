@@ -3,6 +3,7 @@ package gov.cabinetofice.gapuserservice.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
+import gov.cabinetofice.gapuserservice.enums.MigrationStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -38,6 +39,14 @@ public class User {
     @Column(name = "login_journey_state")
     @Enumerated(EnumType.STRING)
     private LoginJourneyState loginJourneyState;
+
+    @Column(name = "apply_account_migration_state")
+    @Enumerated(EnumType.STRING)
+    private MigrationStatus applyAccountMigrated = MigrationStatus.NOT_STARTED;
+
+    @Column(name = "find_account_migration_state")
+    @Enumerated(EnumType.STRING)
+    private MigrationStatus findAccountMigrated = MigrationStatus.NOT_STARTED;
 
     @Column(name = "created")
     private Instant created;

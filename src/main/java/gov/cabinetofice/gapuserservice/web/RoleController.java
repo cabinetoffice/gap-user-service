@@ -7,9 +7,9 @@ import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.model.User;
-import gov.cabinetofice.gapuserservice.service.OneLoginService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
+import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +26,7 @@ import java.util.Optional;
 @RestController
 public class RoleController {
     private final RoleService roleService;
-    private final OneLoginService oneLoginService;
+    private final OneLoginUserService oneLoginUserService;
     private final CustomJwtServiceImpl jwtService;
 
     @Value("${jwt.cookie-name}")
@@ -51,7 +51,7 @@ public class RoleController {
         final boolean isValid = jwtService.isTokenValid(customJWTCookie.getValue());
         final DecodedJWT decodedJwt = jwtService.decodedJwt(customJWTCookie.getValue());
 
-        final Optional<User> optionalUser = oneLoginService.getUserFromSub(decodedJwt.getSubject());
+        final Optional<User> optionalUser = oneLoginUserService.getUserFromSub(decodedJwt.getSubject());
         if (optionalUser.isEmpty()) {
             throw new UserNotFoundException("User not found");
         }
