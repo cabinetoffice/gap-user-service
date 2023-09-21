@@ -34,6 +34,7 @@ public enum LoginJourneyState {
             LoginJourneyState nextState;
             try {
                 nextStateArgs.oneLoginService().migrateUser(nextStateArgs.user(), nextStateArgs.jwt());
+                nextStateArgs.oneLoginService().migrateFindUser(nextStateArgs.userInfo().getEmailAddress(), nextStateArgs.userInfo().getSub());
                 nextState = MIGRATION_SUCCEEDED;
                 nextStateArgs.logger().info("Successfully migrated user: " + nextStateArgs.user().getSub());
             } catch (Exception e) {
@@ -85,6 +86,74 @@ public enum LoginJourneyState {
     USER_READY {
         @Override
         public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
+            nextStateArgs.logger().debug("Migrating Find user: " + nextStateArgs.userInfo().getSub());
+            LoginJourneyState nextState;
+            try {
+                nextStateArgs.oneLoginService().migrateFindUser(nextStateArgs.userInfo().getEmailAddress(), nextStateArgs.userInfo().getSub());
+                nextState = FIND_MIGRATION_SUCCEEDED;
+                nextStateArgs.logger().info("Successfully migrated Find user: " + nextStateArgs.userInfo().getSub());
+            } catch (Exception e) {
+                nextState = FIND_MIGRATION_FAILED;
+                nextStateArgs.logger().error("Failed to migrate Find user: " + nextStateArgs.userInfo().getSub(), e);
+            }
+
+            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), nextState);
+            return nextState.nextState(nextStateArgs);
+
+            return this;
+        }
+
+        @Override
+        public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
+            return switch (role) {
+                case SUPER_ADMIN -> LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD;
+                case TECHNICAL_SUPPORT ->  LoginJourneyRedirect.TECHNICAL_SUPPORT_DASHBOARD;
+                case ADMIN -> LoginJourneyRedirect.ADMIN_DASHBOARD;
+                case APPLICANT, FIND -> LoginJourneyRedirect.APPLICANT_APP;
+            };
+        }
+    },
+
+    FIND_MIGRATION_SUCCEEDED {
+        @Override
+        public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
+            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), USER_READY_FOR_REAL);
+            return this;
+        }
+
+        @Override
+        public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
+            return switch (role) {
+                case SUPER_ADMIN -> LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD;
+                case TECHNICAL_SUPPORT ->  LoginJourneyRedirect.TECHNICAL_SUPPORT_DASHBOARD;
+                case ADMIN -> LoginJourneyRedirect.ADMIN_DASHBOARD_MIGRATION_PASS;
+                case APPLICANT, FIND -> LoginJourneyRedirect.APPLICANT_APP_MIGRATION_PASS;
+            };
+        }
+    },
+
+    FIND_MIGRATION_FAILED {
+        @Override
+        public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
+            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), USER_READY_FOR_REAL);
+            return this;
+        }
+
+        @Override
+        public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
+            return switch (role) {
+                case SUPER_ADMIN -> LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD;
+                case TECHNICAL_SUPPORT ->  LoginJourneyRedirect.TECHNICAL_SUPPORT_DASHBOARD;
+                case ADMIN -> LoginJourneyRedirect.ADMIN_DASHBOARD_MIGRATION_FAIL;
+                case APPLICANT, FIND -> LoginJourneyRedirect.APPLICANT_APP_MIGRATION_FAIL;
+            };
+        }
+    },
+
+    USER_READY_FOR_REAL {
+        @Override
+        public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
+            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), this);
             if (nextStateArgs.userInfo() != null) {
                 final String newEmail = nextStateArgs.userInfo().getEmailAddress();
                 final String oldEmail = nextStateArgs.user().getEmailAddress();
@@ -98,6 +167,7 @@ public enum LoginJourneyState {
             }
             return this;
         }
+
 
         @Override
         public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
@@ -113,7 +183,7 @@ public enum LoginJourneyState {
     MIGRATING_FIND_EMAILS {
         @Override
         public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
-            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), USER_READY);
+            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), USER_READY_FOR_REAL);
             return this;
         }
 
