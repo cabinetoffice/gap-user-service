@@ -7,23 +7,14 @@ public enum LoginJourneyState {
         @Override
         public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
             nextStateArgs.logger().debug("User: " + nextStateArgs.user().getSub() + " accepted the privacy policy");
-            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), PRIVACY_POLICY_ACCEPTED);
             if (!nextStateArgs.hasAcceptedPrivacyPolicy()) return this;
-            return PRIVACY_POLICY_ACCEPTED.nextState(nextStateArgs);
+            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), MIGRATING_USER);
+            return MIGRATING_USER.nextState(nextStateArgs);
         }
 
         @Override
         public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
             return LoginJourneyRedirect.PRIVACY_POLICY_PAGE;
-        }
-    },
-
-    PRIVACY_POLICY_ACCEPTED {
-        @Override
-        public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
-            final LoginJourneyState nextState = nextStateArgs.user().hasColaSub() ? MIGRATING_USER : USER_READY;
-            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), nextState);
-            return nextState.nextState(nextStateArgs);
         }
     },
 
@@ -33,10 +24,13 @@ public enum LoginJourneyState {
             nextStateArgs.logger().debug("Migrating user: " + nextStateArgs.user().getSub());
             LoginJourneyState nextState;
             try {
-                nextStateArgs.oneLoginService().migrateUser(nextStateArgs.user(), nextStateArgs.jwt());
+                if (nextStateArgs.user().hasColaSub()) {
+                    nextStateArgs.oneLoginService().migrateUser(nextStateArgs.user(), nextStateArgs.jwt());
+                    nextStateArgs.logger().info("Successfully migrated apply user: " + nextStateArgs.user().getSub());
+                }
                 nextStateArgs.oneLoginService().migrateFindUser(nextStateArgs.userInfo().getEmailAddress(), nextStateArgs.userInfo().getSub(), nextStateArgs.jwt());
                 nextState = MIGRATION_SUCCEEDED;
-                nextStateArgs.logger().info("Successfully migrated user: " + nextStateArgs.user().getSub());
+                nextStateArgs.logger().info("Successfully migrated find user: " + nextStateArgs.user().getSub());
             } catch (Exception e) {
                 nextState = MIGRATION_FAILED;
                 nextStateArgs.logger().error("Failed to migrate user: " + nextStateArgs.user().getSub(), e);
@@ -50,7 +44,7 @@ public enum LoginJourneyState {
     MIGRATION_SUCCEEDED {
         @Override
         public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
-            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), USER_READY);
+            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), USER_READY_FOR_REAL);
             return this;
         }
 
@@ -68,7 +62,7 @@ public enum LoginJourneyState {
     MIGRATION_FAILED {
         @Override
         public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
-            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), USER_READY);
+            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), USER_READY_FOR_REAL);
             return this;
         }
 
