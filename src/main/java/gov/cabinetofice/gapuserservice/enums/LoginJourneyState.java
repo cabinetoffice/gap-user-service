@@ -34,7 +34,7 @@ public enum LoginJourneyState {
             LoginJourneyState nextState;
             try {
                 nextStateArgs.oneLoginService().migrateUser(nextStateArgs.user(), nextStateArgs.jwt());
-                nextStateArgs.oneLoginService().migrateFindUser(nextStateArgs.userInfo().getEmailAddress(), nextStateArgs.userInfo().getSub());
+                nextStateArgs.oneLoginService().migrateFindUser(nextStateArgs.userInfo().getEmailAddress(), nextStateArgs.userInfo().getSub(), nextStateArgs.jwt());
                 nextState = MIGRATION_SUCCEEDED;
                 nextStateArgs.logger().info("Successfully migrated user: " + nextStateArgs.user().getSub());
             } catch (Exception e) {
@@ -89,7 +89,7 @@ public enum LoginJourneyState {
             nextStateArgs.logger().debug("Migrating Find user: " + nextStateArgs.userInfo().getSub());
             LoginJourneyState nextState;
             try {
-                nextStateArgs.oneLoginService().migrateFindUser(nextStateArgs.userInfo().getEmailAddress(), nextStateArgs.userInfo().getSub());
+                nextStateArgs.oneLoginService().migrateFindUser(nextStateArgs.userInfo().getEmailAddress(), nextStateArgs.userInfo().getSub(), nextStateArgs.jwt());
                 nextState = FIND_MIGRATION_SUCCEEDED;
                 nextStateArgs.logger().info("Successfully migrated Find user: " + nextStateArgs.userInfo().getSub());
             } catch (Exception e) {

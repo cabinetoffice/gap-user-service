@@ -76,6 +76,9 @@ public class OneLoginService {
     @Value("${admin-backend}")
     private String adminBackend;
 
+    @Value("${find-a-grant.url}")
+    private String findFrontend;
+
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
 
@@ -445,6 +448,19 @@ public class OneLoginService {
     public void setUsersEmail(User user, String newEmail) {
         user.setEmailAddress(newEmail);
         userRepository.save(user);
+    }
+
+    public void migrateFindUser(String emailAddress, String sub, String jwt) {
+        final MigrateFindUserDto requestBody = new MigrateFindUserDto(emailAddress, sub);
+        webClientBuilder.build()
+                .patch()
+                .uri(findFrontend + "/api/migrate")
+                .header("Authorization", "Bearer " + jwt)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(Void.class)
+                .block();
     }
 }
 
