@@ -38,7 +38,6 @@ import org.springframework.web.util.WebUtils;
 
 import java.util.Date;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 import static gov.cabinetofice.gapuserservice.util.HelperUtils.getCustomJwtCookieFromRequest;
@@ -86,7 +85,7 @@ public class LoginControllerV2 {
 
     @PostMapping("/validateSessionsRoles")
     public ResponseEntity<Boolean> validateSessionsRoles(@RequestBody final ValidateSessionsRolesRequestBodyDto requestBody){
-        oneLoginUserService.validateSessionsRoles(requestBody.getEmailAddress(), requestBody.getRoles());
+        oneLoginUserService.validateSessionsRoles(requestBody.emailAddress(), requestBody.roles());
         return ResponseEntity.ok(Boolean.TRUE);
     }
 
