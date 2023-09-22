@@ -823,13 +823,21 @@ class LoginControllerV2Test {
     @Test
     void testValidateSessionsRoles() {
         String emailAddress = "test@email.com";
-        ResponseEntity<Boolean> response = loginController.validateSessionsRoles(emailAddress);
+        String roles = "[FIND, APPLY]";
+        ValidateSessionsRolesRequestBodyDto requestBodyDto = new ValidateSessionsRolesRequestBodyDto();
+        requestBodyDto.setRoles(roles);
+        requestBodyDto.setEmailAddress(emailAddress);
+        ResponseEntity<Boolean> response = loginController.validateSessionsRoles(requestBodyDto);
         assertThat(response).isEqualTo(ResponseEntity.ok(Boolean.TRUE));
     }
     @Test
     void testValidateSessionsRolesWithInvalidSession() {
         String emailAddress = "test@email.com";
-        doThrow(UnauthorizedException.class).when(oneLoginUserService).validateSessionsRoles(emailAddress);
-        assertThrows(UnauthorizedException.class, () -> loginController.validateSessionsRoles(emailAddress));
+        String roles = "[FIND, APPLY]";
+        ValidateSessionsRolesRequestBodyDto requestBodyDto = new ValidateSessionsRolesRequestBodyDto();
+        requestBodyDto.setRoles(roles);
+        requestBodyDto.setEmailAddress(emailAddress);
+        doThrow(UnauthorizedException.class).when(oneLoginUserService).validateSessionsRoles(emailAddress, roles);
+        assertThrows(UnauthorizedException.class, () -> loginController.validateSessionsRoles(requestBodyDto));
     }
 }

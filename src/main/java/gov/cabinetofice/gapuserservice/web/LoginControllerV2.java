@@ -4,10 +4,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.FindAGrantConfigProperties;
-import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
-import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
-import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
-import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
+import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.enums.NextStateArgs;
 import gov.cabinetofice.gapuserservice.exceptions.NonceExpiredException;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedClientException;
@@ -88,8 +85,8 @@ public class LoginControllerV2 {
     public String migrationEnabled;
 
     @PostMapping("/validateSessionsRoles")
-    public ResponseEntity<Boolean> validateSessionsRoles(@RequestBody final String emailAddress){
-        oneLoginUserService.validateSessionsRoles(emailAddress);
+    public ResponseEntity<Boolean> validateSessionsRoles(@RequestBody final ValidateSessionsRolesRequestBodyDto requestBody){
+        oneLoginUserService.validateSessionsRoles(requestBody.getEmailAddress(), requestBody.getRoles());
         return ResponseEntity.ok(Boolean.TRUE);
     }
 

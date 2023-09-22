@@ -181,7 +181,8 @@ public class CustomJwtServiceImpl implements JwtService {
 
     public JwtPayload validateRolesInThePayload(JwtPayload payload) {
         final List<Role> userRoles = oneLoginUserService.getUserBySub(payload.getSub()).getRoles();
-        oneLoginUserService.validateRoles(userRoles);
+        final String payloadRoles = payload.getRoles();
+        oneLoginUserService.validateRoles(userRoles, payloadRoles);
         return payload;
     }
 }

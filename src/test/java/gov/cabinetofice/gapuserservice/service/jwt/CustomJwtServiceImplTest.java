@@ -181,7 +181,7 @@ public class CustomJwtServiceImplTest {
                             .loginJourneyState(LoginJourneyState.USER_READY).build();
                     when(userRepository.findBySub(any())).thenReturn(Optional.of(testUser));
                     when(oneLoginUserService.getUserBySub(any())).thenReturn(testUser);
-                    doThrow(UnauthorizedException.class).when(oneLoginUserService).validateRoles(any());
+                    doThrow(UnauthorizedException.class).when(oneLoginUserService).validateRoles(any(), any());
 
                     final boolean response = serviceUnderTest.isTokenValid(jwt);
                     assertThat(response).isFalse();
@@ -344,7 +344,7 @@ public class CustomJwtServiceImplTest {
             JwtPayload payload = new JwtPayload();
             payload.setRoles("[FIND, APPLY]");
             when(oneLoginUserService.getUserBySub(any())).thenReturn(testUser);
-            doNothing().when(oneLoginUserService).validateRoles(testUser.getRoles());
+            doNothing().when(oneLoginUserService).validateRoles(testUser.getRoles(),"[FIND, APPLY]");
             JwtPayload response = serviceUnderTest.validateRolesInThePayload(payload);
 
             assertThat(response).isSameAs(payload);
@@ -357,7 +357,7 @@ public class CustomJwtServiceImplTest {
             JwtPayload payload = new JwtPayload();
             payload.setRoles("[FIND, APPLY]");
             doThrow(UnauthorizedException.class).when(oneLoginUserService)
-                    .validateRoles(testUser.getRoles());
+                    .validateRoles(testUser.getRoles(),"[FIND, APPLY]");
 
             assertThrows(UnauthorizedException.class, () -> serviceUnderTest.validateRolesInThePayload(payload));
         }
