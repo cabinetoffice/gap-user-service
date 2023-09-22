@@ -30,8 +30,6 @@ import java.util.*;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
-import static gov.cabinetofice.gapuserservice.util.HelperUtils.removeSquareBracketsAndTrim;
-
 @RequiredArgsConstructor
 @Service
 @Slf4j
@@ -202,16 +200,14 @@ public class OneLoginUserService {
         response.addCookie(thirdPartyAuthToken);
     }
 
-    public void validateRoles(List<Role> userRoles, String payloadRoles) {
-        final Set<String> formattedPayloadRoles = removeSquareBracketsAndTrim(Arrays.asList(payloadRoles
-                .split(",")));
+    public void  validateRoles(List<Role> userRoles, String payloadRoles) {
         final Set<String> formattedUserRoles = userRoles.stream()
                 .map(role -> roleMapper.roleToRoleDto(role).getName())
                 .collect(Collectors.toSet());
-        final boolean rolesAreValid = formattedPayloadRoles.equals(formattedUserRoles);
+        boolean userHasBeenUnblocked = payloadRoles.equals("[]") && formattedUserRoles.size() > 0;
 
-        if(!rolesAreValid){
-            throw new UnauthorizedException("Roles in payload do not match roles in database");
+        if(formattedUserRoles.isEmpty() || userHasBeenUnblocked){
+            throw new UnauthorizedException("Payload is invalid - User is blocked or has been unblocked");
         }
     }
 

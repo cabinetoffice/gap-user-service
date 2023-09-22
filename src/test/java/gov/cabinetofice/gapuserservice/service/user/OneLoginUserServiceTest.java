@@ -440,10 +440,10 @@ public class OneLoginUserServiceTest {
     }
 
     @Test
-    void testValidateRolesWhenPayloadHasExtraRoles() {
+    void testValidateRolesWhenPayloadHasExtraRoles__userWasUnblocked() {
         Role find = Role.builder().name(RoleEnum.FIND).id(1).build();
         Role applicant = Role.builder().name(RoleEnum.APPLICANT).id(2).build();
-        String testPayloadRoles = "[FIND, APPLICANT, ADMIN]";
+        String testPayloadRoles = "[]";
         List<Role> testUserRoles = List.of(find,applicant);
         when(roleMapper.roleToRoleDto(find)).thenReturn(RoleDto.builder().name("FIND").build());
         when(roleMapper.roleToRoleDto(applicant)).thenReturn(RoleDto.builder().name("APPLICANT").build());
@@ -460,7 +460,7 @@ public class OneLoginUserServiceTest {
         when(roleMapper.roleToRoleDto(find)).thenReturn(RoleDto.builder().name("FIND").build());
         when(roleMapper.roleToRoleDto(applicant)).thenReturn(RoleDto.builder().name("APPLICANT").build());
 
-        assertThrows(UnauthorizedException.class, () -> oneLoginUserService.validateRoles(testUserRoles, testPayloadRoles));
+        assertDoesNotThrow(() -> oneLoginUserService.validateRoles(testUserRoles, testPayloadRoles));
     }
 
     @Test
