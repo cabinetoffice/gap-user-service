@@ -311,8 +311,7 @@ public class OneLoginUserServiceTest {
             assertEquals(2, result.size());
             assertEquals(user1, result.get(0));
             assertEquals(user2, result.get(1));
-            verify(userRepository, times(1))
-                    .findUsersByDepartmentAndRoles(roleIds, departmentIds, pageable);
+            verify(userRepository, times(1)).findUsersByDepartmentAndRoles(roleIds, departmentIds, pageable);
         }
 
         @Test
@@ -327,9 +326,7 @@ public class OneLoginUserServiceTest {
             Page<User> userPage = new PageImpl<>(users, pageable, users.size());
             UserQueryDto userQueryDto = new UserQueryDto(departmentIds, roleIds, emailAddress);
 
-            when(userRepository
-                    .findUsersByDepartmentAndRolesAndFuzzyEmail
-                            (eq(roleIds), eq(departmentIds) ,eq(emailAddress), eq(pageable)))
+            when(userRepository.findUsersByDepartmentAndRolesAndFuzzyEmail(eq(roleIds), eq(departmentIds) ,eq(emailAddress), eq(pageable)))
                     .thenReturn(userPage);
 
             Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
@@ -338,8 +335,7 @@ public class OneLoginUserServiceTest {
             assertEquals(2, result.size());
             assertEquals(user1, result.get(0));
             assertEquals(user2, result.get(1));
-            verify(userRepository, times(1)).
-                    findUsersByDepartmentAndRolesAndFuzzyEmail(roleIds, departmentIds, emailAddress, pageable);
+            verify(userRepository, times(1)).findUsersByDepartmentAndRolesAndFuzzyEmail(roleIds, departmentIds, emailAddress, pageable);
         }
     }
 
@@ -440,44 +436,47 @@ public class OneLoginUserServiceTest {
         when(roleMapper.roleToRoleDto(find)).thenReturn(RoleDto.builder().name("FIND").build());
         when(roleMapper.roleToRoleDto(applicant)).thenReturn(RoleDto.builder().name("APPLICANT").build());
 
-        assertDoesNotThrow(() -> oneLoginUserService.validateRoles(testUserRoles));
+        assertDoesNotThrow(() -> oneLoginUserService.validateRoles(testUserRoles, testPayloadRoles));
     }
 
     @Test
-    void testValidateRolesWhenPayloadHasExtraRoles() {
+    void testValidateRolesWhenPayloadHasExtraRoles__userWasUnblocked() {
         Role find = Role.builder().name(RoleEnum.FIND).id(1).build();
         Role applicant = Role.builder().name(RoleEnum.APPLICANT).id(2).build();
-        String testPayloadRoles = "[FIND, APPLICANT, ADMIN]";
+        String testPayloadRoles = "[]";
         List<Role> testUserRoles = List.of(find,applicant);
         when(roleMapper.roleToRoleDto(find)).thenReturn(RoleDto.builder().name("FIND").build());
         when(roleMapper.roleToRoleDto(applicant)).thenReturn(RoleDto.builder().name("APPLICANT").build());
 
-        assertDoesNotThrow(() -> oneLoginUserService.validateRoles(testUserRoles));
+        assertThrows(UnauthorizedException.class, () -> oneLoginUserService.validateRoles(testUserRoles, testPayloadRoles));
     }
 
     @Test
     void testValidateRolesWhenPayloadHasMissingRoles() {
         Role find = Role.builder().name(RoleEnum.FIND).id(1).build();
         Role applicant = Role.builder().name(RoleEnum.APPLICANT).id(2).build();
+        String testPayloadRoles = "[FIND]";
         List<Role> testUserRoles = List.of(find,applicant);
         when(roleMapper.roleToRoleDto(find)).thenReturn(RoleDto.builder().name("FIND").build());
         when(roleMapper.roleToRoleDto(applicant)).thenReturn(RoleDto.builder().name("APPLICANT").build());
 
-        assertDoesNotThrow(() -> oneLoginUserService.validateRoles(testUserRoles));
+        assertDoesNotThrow(() -> oneLoginUserService.validateRoles(testUserRoles, testPayloadRoles));
     }
 
     @Test
     void testValidateRolesWhenUserHasNoRoles() {
+        String testPayloadRoles = "[FIND, APPLICANT]";
         List<Role> testUserRoles = List.of();
 
-        assertThrows(UnauthorizedException.class, () -> oneLoginUserService.validateRoles(testUserRoles));
+        assertThrows(UnauthorizedException.class, () -> oneLoginUserService.validateRoles(testUserRoles, testPayloadRoles));
     }
 
     @Test
     void testValidateSessionsRolesThrowsInvalidExceptionWithEmptyUser() {
         String  email = "email";
+        String roles = "APPLICANT";
         when(userRepository.findByEmailAddress(email)).thenReturn(Optional.empty());
-        assertThrows(InvalidRequestException.class, () -> oneLoginUserService.validateSessionsRoles(email));
+        assertThrows(InvalidRequestException.class, () -> oneLoginUserService.validateSessionsRoles(email, roles));
     }
 
     @Test

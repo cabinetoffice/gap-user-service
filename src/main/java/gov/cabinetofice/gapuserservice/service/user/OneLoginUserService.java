@@ -200,17 +200,22 @@ public class OneLoginUserService {
         response.addCookie(thirdPartyAuthToken);
     }
 
-    public void validateRoles(List<Role> userRoles) {
+    public void validateRoles(List<Role> userRoles, String payloadRoles) {
         final Set<String> formattedUserRoles = userRoles.stream()
                 .map(role -> roleMapper.roleToRoleDto(role).getName())
                 .collect(Collectors.toSet());
-        if(formattedUserRoles.isEmpty()){
-            throw new UnauthorizedException("User is blocked");
+        boolean userHasBeenUnblocked = payloadRoles.equals("[]") && formattedUserRoles.size() > 0;
+
+        if (formattedUserRoles.isEmpty()) {
+            throw new UnauthorizedException("Payload is invalid - User is blocked");
+        }
+        if (userHasBeenUnblocked) {
+            throw new UnauthorizedException("Payload is invalid - User has been unblocked");
         }
     }
 
-    public void validateSessionsRoles(String emailAddress) {
+    public void validateSessionsRoles(String emailAddress, String roles) {
         List<Role> userRoles = userRepository.findByEmailAddress(emailAddress).orElseThrow(() -> new InvalidRequestException("Could not get user from emailAddress")).getRoles();
-        validateRoles(userRoles);
+        validateRoles(userRoles, roles);
     }
 }
