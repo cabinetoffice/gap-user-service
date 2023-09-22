@@ -200,7 +200,7 @@ public class OneLoginUserService {
         response.addCookie(thirdPartyAuthToken);
     }
 
-    public void  validateRoles(List<Role> userRoles, String payloadRoles) {
+    public void validateRoles(List<Role> userRoles, String payloadRoles) {
         final Set<String> formattedUserRoles = userRoles.stream()
                 .map(role -> roleMapper.roleToRoleDto(role).getName())
                 .collect(Collectors.toSet());
