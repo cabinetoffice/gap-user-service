@@ -206,8 +206,11 @@ public class OneLoginUserService {
                 .collect(Collectors.toSet());
         boolean userHasBeenUnblocked = payloadRoles.equals("[]") && formattedUserRoles.size() > 0;
 
-        if(formattedUserRoles.isEmpty() || userHasBeenUnblocked){
-            throw new UnauthorizedException("Payload is invalid - User is blocked or has been unblocked");
+        if (formattedUserRoles.isEmpty()) {
+            throw new UnauthorizedException("Payload is invalid - User is blocked");
+        }
+        if (userHasBeenUnblocked) {
+            throw new UnauthorizedException("Payload is invalid - User has been unblocked");
         }
     }
 
