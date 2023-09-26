@@ -100,7 +100,7 @@ public class ControllerExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public void handleAllExceptions(HttpServletRequest request, Throwable ex) {
+    public void handleAllExceptions(HttpServletRequest request, Throwable ex) throws Throwable {
         HttpStatus status = getStatus(request);
         String message = "Error processing request";
         log.error(
@@ -114,6 +114,7 @@ public class ControllerExceptionHandler {
                 keyValue("cookies", loggingUtils.getCookiesFromRequest(request)),
                 ex
         );
+        throw ex;
     }
 
     private HttpStatus getStatus(HttpServletRequest request) {
