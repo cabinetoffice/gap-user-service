@@ -1,6 +1,7 @@
 package gov.cabinetofice.gapuserservice.enums;
 
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
+import org.springframework.beans.factory.annotation.Value;
 
 
 public enum LoginJourneyState {
@@ -20,14 +21,22 @@ public enum LoginJourneyState {
     },
 
     MIGRATING_USER {
+        @Value("${feature.flag.temp}")
+        private String tempFeatureFlag;
         @Override
         public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
             nextStateArgs.logger().info("Migrating user: " + nextStateArgs.user().getSub());
-            nextStateArgs.oneLoginUserService().migrateFindUser(nextStateArgs.user(), nextStateArgs.jwt());
+            if (tempFeatureFlag == "true") {
+                nextStateArgs.oneLoginUserService().migrateFindUser(nextStateArgs.user(), nextStateArgs.jwt());
+            }
             if (nextStateArgs.user().hasColaSub() && nextStateArgs.user().getApplyAccountMigrated() != MigrationStatus.ALREADY_MIGRATED) {
                 nextStateArgs.oneLoginUserService().migrateApplyUser(nextStateArgs.user(), nextStateArgs.jwt());
             }
-            nextStateArgs.oneLoginUserService().setUsersLoginJourneyState(nextStateArgs.user(), USER_MIGRATED_AND_READY);
+            if (tempFeatureFlag == "true") {
+                nextStateArgs.oneLoginUserService().setUsersLoginJourneyState(nextStateArgs.user(), USER_MIGRATED_AND_READY);
+            } else {
+                nextStateArgs.oneLoginUserService().setUsersLoginJourneyState(nextStateArgs.user(), USER_READY);
+            }
             return this;
         }
 
@@ -84,12 +93,30 @@ public enum LoginJourneyState {
     },
 
     USER_READY {
+        @Value("${feature.flag.temp}")
+        private String tempFeatureFlag;
+
         @Override
         public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
-            if (nextStateArgs.user().hasColaSub()) {
-                nextStateArgs.oneLoginUserService().setUsersApplyMigrationState(nextStateArgs.user(), MigrationStatus.ALREADY_MIGRATED);
+            if (tempFeatureFlag == "true") {
+                if (nextStateArgs.user().hasColaSub()) {
+                    nextStateArgs.oneLoginUserService().setUsersApplyMigrationState(nextStateArgs.user(), MigrationStatus.ALREADY_MIGRATED);
+                }
+                return MIGRATING_USER.nextState(nextStateArgs);
+            } else {
+                if (nextStateArgs.userInfo() != null) {
+                    final String newEmail = nextStateArgs.userInfo().getEmailAddress();
+                    final String oldEmail = nextStateArgs.user().getEmailAddress();
+                    final boolean emailsDiffer = !newEmail.equals(oldEmail);
+
+                    if (emailsDiffer) {
+                        nextStateArgs.oneLoginUserService().setUsersEmail(nextStateArgs.user(), newEmail);
+                        nextStateArgs.oneLoginUserService().setUsersLoginJourneyState(nextStateArgs.user(), this);
+                    }
+                }
+                return this;
             }
-            return MIGRATING_USER.nextState(nextStateArgs);
+
         }
     };
 
