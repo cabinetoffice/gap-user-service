@@ -3,6 +3,8 @@ package gov.cabinetofice.gapuserservice.enums;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import org.springframework.beans.factory.annotation.Value;
 
+import java.util.Objects;
+
 
 public enum LoginJourneyState {
     PRIVACY_POLICY_PENDING {
@@ -21,18 +23,20 @@ public enum LoginJourneyState {
     },
 
     MIGRATING_USER {
+        // TODO pass in feature flag via nextStateArgs & rename
         @Value("${feature.flag.temp}")
         private String tempFeatureFlag;
         @Override
         public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
             nextStateArgs.logger().info("Migrating user: " + nextStateArgs.user().getSub());
-            if (tempFeatureFlag == "true") {
+            if (Objects.equals(tempFeatureFlag, "true")) {
                 nextStateArgs.oneLoginUserService().migrateFindUser(nextStateArgs.user(), nextStateArgs.jwt());
             }
+            // TODO change check to check for USER_READY instead of ALREADY_MIGRATED
             if (nextStateArgs.user().hasColaSub() && nextStateArgs.user().getApplyAccountMigrated() != MigrationStatus.ALREADY_MIGRATED) {
                 nextStateArgs.oneLoginUserService().migrateApplyUser(nextStateArgs.user(), nextStateArgs.jwt());
             }
-            if (tempFeatureFlag == "true") {
+            if (Objects.equals(tempFeatureFlag, "true")) {
                 nextStateArgs.oneLoginUserService().setUsersLoginJourneyState(nextStateArgs.user(), USER_MIGRATED_AND_READY);
             } else {
                 nextStateArgs.oneLoginUserService().setUsersLoginJourneyState(nextStateArgs.user(), USER_READY);
@@ -54,6 +58,7 @@ public enum LoginJourneyState {
     USER_MIGRATED_AND_READY {
         @Override
         public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
+            // TODO extract to function in oneLoginUserService
             if (nextStateArgs.userInfo() != null) {
                 final String newEmail = nextStateArgs.userInfo().getEmailAddress();
                 final String oldEmail = nextStateArgs.user().getEmailAddress();
@@ -61,7 +66,6 @@ public enum LoginJourneyState {
 
                 if (emailsDiffer) {
                     nextStateArgs.oneLoginUserService().setUsersEmail(nextStateArgs.user(), newEmail);
-                    nextStateArgs.oneLoginUserService().setUsersLoginJourneyState(nextStateArgs.user(), MIGRATING_FIND_EMAILS);
                     return MIGRATING_FIND_EMAILS.nextState(nextStateArgs);
                 }
             }
@@ -82,7 +86,7 @@ public enum LoginJourneyState {
     MIGRATING_FIND_EMAILS {
         @Override
         public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
-            nextStateArgs.oneLoginUserService().setUsersLoginJourneyState(nextStateArgs.user(), USER_MIGRATED_AND_READY);
+            // TODO set email here rather than in the other states
             return this;
         }
 
@@ -93,31 +97,33 @@ public enum LoginJourneyState {
     },
 
     USER_READY {
+        // TODO pass in feature flag via nextStateArgs & rename
         @Value("${feature.flag.temp}")
         private String tempFeatureFlag;
 
         @Override
         public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
-            if (tempFeatureFlag == "true") {
+            if (Objects.equals(tempFeatureFlag, "true")) {
                 if (nextStateArgs.user().hasColaSub()) {
                     nextStateArgs.oneLoginUserService().setUsersApplyMigrationState(nextStateArgs.user(), MigrationStatus.ALREADY_MIGRATED);
                 }
                 return MIGRATING_USER.nextState(nextStateArgs);
             } else {
+                // TODO extract to function in oneLoginUserService
                 if (nextStateArgs.userInfo() != null) {
                     final String newEmail = nextStateArgs.userInfo().getEmailAddress();
                     final String oldEmail = nextStateArgs.user().getEmailAddress();
                     final boolean emailsDiffer = !newEmail.equals(oldEmail);
 
                     if (emailsDiffer) {
-                        nextStateArgs.oneLoginUserService().setUsersEmail(nextStateArgs.user(), newEmail);
-                        nextStateArgs.oneLoginUserService().setUsersLoginJourneyState(nextStateArgs.user(), this);
+                        // TODO return MIGRATING_FIND_EMAILS
                     }
                 }
                 return this;
             }
-
         }
+
+        // TODO implement redirect for when feature flag is OFF
     };
 
     public abstract LoginJourneyState nextState(final NextStateArgs nextStateArgs);
