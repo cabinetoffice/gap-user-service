@@ -7,8 +7,8 @@ public enum LoginJourneyState {
         @Override
         public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
             nextStateArgs.logger().debug("User: " + nextStateArgs.user().getSub() + " accepted the privacy policy");
-            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), PRIVACY_POLICY_ACCEPTED);
             if (!nextStateArgs.hasAcceptedPrivacyPolicy()) return this;
+            nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), PRIVACY_POLICY_ACCEPTED);
             return PRIVACY_POLICY_ACCEPTED.nextState(nextStateArgs);
         }
 
