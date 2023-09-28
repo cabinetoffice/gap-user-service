@@ -54,8 +54,7 @@ public enum LoginJourneyState {
     USER_MIGRATED_AND_READY {
         @Override
         public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
-            // TODO would just pass userInfo & user into this method that way all the checks/logics in there
-            if (nextStateArgs.userInfo() != null && nextStateArgs.oneLoginUserService().hasEmailChanged(nextStateArgs.user().getEmailAddress(), nextStateArgs.userInfo().getEmailAddress())) {
+            if (nextStateArgs.userInfo() != null && nextStateArgs.oneLoginUserService().hasEmailChanged(nextStateArgs.user(), nextStateArgs.userInfo())) {
                 return MIGRATING_FIND_EMAILS.nextState(nextStateArgs);
             }
             return this;
@@ -94,8 +93,7 @@ public enum LoginJourneyState {
                 }
                 return MIGRATING_USER.nextState(nextStateArgs);
             } else {
-                // TODO would just pass userInfo & user into this method that way all the checks/logics in there
-                if (nextStateArgs.userInfo() != null && nextStateArgs.oneLoginUserService().hasEmailChanged(nextStateArgs.user().getEmailAddress(), nextStateArgs.userInfo().getEmailAddress())) {
+                if (nextStateArgs.userInfo() != null && nextStateArgs.oneLoginUserService().hasEmailChanged(nextStateArgs.user(), nextStateArgs.userInfo())) {
                     return MIGRATING_FIND_EMAILS.nextState(nextStateArgs);
                 }
                 return this;

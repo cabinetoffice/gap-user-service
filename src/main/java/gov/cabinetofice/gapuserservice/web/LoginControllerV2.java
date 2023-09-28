@@ -76,7 +76,8 @@ public class LoginControllerV2 {
     @Value("${tech-support-dash-base-url}")
     private String techSupportAppBaseUrl;
 
-    // TODO add feature flag @Value here
+    @Value("${feature.find-accounts.migration.enabled}")
+    private String findAccountsMigrationEnabled;
 
     @PostMapping("/validateSessionsRoles")
     public ResponseEntity<Boolean> validateSessionsRoles(@RequestBody final String emailAddress){
@@ -209,9 +210,8 @@ public class LoginControllerV2 {
         log.info(loggingUtils.getLogMessage("Running state machine", 5), redirectUrlCookie, user, jwt,
                 hasAcceptedPrivacyPolicy, userInfo);
 
-        // TODO pass in feature flag here
         String redirectUrl = user.getLoginJourneyState()
-                .nextState(new NextStateArgs(oneLoginUserService, user, jwt, log, hasAcceptedPrivacyPolicy, userInfo))
+                .nextState(new NextStateArgs(oneLoginUserService, user, jwt, log, hasAcceptedPrivacyPolicy, userInfo, findAccountsMigrationEnabled))
                 .getLoginJourneyRedirect(user.getHighestRole().getName())
                 .getRedirectUrl(new GetRedirectUrlArgs(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl, redirectUrlCookie, user));
         log.info(loggingUtils.getLogMessage("Redirecting to: ", 1), redirectUrl);
