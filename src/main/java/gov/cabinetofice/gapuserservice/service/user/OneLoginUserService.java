@@ -337,9 +337,6 @@ public class OneLoginUserService {
     }
 
     public boolean hasEmailChanged(final User user, final OneLoginUserInfoDto userInfo) {
-        final String oldEmail = user.getEmailAddress();
-        final String newEmail = userInfo.getEmailAddress();
-        final boolean emailsDiffer = !newEmail.equals(oldEmail);
-        return emailsDiffer;
+        return userInfo != null && !userInfo.getEmailAddress().equals(user.getEmailAddress());
     }
 }

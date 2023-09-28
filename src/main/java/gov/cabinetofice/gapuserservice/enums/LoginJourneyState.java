@@ -54,7 +54,7 @@ public enum LoginJourneyState {
     USER_MIGRATED_AND_READY {
         @Override
         public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
-            if (nextStateArgs.userInfo() != null && nextStateArgs.oneLoginUserService().hasEmailChanged(nextStateArgs.user(), nextStateArgs.userInfo())) {
+            if (nextStateArgs.oneLoginUserService().hasEmailChanged(nextStateArgs.user(), nextStateArgs.userInfo())) {
                 return MIGRATING_FIND_EMAILS.nextState(nextStateArgs);
             }
             return this;
@@ -93,7 +93,7 @@ public enum LoginJourneyState {
                 }
                 return MIGRATING_USER.nextState(nextStateArgs);
             } else {
-                if (nextStateArgs.userInfo() != null && nextStateArgs.oneLoginUserService().hasEmailChanged(nextStateArgs.user(), nextStateArgs.userInfo())) {
+                if (nextStateArgs.oneLoginUserService().hasEmailChanged(nextStateArgs.user(), nextStateArgs.userInfo())) {
                     return MIGRATING_FIND_EMAILS.nextState(nextStateArgs);
                 }
                 return this;
