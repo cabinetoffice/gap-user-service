@@ -4,13 +4,17 @@ import gov.cabinetofice.gapuserservice.dto.ChangeDepartmentPageDto;
 import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
 import gov.cabinetofice.gapuserservice.dto.UserDto;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
+import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
+import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.SecretAuthService;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +22,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
+
+import static gov.cabinetofice.gapuserservice.util.HelperUtils.getCustomJwtCookieFromRequest;
 
 
 @RequiredArgsConstructor
@@ -28,7 +35,24 @@ public class UserController {
     private final OneLoginUserService oneLoginUserService;
     private final DepartmentService departmentService;
     private final RoleService roleService;
+    private final CustomJwtServiceImpl jwtService;
     private final SecretAuthService secretAuthService;
+
+    @Value("${jwt.cookie-name}")
+    public String userServiceCookieName;
+
+    @GetMapping("/userFromJwt")
+    public ResponseEntity<UserDto> getUserFromJwt(HttpServletRequest httpRequest) {
+        if (!roleService.isSuperAdmin(httpRequest)) {
+            throw new ForbiddenException();
+        }
+        Optional<User> user = jwtService.getUserFromJwt(httpRequest);
+        if(user.isEmpty()){
+            throw new InvalidRequestException("Could not get user from jwt");
+        }
+
+        return ResponseEntity.ok(new UserDto(user.get()));
+    }
 
     @GetMapping("/isSuperAdmin")
     public ResponseEntity<String> isSuperAdmin(HttpServletRequest httpRequest) {
@@ -58,8 +82,13 @@ public class UserController {
     @PatchMapping("/user/{userId}/department")
     public ResponseEntity<User> updateDepartment(HttpServletRequest httpRequest, @PathVariable("userId") Integer userId,
                                                    @RequestParam(value = "departmentId", required = false) Integer departmentId) {
+
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
+        }
+
+        if(oneLoginUserService.isUserApplicantAndFindOnly(oneLoginUserService.getUserById(userId))) {
+            throw new InvalidRequestException("Users with find and applicant roles cannot be assigned a department");
         }
 
         if(departmentId == null) return ResponseEntity.ok().build();
@@ -88,6 +117,16 @@ public class UserController {
             throw new ForbiddenException();
         }
 
+        boolean isARequestToBlockUser = roleIds.size() == 0;
+        Optional<User> user = jwtService.getUserFromJwt(httpRequest);
+
+        if(user.isEmpty()){
+            throw new InvalidRequestException("Could not get user from jwt");
+        }
+        if (isARequestToBlockUser && id.equals(user.get().getGapUserId())){
+            throw new UnsupportedOperationException("You can't block yourself");
+        }
+
         oneLoginUserService.updateRoles(id, roleIds);
         return ResponseEntity.ok("success");
     }
@@ -97,8 +136,18 @@ public class UserController {
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
+        final Cookie customJWTCookie = getCustomJwtCookieFromRequest(httpRequest, userServiceCookieName);
+        Optional<User> user = jwtService.getUserFromJwt(httpRequest);
+        if(user.isEmpty()){
+            throw new InvalidRequestException("Could not get user from jwt");
+        }
+        if(user.get().getGapUserId().equals(id)) {
+            throw new UnsupportedOperationException("You can't delete yourself");
+        }
 
-        oneLoginUserService.deleteUser(id);
+        oneLoginUserService.deleteUser(id, customJWTCookie.getValue());
         return ResponseEntity.ok("success");
+
     }
 }
+

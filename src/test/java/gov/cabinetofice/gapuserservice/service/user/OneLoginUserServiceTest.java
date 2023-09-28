@@ -1,8 +1,12 @@
 package gov.cabinetofice.gapuserservice.service.user;
 
+import gov.cabinetofice.gapuserservice.dto.RoleDto;
 import gov.cabinetofice.gapuserservice.dto.UserQueryDto;
 import gov.cabinetofice.gapuserservice.exceptions.DepartmentNotFoundException;
+import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
+import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
+import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
 import gov.cabinetofice.gapuserservice.model.Department;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
@@ -21,12 +25,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
@@ -43,7 +48,13 @@ public class OneLoginUserServiceTest {
     private DepartmentRepository departmentRepository;
 
     @Mock
+    private RoleMapper roleMapper;
+
+    @Mock
     private RoleRepository roleRepository;
+
+    @Mock
+    private WebClient.Builder webClientBuilder;
 
     @Test
     void shouldReturnUpdatedUserWhenValidIdAndRolesAreGiven() {
@@ -84,15 +95,14 @@ public class OneLoginUserServiceTest {
     }
 
     @Test
-    void shouldReturnUserWhenValidOneLoginSubIsGiven() {
+    void shouldReturnUserWhenValidSubIsGiven() {
+            User mockedUser = User.builder().gapUserId(1).build();
+            when(userRepository.findBySub("1234")).thenReturn(Optional.of(mockedUser));
+            User result = oneLoginUserService.getUserByUserSub("1234");
 
-        User mockedUser = User.builder().gapUserId(1).build();
-        when(userRepository.findBySub("1234")).thenReturn(Optional.of(mockedUser));
-        User result = oneLoginUserService.getUserByUserSub("1234");
-
-        assertThat(result).isNotNull();
-        assertThat(result).isEqualTo(mockedUser);
-        verify(userRepository, times(1)).findBySub("1234");
+            assertThat(result).isNotNull();
+            assertThat(result).isEqualTo(mockedUser);
+            verify(userRepository, times(1)).findBySub("1234");
     }
 
     @Test
@@ -139,6 +149,12 @@ public class OneLoginUserServiceTest {
     void shouldThrowUserNotFoundExceptionWhenInValidIdIsGiven() {
         when(userRepository.findById(anyInt())).thenReturn(Optional.empty());
         assertThrows(UserNotFoundException.class, () -> oneLoginUserService.getUserById(100));
+    }
+
+    @Test
+    void shouldThrowUserNotFoundExceptionWhenInValidSubIsGiven() {
+        when(userRepository.findBySub(anyString())).thenReturn(Optional.empty());
+        assertThrows(UserNotFoundException.class, () -> oneLoginUserService.getUserBySub("100"));
     }
 
     @Nested
@@ -369,7 +385,7 @@ public class OneLoginUserServiceTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        assertThrows(UserNotFoundException.class, () -> oneLoginUserService.deleteUser(userId));
+        assertThrows(UserNotFoundException.class, () -> oneLoginUserService.deleteUser(userId, "jwt"));
     }
 
     @Test
@@ -378,10 +394,20 @@ public class OneLoginUserServiceTest {
         User user = User.builder().gapUserId(userId).build();
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        final WebClient webClient = mock(WebClient.class);
+        when(webClientBuilder.build()).thenReturn(webClient);
+        final WebClient.RequestHeadersUriSpec requestHeadersUriSpec = mock(WebClient.RequestHeadersUriSpec.class);
+        when(webClient.delete()).thenReturn(requestHeadersUriSpec);
+        final WebClient.RequestHeadersSpec requestHeadersSpec = mock(WebClient.RequestHeadersSpec.class);
+        when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.header(anyString(), anyString())).thenReturn(requestHeadersSpec);
+        final WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(Void.class)).thenReturn(Mono.when());
 
-        oneLoginUserService.deleteUser(userId);
+        oneLoginUserService.deleteUser(userId, "jwt");
 
-        verify(userRepository).delete(user);
+        verify(userRepository).deleteById(userId);
     }
 
     @Test
@@ -399,5 +425,103 @@ public class OneLoginUserServiceTest {
         assertThat(updatedUser.getRoles().size()).isEqualTo(4);
         assertThat(updatedUser.getRoles().stream().anyMatch(role -> role.getName().equals(RoleEnum.APPLICANT))).isTrue();
         assertThat(updatedUser.getRoles().stream().anyMatch(role -> role.getName().equals(RoleEnum.FIND))).isTrue();
-    }}
+    }
+
+    @Test
+    void testValidateRolesWhenRolesMatch() {
+        Role find = Role.builder().name(RoleEnum.FIND).id(1).build();
+        Role applicant = Role.builder().name(RoleEnum.APPLICANT).id(2).build();
+        String testPayloadRoles = "[FIND, APPLICANT]";
+        List<Role> testUserRoles = List.of(find,applicant);
+        when(roleMapper.roleToRoleDto(find)).thenReturn(RoleDto.builder().name("FIND").build());
+        when(roleMapper.roleToRoleDto(applicant)).thenReturn(RoleDto.builder().name("APPLICANT").build());
+
+        assertDoesNotThrow(() -> oneLoginUserService.validateRoles(testUserRoles, testPayloadRoles));
+    }
+
+    @Test
+    void testValidateRolesWhenPayloadHasExtraRoles__userWasUnblocked() {
+        Role find = Role.builder().name(RoleEnum.FIND).id(1).build();
+        Role applicant = Role.builder().name(RoleEnum.APPLICANT).id(2).build();
+        String testPayloadRoles = "[]";
+        List<Role> testUserRoles = List.of(find,applicant);
+        when(roleMapper.roleToRoleDto(find)).thenReturn(RoleDto.builder().name("FIND").build());
+        when(roleMapper.roleToRoleDto(applicant)).thenReturn(RoleDto.builder().name("APPLICANT").build());
+
+        assertThrows(UnauthorizedException.class, () -> oneLoginUserService.validateRoles(testUserRoles, testPayloadRoles));
+    }
+
+    @Test
+    void testValidateRolesWhenPayloadHasMissingRoles() {
+        Role find = Role.builder().name(RoleEnum.FIND).id(1).build();
+        Role applicant = Role.builder().name(RoleEnum.APPLICANT).id(2).build();
+        String testPayloadRoles = "[FIND]";
+        List<Role> testUserRoles = List.of(find,applicant);
+        when(roleMapper.roleToRoleDto(find)).thenReturn(RoleDto.builder().name("FIND").build());
+        when(roleMapper.roleToRoleDto(applicant)).thenReturn(RoleDto.builder().name("APPLICANT").build());
+
+        assertDoesNotThrow(() -> oneLoginUserService.validateRoles(testUserRoles, testPayloadRoles));
+    }
+
+    @Test
+    void testValidateRolesWhenUserHasNoRoles() {
+        String testPayloadRoles = "[FIND, APPLICANT]";
+        List<Role> testUserRoles = List.of();
+
+        assertThrows(UnauthorizedException.class, () -> oneLoginUserService.validateRoles(testUserRoles, testPayloadRoles));
+    }
+
+    @Test
+    void testValidateSessionsRolesThrowsInvalidExceptionWithEmptyUser() {
+        String  email = "email";
+        String roles = "APPLICANT";
+        when(userRepository.findByEmailAddress(email)).thenReturn(Optional.empty());
+        assertThrows(InvalidRequestException.class, () -> oneLoginUserService.validateSessionsRoles(email, roles));
+    }
+
+    @Test
+    void updateRolesShouldSetDepartmentToNullIfNotSuperAdminOrAdmin() {
+        Integer userId = 1;
+        List<Integer> newRoles = List.of(1, 2);
+        User user = User.builder().gapUserId(userId).department(Department.builder().name("test").build()).build();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(roleRepository.findById(1)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
+        when(roleRepository.findById(2)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).build()));
+        User updatedUser = oneLoginUserService.updateRoles(1 , newRoles);
+
+        assertThat(updatedUser.getDepartment()).isNull();
+    }
+
+    @Test
+    void updateRolesShouldNotSetDepartmentToNullIfUserHasMoreThanTwoRoles() {
+        Integer userId = 1;
+        List<Integer> newRoles = List.of(1, 2, 3);
+        User user = User.builder().gapUserId(userId).department(Department.builder().name("test").build()).build();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(roleRepository.findById(1)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
+        when(roleRepository.findById(2)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).build()));
+        when(roleRepository.findById(3)).thenReturn(Optional.of(Role.builder().name(RoleEnum.ADMIN).build()));
+        User updatedUser = oneLoginUserService.updateRoles(1 , newRoles);
+
+        assertThat(updatedUser.getDepartment()).isNotNull();
+    }
+
+    @Test
+    void updateRolesShouldNotSetDepartmentToNullIfUserIsAdminOrSuperAdmin() {
+        Integer userId = 1;
+        List<Integer> newRoles = List.of( 3, 4);
+        User user = User.builder().gapUserId(userId).department(Department.builder().name("test").build()).build();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(roleRepository.findById(3)).thenReturn(Optional.of(Role.builder().name(RoleEnum.ADMIN).build()));
+        when(roleRepository.findById(4)).thenReturn(Optional.of(Role.builder().name(RoleEnum.SUPER_ADMIN).build()));
+        when(roleRepository.findByName(RoleEnum.FIND)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).id(1).build()));
+        when(roleRepository.findByName(RoleEnum.APPLICANT)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).id(2).build()));
+        User updatedUser = oneLoginUserService.updateRoles(1 , newRoles);
+
+        assertThat(updatedUser.getDepartment()).isNotNull();
+    }
+
+}
+
+
 

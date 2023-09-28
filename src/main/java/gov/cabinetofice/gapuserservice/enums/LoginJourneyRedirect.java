@@ -1,12 +1,19 @@
 package gov.cabinetofice.gapuserservice.enums;
 
 import static gov.cabinetofice.gapuserservice.web.LoginControllerV2.PRIVACY_POLICY_PAGE_VIEW;
+import static gov.cabinetofice.gapuserservice.web.LoginControllerV2.UPDATED_EMAIL_PAGE_VIEW;
 
 public enum LoginJourneyRedirect {
     PRIVACY_POLICY_PAGE {
         @Override
         public String getRedirectUrl(String adminBaseUrl, String applicantBaseUrl, String techSupportBaseUrl, String redirectUrlCookie) {
             return PRIVACY_POLICY_PAGE_VIEW;
+        }
+    },
+    EMAIL_UPDATED_PAGE {
+        @Override
+        public String getRedirectUrl(String adminBaseUrl, String applicantBaseUrl, String techSupportBaseUrl, String redirectUrlCookie) {
+            return UPDATED_EMAIL_PAGE_VIEW;
         }
     },
     SUPER_ADMIN_DASHBOARD {

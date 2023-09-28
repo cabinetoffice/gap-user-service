@@ -49,10 +49,12 @@ public class WebSecurityConfig {
                 "/v2/login",
                 "/v2/notice-page",
                 "/v2/privacy-policy",
+                "/v2/updated-email",
                 "/is-user-logged-in",
                 "/redirect-after-cola-login",
                 "/error/**",
                 "/.well-known/jwks.json",
+                "/v2/validateSessionsRoles",
                 "/user"
                 );
     }

@@ -3,9 +3,8 @@ package gov.cabinetofice.gapuserservice.service.user;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.dto.UserQueryDto;
-import gov.cabinetofice.gapuserservice.exceptions.DepartmentNotFoundException;
-import gov.cabinetofice.gapuserservice.exceptions.RoleNotFoundException;
-import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
+import gov.cabinetofice.gapuserservice.exceptions.*;
+import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
 import gov.cabinetofice.gapuserservice.model.Department;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
@@ -18,15 +17,18 @@ import gov.cabinetofice.gapuserservice.util.UserQueryCondition;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -39,9 +41,14 @@ public class OneLoginUserService {
     private final JwtBlacklistService jwtBlacklistService;
     private final ApplicationConfigProperties configProperties;
     private final ThirdPartyAuthProviderProperties authenticationProvider;
+    private final WebClient.Builder webClientBuilder;
+    private final RoleMapper roleMapper;
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
+
+    @Value("${admin-backend}")
+    private String adminBackend;
 
     public Page<User> getPaginatedUsers(Pageable pageable, UserQueryDto userQueryDto) {
         final Map<UserQueryCondition, BiFunction<UserQueryDto, Pageable, Page<User>>> conditionMap = createUserQueryConditionMap();
@@ -67,12 +74,14 @@ public class OneLoginUserService {
         return userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("user with id: " + id + "not found"));
     }
+    public User getUserBySub(String sub) {
+        return userRepository.findBySub(sub)
+                .orElseThrow(() -> new UserNotFoundException("user with sub: " + sub + "not found"));
+    }
 
     public User getUserByUserSub(String userSub) {
-
         // Get user by One Login sub first
         Optional<User> user = userRepository.findBySub(userSub);
-
         if (user.isEmpty()) {
             // If user is not found by One Login sub, get user by Cola sub
             try {
@@ -84,7 +93,6 @@ public class OneLoginUserService {
                 throw new UserNotFoundException("Invalid UUID: " + userSub);
             }
         }
-
         return user.get();
     }
 
@@ -123,6 +131,7 @@ public class OneLoginUserService {
 
         addRoleIfNotPresent(user, RoleEnum.FIND);
         addRoleIfNotPresent(user, RoleEnum.APPLICANT);
+        deleteDepartmentIfPresentAndUserIsOnlyApplicantOrFind(user);
         userRepository.save(user);
 
         return user;
@@ -136,10 +145,34 @@ public class OneLoginUserService {
         }
     }
 
-    public User deleteUser(Integer id) {
-        User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User not found"));
-        userRepository.delete(user);
-        return user;
+    private void deleteDepartmentIfPresentAndUserIsOnlyApplicantOrFind(User user) {
+           if (isUserApplicantAndFindOnly(user) && doesUserHaveDepartment(user)) {
+               user.setDepartment(null);
+            }
+    }
+
+    public boolean isUserApplicantAndFindOnly(User user) {
+        final List<Role> roles = user.getRoles();
+        return !roles.isEmpty() && roles.stream().allMatch(
+                role -> role.getName().equals(RoleEnum.FIND) ||
+                        role.getName().equals(RoleEnum.APPLICANT));
+    }
+
+    private boolean doesUserHaveDepartment(User user) {
+        return user.getDepartment() != null;
+    }
+
+    @Transactional
+    public void deleteUser(Integer id, String jwt) {
+        final User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("user with id: " + id + "not found"));
+        webClientBuilder.build()
+                .delete()
+                .uri(adminBackend + "/users/delete/" + (user.hasSub() ? user.getSub() : "") + (user.hasColaSub() ? "?colaSub=" + user.getColaSub() : ""))
+                .header("Authorization", "Bearer " + jwt)
+                .retrieve()
+                .bodyToMono(Void.class)
+                .block();
+        userRepository.deleteById(id);
     }
 
     public void invalidateUserJwt(final Cookie customJWTCookie, final HttpServletResponse response) {
@@ -165,5 +198,24 @@ public class OneLoginUserService {
         );
         thirdPartyAuthToken.setMaxAge(0);
         response.addCookie(thirdPartyAuthToken);
+    }
+
+    public void validateRoles(List<Role> userRoles, String payloadRoles) {
+        final Set<String> formattedUserRoles = userRoles.stream()
+                .map(role -> roleMapper.roleToRoleDto(role).getName())
+                .collect(Collectors.toSet());
+        boolean userHasBeenUnblocked = payloadRoles.equals("[]") && formattedUserRoles.size() > 0;
+
+        if (formattedUserRoles.isEmpty()) {
+            throw new UnauthorizedException("Payload is invalid - User is blocked");
+        }
+        if (userHasBeenUnblocked) {
+            throw new UnauthorizedException("Payload is invalid - User has been unblocked");
+        }
+    }
+
+    public void validateSessionsRoles(String emailAddress, String roles) {
+        List<Role> userRoles = userRepository.findByEmailAddress(emailAddress).orElseThrow(() -> new InvalidRequestException("Could not get user from emailAddress")).getRoles();
+        validateRoles(userRoles, roles);
     }
 }

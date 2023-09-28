@@ -1,8 +1,15 @@
 package gov.cabinetofice.gapuserservice.web.controlleradvice;
 
+import gov.cabinetofice.gapuserservice.exceptions.NonceExpiredException;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
+import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
+import gov.cabinetofice.gapuserservice.util.LoggingUtils;
+
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -11,14 +18,18 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.ModelAndView;
 
-import java.time.Clock;
+import static net.logstash.logback.argument.StructuredArguments.*;
 
 @RestControllerAdvice
 @RequiredArgsConstructor
+@Slf4j
 public class ControllerExceptionHandler {
 
-    private final Clock clock;
+    private static final String SESSION_EXPIRED = "session-expired";
+
+    private final LoggingUtils loggingUtils;
 
     @ExceptionHandler(value = {
             HttpClientErrorException.class,
@@ -28,6 +39,14 @@ public class ControllerExceptionHandler {
         return ErrorMessage.builder()
                 .message(ex.getMessage())
                 .build();
+    }
+
+    @ExceptionHandler(value = {
+            NonceExpiredException.class,
+    })
+    @ResponseStatus(value = HttpStatus.UNAUTHORIZED)
+    public ModelAndView handleNonceExpiredException(Exception ex, WebRequest request) {
+        return new ModelAndView(SESSION_EXPIRED);
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -80,6 +99,30 @@ public class ControllerExceptionHandler {
                 .build();
     }
 
+    @ExceptionHandler(Exception.class)
+    public void handleAllExceptions(HttpServletRequest request, Throwable ex) throws Throwable {
+        HttpStatus status = getStatus(request);
+        String message = "Error processing request";
+        log.error(
+                loggingUtils.getJsonLogMessage(ex.getMessage(), 7),
+                value("event", message),
+                keyValue("status", status),
+                keyValue("URL", request.getRequestURL()),
+                keyValue("query", request.getQueryString()),
+                keyValue("method", request.getMethod()),
+                keyValue("headers", loggingUtils.getHeadersFromRequest(request)),
+                keyValue("cookies", loggingUtils.getCookiesFromRequest(request)),
+                ex
+        );
+        throw ex;
+    }
+
+    private HttpStatus getStatus(HttpServletRequest request) {
+        Object codeFromRequest = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
+        Integer code = codeFromRequest != null ? (Integer) codeFromRequest : 500;
+        HttpStatus status = HttpStatus.resolve(code);
+        return (status != null) ? status : HttpStatus.INTERNAL_SERVER_ERROR;
+    }
 }
 
 

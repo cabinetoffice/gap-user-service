@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Update Email</title>
+    <link rel="stylesheet" th:href="@{/webjars/govuk-frontend/4.5.0/govuk-frontend.min.css}"/>
+</head>
+
+<body class="govuk-template__body">
+<div th:replace="~{fragments/header :: header}"></div>
+
+<div class="govuk-width-container">
+    <a th:href="${homePageUrl}" class="govuk-back-link">Back</a>
+
+    <main class="govuk-main-wrapper" id="main-content" role="main">
+        <div class="govuk-grid-row">
+            <div class="govuk-grid-column-two-thirds">
+                <h1 class="govuk-heading-l">You have updated your One Login email address</h1>
+                <p class="govuk-body">
+                    You have updated the email you use to sign into your GOV.UK One Login account.
+                </p>
+                <p class="govuk-body">
+                    If you have signed up to Find a grant notifications they will now be sent to your new One Login email address
+                    (<span class="govuk-!-font-weight-bold" th:text="${email}"></span>)
+                </p>
+                <div class="govuk-form-group">
+                    <a th:href="${redirectUrl}" role="button" draggable="false" class="govuk-button" data-module="govuk-button">
+                        Continue
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
+</html>

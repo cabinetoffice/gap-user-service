@@ -23,6 +23,7 @@ import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
+import gov.cabinetofice.gapuserservice.util.LoggingUtils;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
 import io.jsonwebtoken.Jwts;
@@ -30,7 +31,9 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import static net.logstash.logback.argument.StructuredArguments.*;
+
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.http.HttpHeaders;
@@ -42,7 +45,6 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.view.RedirectView;
-
 
 import java.io.IOException;
 import java.net.URL;
@@ -57,7 +59,7 @@ import static gov.cabinetofice.gapuserservice.util.HelperUtils.generateSecureRan
 
 @RequiredArgsConstructor
 @Service
-@Log4j2
+@Slf4j
 public class OneLoginService {
 
     @Value("${onelogin.client-id}")
@@ -83,9 +85,13 @@ public class OneLoginService {
     @Value("${onelogin.post-logout-redirect-uri}")
     public String postLogoutRedirectUri;
 
+    @Value("${onelogin.mfa.enabled}")
+    public Boolean mfaEnabled;
+
 
     private static final String SCOPE = "openid email";
-    private static final String VTR = "[\"Cl.Cm\"]";
+    private static final String VTR_MFA_ENABLED = "[\"Cl.Cm\"]";
+    private static final String VTR_MFA_DISABLED = "[\"Cl\"]";
     private static final String UI = "en";
     private static final String GRANT_TYPE = "authorization_code";
 
@@ -97,6 +103,7 @@ public class OneLoginService {
     private final JwtBlacklistService jwtBlacklistService;
     private final CustomJwtServiceImpl customJwtService;
     private final OneLoginUserService oneLoginUserService;
+    private final LoggingUtils loggingUtils;
 
     public PrivateKey parsePrivateKey() {
         try {
@@ -135,10 +142,11 @@ public class OneLoginService {
         return generateSecureRandomString(64);
     }
 
-    public String buildEncodedStateJson(final String redirectUrl, final String state) {
+    public String buildEncodedStateJson(final String redirectUrl, final String state, final String saltId) {
         JSONObject stateJsonObject = new JSONObject();
         stateJsonObject.put("state", state);
         stateJsonObject.put("redirectUrl", redirectUrl);
+        stateJsonObject.put("saltId", saltId);
         final String stateJsonString = stateJsonObject.toString();
         return Base64.getEncoder().encodeToString(stateJsonString.getBytes());
     }
@@ -156,9 +164,9 @@ public class OneLoginService {
         return stateCookieDto;
     }
 
-    public String generateAndStoreState(final HttpServletResponse response, final String redirectUrl) {
+    public String generateAndStoreState(final HttpServletResponse response, final String redirectUrl, final String saltId) {
         final String state = this.generateState();
-        final String encodedStateJsonString = this.buildEncodedStateJson(redirectUrl, state);
+        final String encodedStateJsonString = this.buildEncodedStateJson(redirectUrl, state, saltId);
         String STATE_COOKIE = "state";
         final Cookie stateCookie = WebUtil.buildSecureCookie(STATE_COOKIE, encodedStateJsonString, 3600);
         response.addCookie(stateCookie);
@@ -200,7 +208,7 @@ public class OneLoginService {
                         "&state=" + state +
                         "&redirect_uri=" + serviceRedirectUrl +
                         "&nonce=" + nonce +
-                        "&vtr=" + VTR +
+                        "&vtr=" + (mfaEnabled ? VTR_MFA_ENABLED : VTR_MFA_DISABLED) +
                         "&ui_locales=" + UI;
     }
 
@@ -268,6 +276,10 @@ public class OneLoginService {
             headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
 
             final JSONObject userInfo = RestUtils.getRequestWithHeaders(oneLoginBaseUrl + "/userinfo", headers);
+            log.info(
+                    loggingUtils.getLogMessage("one login userInfo response: ", 1),
+                    entries(userInfo.toMap())
+            );
             return OneLoginUserInfoDto.builder()
                     .emailAddress(userInfo.getString("email"))
                     .sub(userInfo.getString("sub"))
@@ -318,28 +330,64 @@ public class OneLoginService {
 
 
     public void validateIdToken(IdTokenDto decodedIdToken) {
-
         long currentEpochSeconds = Instant.now().getEpochSecond();
 
-        if (!decodedIdToken.getIss().equals(oneLoginBaseUrl.concat("/")) ||
-                !decodedIdToken.getAud().equals(clientId) ||
-                currentEpochSeconds > decodedIdToken.getExp() ||
-                currentEpochSeconds < decodedIdToken.getIat()) {
-            log.error("Invalid id token {}", decodedIdToken);
-            throw new UnauthorizedException("Invalid id token");
+        if (!decodedIdToken.getIss().equals(oneLoginBaseUrl.concat("/"))) {
+            String message = "invalid iss property in One Login ID token";
+            log.error(
+                    loggingUtils.getLogMessage(message + ": ", 3),
+                    keyValue("issFromToken", decodedIdToken.getIss()),
+                    keyValue("expectedIss", oneLoginBaseUrl.concat("/")),
+                    keyValue("idToken", decodedIdToken)
+            );
+            throw new UnauthorizedClientException(message);
+        }
+        if (!decodedIdToken.getAud().equals(clientId)) {
+            String message = "invalid iss property in One Login ID token";
+            log.error(
+                    loggingUtils.getLogMessage(message + ": ", 3),
+                    keyValue("audFromToken", decodedIdToken.getAud()),
+                    keyValue("expectedAud", clientId),
+                    keyValue("idToken", decodedIdToken)
+            );
+            throw new UnauthorizedClientException(message);
+        }
+        if (currentEpochSeconds > decodedIdToken.getExp())  {
+            String message = "One Login ID token expired";
+            log.error(
+                    loggingUtils.getLogMessage(message +  ": ", 3),
+                    keyValue("currentTime", currentEpochSeconds),
+                    keyValue("tokenExpiry", decodedIdToken.getExp()),
+                    keyValue("idToken", decodedIdToken)
+            );
+            throw new UnauthorizedClientException(message);
+        }
+        if (currentEpochSeconds < decodedIdToken.getIat()) {
+            String message = "One Login ID token issue date in future";
+            log.error(
+                    loggingUtils.getLogMessage(message + ": ", 3),
+                    keyValue("currentTime", currentEpochSeconds),
+                    keyValue("tokenIat", decodedIdToken.getIat()),
+                    keyValue("idToken", decodedIdToken)
+            );
+            throw new UnauthorizedClientException(message);
         }
     }
 
-    public void validateUserSub(String IdTokenSub, String userInfoStub) {
-        if (!IdTokenSub.equals(userInfoStub)) {
-            log.error("User subs do not match {} {}", IdTokenSub, userInfoStub);
-            throw new UnauthorizedException("Invalid User sub");
+    public void validateUserSub(String idTokenSub, String userInfoSub) {
+        if (!idTokenSub.equals(userInfoSub)) {
+            String message = "Sub in One Login ID token does not match sub from /userinfo";
+            log.error(
+                    loggingUtils.getLogMessage(message + ": ", 3),
+                    keyValue("subFromIDToken", idTokenSub),
+                    keyValue("subFromUserInfo", userInfoSub)
+            );
+            throw new UnauthorizedClientException(message);
+
         }
     }
-
 
     public void validateAuthTokenSignatureAndAlgorithm(String authToken) {
-
         try {
             SignedJWT signedAuthToken = SignedJWT.parse(authToken);
             JWSAlgorithm jwtAlgorithm = JWSAlgorithm.parse(signedAuthToken.getHeader().getAlgorithm().getName());
@@ -347,24 +395,24 @@ public class OneLoginService {
 
             JWKSet jwkSet = JWKSet.load(new URL(oneLoginBaseUrl.concat("/.well-known/jwks.json")));
             Optional<JWK> optionalMatchingJwk = Optional.ofNullable(jwkSet.getKeyByKeyId(keyId));
-            JWK matchingJwk = optionalMatchingJwk.orElseThrow(() -> new UnauthorizedException
+            JWK matchingJwk = optionalMatchingJwk.orElseThrow(() -> new UnauthorizedClientException
                     ("Matching JWK not found for key ID: " + keyId));
 
             ECDSAVerifier verifier = new ECDSAVerifier((ECKey) matchingJwk);
 
             if (!matchingJwk.getAlgorithm().equals(jwtAlgorithm)) {
-                log.error("Invalid id token algorithm {}", jwtAlgorithm);
-                throw new UnauthorizedException("Invalid id token algorithm");
+                log.error("Invalid alg property in ID token header: {}", jwtAlgorithm);
+                throw new UnauthorizedClientException("Invalid alg property in ID token header");
             }
 
             if (!signedAuthToken.verify(verifier)) {
-                log.error("Invalid id token signature {}", signedAuthToken);
-                throw new UnauthorizedException("Invalid id token signature");
+                log.error("Invalid signature in ID token: {}", signedAuthToken);
+                throw new UnauthorizedClientException("Invalid signature in ID token");
             }
 
         } catch (IOException | ParseException | JOSEException e) {
-            log.error("Unable to validate access token {} due to {}", authToken, e);
-            throw new UnauthorizedException("Unable to validate access token {}", e);
+            log.error("Unable to validate access token {}", authToken, e);
+            throw new UnauthorizedClientException("Unable to validate access token");
         }
     }
 
@@ -392,6 +440,11 @@ public class OneLoginService {
                 ),
                 Safelist.basic()
         );
+    }
+
+    public void setUsersEmail(User user, String newEmail) {
+        user.setEmailAddress(newEmail);
+        userRepository.save(user);
     }
 }
 
