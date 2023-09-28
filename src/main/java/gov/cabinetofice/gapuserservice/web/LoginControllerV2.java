@@ -76,6 +76,8 @@ public class LoginControllerV2 {
     @Value("${tech-support-dash-base-url}")
     private String techSupportAppBaseUrl;
 
+    // TODO add feature flag @Value here
+
     @PostMapping("/validateSessionsRoles")
     public ResponseEntity<Boolean> validateSessionsRoles(@RequestBody final String emailAddress){
         oneLoginUserService.validateSessionsRoles(emailAddress);
@@ -207,6 +209,7 @@ public class LoginControllerV2 {
         log.info(loggingUtils.getLogMessage("Running state machine", 5), redirectUrlCookie, user, jwt,
                 hasAcceptedPrivacyPolicy, userInfo);
 
+        // TODO pass in feature flag here
         String redirectUrl = user.getLoginJourneyState()
                 .nextState(new NextStateArgs(oneLoginUserService, user, jwt, log, hasAcceptedPrivacyPolicy, userInfo))
                 .getLoginJourneyRedirect(user.getHighestRole().getName())

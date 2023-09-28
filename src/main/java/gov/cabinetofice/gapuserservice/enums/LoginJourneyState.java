@@ -1,7 +1,6 @@
 package gov.cabinetofice.gapuserservice.enums;
 
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Objects;
 
@@ -32,6 +31,7 @@ public enum LoginJourneyState {
             if (nextStateArgs.user().hasColaSub() && nextStateArgs.user().getLoginJourneyState() != USER_READY) {
                 nextStateArgs.oneLoginUserService().migrateApplyUser(nextStateArgs.user(), nextStateArgs.jwt());
             }
+
             if (Objects.equals(nextStateArgs.findAccountsMigrationEnabled(), "true")) {
                 nextStateArgs.oneLoginUserService().setUsersLoginJourneyState(nextStateArgs.user(), USER_MIGRATED_AND_READY);
             } else {
@@ -54,6 +54,7 @@ public enum LoginJourneyState {
     USER_MIGRATED_AND_READY {
         @Override
         public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
+            // TODO would just pass userInfo & user into this method that way all the checks/logics in there
             if (nextStateArgs.userInfo() != null && nextStateArgs.oneLoginUserService().hasEmailChanged(nextStateArgs.user().getEmailAddress(), nextStateArgs.userInfo().getEmailAddress())) {
                 return MIGRATING_FIND_EMAILS.nextState(nextStateArgs);
             }
@@ -93,6 +94,7 @@ public enum LoginJourneyState {
                 }
                 return MIGRATING_USER.nextState(nextStateArgs);
             } else {
+                // TODO would just pass userInfo & user into this method that way all the checks/logics in there
                 if (nextStateArgs.userInfo() != null && nextStateArgs.oneLoginUserService().hasEmailChanged(nextStateArgs.user().getEmailAddress(), nextStateArgs.userInfo().getEmailAddress())) {
                     return MIGRATING_FIND_EMAILS.nextState(nextStateArgs);
                 }
