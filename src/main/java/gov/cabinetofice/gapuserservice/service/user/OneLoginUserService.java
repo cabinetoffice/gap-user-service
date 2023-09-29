@@ -335,4 +335,8 @@ public class OneLoginUserService {
         user.setLoginJourneyState(newState);
         userRepository.save(user);
     }
+
+    public boolean hasEmailChanged(final User user, final OneLoginUserInfoDto userInfo) {
+        return userInfo != null && !userInfo.getEmailAddress().equals(user.getEmailAddress());
+    }
 }
