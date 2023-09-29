@@ -4,89 +4,96 @@ import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
-import gov.cabinetofice.gapuserservice.service.OneLoginService;
+import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.slf4j.Logger;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 public class LoginJourneyStateTest {
-    @Test
-    public void testNextStateWithEmailChange() {
-        NextStateArgs nextStateArgs = mock(NextStateArgs.class);
-        final User user = User.builder()
-                .sub("sub")
-                .loginJourneyState(LoginJourneyState.USER_READY)
-                .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
-                .emailAddress("old@example.com")
-                .build();
 
-        final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
-                .emailAddress("new@example.com")
-                .sub("sub")
-                .build();
+    @Mock
+    private OneLoginUserService oneLoginUserService = mock(OneLoginUserService.class);
 
-        OneLoginService oneLoginService = mock(OneLoginService.class);
+    @Mock
+    private Logger logger = mock(Logger.class);
 
-        when(nextStateArgs.user()).thenReturn(user);
-        when(nextStateArgs.userInfo()).thenReturn(oneLoginUserInfoDto);
-        when(nextStateArgs.oneLoginService()).thenReturn(oneLoginService);
-
-        LoginJourneyState currentState = LoginJourneyState.USER_READY;
-        LoginJourneyState nextState = currentState.nextState(nextStateArgs);
-
-        verify(oneLoginService).setUsersEmail(user, "new@example.com");
-        verify(oneLoginService).setUsersLoginJourneyState(user, LoginJourneyState.MIGRATING_FIND_EMAILS);
-        assertEquals(LoginJourneyState.MIGRATING_FIND_EMAILS, nextState);
-    }
-
-    @Test
-    public void testNextStateWithEmailNoChange() {
-        NextStateArgs nextStateArgs = mock(NextStateArgs.class);
-        final User user = User.builder()
-                .sub("sub")
-                .loginJourneyState(LoginJourneyState.USER_READY)
-                .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
-                .emailAddress("example@example.com")
-                .build();
-
-        final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
-                .emailAddress("example@example.com")
-                .sub("sub")
-                .build();
-
-        OneLoginService oneLoginService = mock(OneLoginService.class);
-
-        when(nextStateArgs.user()).thenReturn(user);
-        when(nextStateArgs.userInfo()).thenReturn(oneLoginUserInfoDto);
-        when(nextStateArgs.oneLoginService()).thenReturn(oneLoginService);
-
-        LoginJourneyState currentState = LoginJourneyState.USER_READY;
-        LoginJourneyState nextState = currentState.nextState(nextStateArgs);
-
-        verify(oneLoginService, never()).setUsersEmail(any(User.class), anyString());
-        verify(oneLoginService, never()).setUsersLoginJourneyState(any(User.class), any(LoginJourneyState.class));
-        assertEquals(currentState, nextState);
+    @BeforeEach
+    void setUp() {
+        doNothing().when(logger).info(anyString());
     }
 
     @Nested
     class PrivacyPolicyPending {
+
+        private final LoginJourneyState state = LoginJourneyState.PRIVACY_POLICY_PENDING;
         @Test
         void returnsSelf_whenNotAccepted() {
+            final User user = User.builder()
+                    .sub("sub")
+                    .loginJourneyState(LoginJourneyState.USER_READY)
+                    .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
+                    .emailAddress("email@example.com")
+                    .build();
+            final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
+                    .emailAddress("email@example.com")
+                    .sub("sub")
+                    .build();
+            final NextStateArgs nextStateArgs = NextStateArgs.builder()
+                    .oneLoginUserService(oneLoginUserService)
+                    .user(user)
+                    .jwt("jwt")
+                    .logger(logger)
+                    .hasAcceptedPrivacyPolicy(false)
+                    .userInfo(oneLoginUserInfoDto)
+                    .findAccountsMigrationEnabled("false")
+                    .build();
 
+            final LoginJourneyState nextState = state.nextState(nextStateArgs);
+
+            verify(oneLoginUserService, times(0)).setUsersLoginJourneyState(any(User.class), any(LoginJourneyState.class));
+            assertEquals(LoginJourneyState.PRIVACY_POLICY_PENDING, nextState);
         }
 
         @Test
         void returnsMigratingUser_whenAccepted() {
+            final User user = User.builder()
+                    .sub("sub")
+                    .loginJourneyState(LoginJourneyState.USER_READY)
+                    .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
+                    .emailAddress("email@example.com")
+                    .build();
+            final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
+                    .emailAddress("email@example.com")
+                    .sub("sub")
+                    .build();
+            final NextStateArgs nextStateArgs = NextStateArgs.builder()
+                    .oneLoginUserService(oneLoginUserService)
+                    .user(user)
+                    .jwt("jwt")
+                    .logger(logger)
+                    .hasAcceptedPrivacyPolicy(true)
+                    .userInfo(oneLoginUserInfoDto)
+                    .findAccountsMigrationEnabled("false")
+                    .build();
 
+            final LoginJourneyState nextState = state.nextState(nextStateArgs);
+
+            verify(oneLoginUserService, times(1)).setUsersLoginJourneyState(user, LoginJourneyState.MIGRATING_USER);
+            assertEquals(LoginJourneyState.MIGRATING_USER, nextState);
         }
 
         @Test
         void redirect() {
-
+            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(null);
+            assertEquals(LoginJourneyRedirect.PRIVACY_POLICY_PAGE, redirect);
         }
     }
 
