@@ -34,18 +34,19 @@ public class LoginJourneyStateTest {
     class PrivacyPolicyPending {
 
         private final LoginJourneyState state = LoginJourneyState.PRIVACY_POLICY_PENDING;
+        private final User user = User.builder()
+                .sub("sub")
+                .loginJourneyState(state)
+                .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
+                .emailAddress("email@example.com")
+                .build();
+        private final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
+                .emailAddress("email@example.com")
+                .sub("sub")
+                .build();
+
         @Test
         void returnsSelf_whenNotAccepted() {
-            final User user = User.builder()
-                    .sub("sub")
-                    .loginJourneyState(LoginJourneyState.USER_READY)
-                    .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
-                    .emailAddress("email@example.com")
-                    .build();
-            final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
-                    .emailAddress("email@example.com")
-                    .sub("sub")
-                    .build();
             final NextStateArgs nextStateArgs = NextStateArgs.builder()
                     .oneLoginUserService(oneLoginUserService)
                     .user(user)
@@ -64,16 +65,6 @@ public class LoginJourneyStateTest {
 
         @Test
         void returnsMigratingUser_whenAccepted() {
-            final User user = User.builder()
-                    .sub("sub")
-                    .loginJourneyState(LoginJourneyState.USER_READY)
-                    .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
-                    .emailAddress("email@example.com")
-                    .build();
-            final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
-                    .emailAddress("email@example.com")
-                    .sub("sub")
-                    .build();
             final NextStateArgs nextStateArgs = NextStateArgs.builder()
                     .oneLoginUserService(oneLoginUserService)
                     .user(user)
