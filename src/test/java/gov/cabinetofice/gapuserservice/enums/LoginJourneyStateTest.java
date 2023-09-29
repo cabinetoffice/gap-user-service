@@ -5,6 +5,7 @@ import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -69,5 +70,193 @@ public class LoginJourneyStateTest {
         verify(oneLoginService, never()).setUsersEmail(any(User.class), anyString());
         verify(oneLoginService, never()).setUsersLoginJourneyState(any(User.class), any(LoginJourneyState.class));
         assertEquals(currentState, nextState);
+    }
+
+    @Nested
+    class PrivacyPolicyPending {
+        @Test
+        void returnsSelf_whenNotAccepted() {
+
+        }
+
+        @Test
+        void returnsMigratingUser_whenAccepted() {
+
+        }
+
+        @Test
+        void redirect() {
+
+        }
+    }
+
+    @Nested
+    class MigratingUser {
+        @Test
+        void flagOn_HasColaSub_NotUserReady() {
+
+        }
+
+        @Test
+        void flagOn_HasColaSub_UserReady() {
+
+        }
+
+        @Test
+        void flagOn_NoColaSub_NotUserReady() {
+
+        }
+
+        @Test
+        void flagOn_NoColaSub_UserReady() {
+
+        }
+
+        @Test
+        void flagOff_HasColaSub_NotUserReady() {
+
+        }
+
+        @Test
+        void flagOff_HasColaSub_UserReady() {
+
+        }
+
+        @Test
+        void flagOff_NoColaSub_NotUserReady() {
+
+        }
+
+        @Test
+        void flagOff_NoColaSub_UserReady() {
+
+        }
+
+        @Test
+        void redirect_super_admin() {
+
+        }
+
+        @Test
+        void redirect_admin() {
+
+        }
+
+        @Test
+        void redirect_technical_support() {
+
+        }
+
+        @Test
+        void redirect_applicant() {
+
+        }
+
+        @Test
+        void redirect_find() {
+
+        }
+    }
+
+    @Nested
+    class UserMigratedAndReady {
+
+        @Test
+        void emailUnchanged() {
+
+        }
+
+        @Test
+        void emailChanged() {
+
+        }
+
+        @Test
+        void redirect_super_admin() {
+
+        }
+
+        @Test
+        void redirect_admin() {
+
+        }
+
+        @Test
+        void redirect_technical_support() {
+
+        }
+
+        @Test
+        void redirect_applicant() {
+
+        }
+
+        @Test
+        void redirect_find() {
+
+        }
+    }
+
+    @Nested
+    class MigratingFindEmails {
+
+        @Test
+        void nextState() {
+
+        }
+
+        @Test
+        void emailRedirectPage() {
+
+        }
+    }
+
+    @Nested
+    class UserReady {
+        @Test
+        void flagOn_HasColaSub() {
+
+        }
+
+        @Test
+        void flagOn_NoColaSub() {
+
+        }
+
+        @Test
+        void flagOff_emailsChanged() {
+
+        }
+
+        @Test
+        void flagOff_emailsUnchanged() {
+
+        }
+
+
+        @Test
+        void redirect_super_admin() {
+
+        }
+
+        @Test
+        void redirect_admin() {
+
+        }
+
+        @Test
+        void redirect_technical_support() {
+
+        }
+
+        @Test
+        void redirect_applicant() {
+
+        }
+
+        @Test
+        void redirect_find() {
+
+        }
     }
 }
