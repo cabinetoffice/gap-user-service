@@ -9,6 +9,7 @@ import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.enums.GetRedirectUrlArgs;
+import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.enums.NextStateArgs;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -76,12 +77,15 @@ public class LoginControllerV2 {
     @Value("${tech-support-dash-base-url}")
     private String techSupportAppBaseUrl;
 
+    @Value("${feature.onelogin.migration.enabled}")
+    public String migrationEnabled;
+
     @Value("${feature.find-accounts.migration.enabled}")
     private String findAccountsMigrationEnabled;
 
     @PostMapping("/validateSessionsRoles")
-    public ResponseEntity<Boolean> validateSessionsRoles(@RequestBody final String emailAddress){
-        oneLoginUserService.validateSessionsRoles(emailAddress);
+    public ResponseEntity<Boolean> validateSessionsRoles(@RequestBody final ValidateSessionsRolesRequestBodyDto requestBody){
+        oneLoginUserService.validateSessionsRoles(requestBody.emailAddress(), requestBody.roles());
         return ResponseEntity.ok(Boolean.TRUE);
     }
 
