@@ -1,12 +1,10 @@
 package gov.cabinetofice.gapuserservice.service;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
-import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
-import gov.cabinetofice.gapuserservice.dto.MigrateUserDto;
+import gov.cabinetofice.gapuserservice.dto.JwtPayload;
 import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
-import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.*;
 import gov.cabinetofice.gapuserservice.model.*;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
@@ -25,11 +23,12 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.security.*;
@@ -90,7 +89,6 @@ public class OneLoginServiceTest {
         ReflectionTestUtils.setField(oneLoginService, "clientAssertionType", "assertion_type");
         ReflectionTestUtils.setField(oneLoginService, "clientId", DUMMY_CLIENT_ID);
         ReflectionTestUtils.setField(oneLoginService, "serviceRedirectUrl", DUMMY_BASE_URL + "/redirect");
-        ReflectionTestUtils.setField(oneLoginService, "adminBackend", "adminBackend");
         ReflectionTestUtils.setField(oneLoginService, "mfaEnabled", true);
     }
 
@@ -216,64 +214,6 @@ public class OneLoginServiceTest {
                 .getTokenResponse("dummyJwt", "dummyCode"));
     }
 
-    @Test
-    void shouldReturnNewUserRoles() {
-        final List<RoleEnum> result = oneLoginService.getNewUserRoles();
-
-        Assertions.assertEquals(2, result.size());
-        Assertions.assertEquals(RoleEnum.APPLICANT, result.get(0));
-        Assertions.assertEquals(RoleEnum.FIND, result.get(1));
-    }
-
-    @Nested
-    class CreateUserTest {
-        @Test
-        void shouldReturnSavedUser() {
-            when(roleRepository.findByName(any())).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
-            when(userRepository.save(any())).thenReturn(User.builder().roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build())).build());
-
-            final User result = oneLoginService.createNewUser("", "");
-
-            Assertions.assertEquals(1, result.getRoles().size());
-            Assertions.assertEquals(RoleEnum.APPLICANT, result.getRoles().get(0).getName());
-        }
-
-        @Test
-        void shouldSaveUserWithSubAndEmailWhenUserIsCreated() {
-            when(roleRepository.findByName(any())).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
-
-            oneLoginService.createNewUser("sub", "test@email.com");
-
-            final ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
-            verify(userRepository).save(userArgumentCaptor.capture());
-            Assertions.assertEquals("sub", userArgumentCaptor.getValue().getSub());
-            Assertions.assertEquals("test@email.com", userArgumentCaptor.getValue().getEmailAddress());
-        }
-
-        @Test
-        void shouldThrowExceptionWhenRoleDoesNotExist() {
-            when(roleRepository.findByName(any())).thenReturn(Optional.empty());
-
-            assertThrows(RoleNotFoundException.class, () -> oneLoginService.createNewUser("", ""));
-        }
-    }
-
-    @Nested
-    class SetUsersLoginJourneyStateTest {
-        @Test
-        void shouldSetUsersLoginJourneyState() {
-            final User user = User.builder()
-                    .loginJourneyState(LoginJourneyState.PRIVACY_POLICY_PENDING)
-                    .build();
-
-            oneLoginService.setUsersLoginJourneyState(user, LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
-
-            final ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
-            verify(userRepository).save(userArgumentCaptor.capture());
-            assertThat(userArgumentCaptor.getValue().getLoginJourneyState()).isEqualTo(LoginJourneyState.PRIVACY_POLICY_ACCEPTED);
-        }
-    }
-
     @Nested
     class GenerateCustomJwtClaimsTest {
 
@@ -293,7 +233,7 @@ public class OneLoginServiceTest {
         @Test
         void shouldAddEmailAndSub() {
             final User user = userBuilder.build();
-            when(userRepository.findBySub(any())).thenReturn(Optional.of(user));
+            when(oneLoginUserService.getUserFromSub(any())).thenReturn(Optional.of(user));
 
             final Map<String, String> result = oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto, "tokenHint");
 
@@ -304,7 +244,7 @@ public class OneLoginServiceTest {
         @Test
         void shouldAddRoles() {
             final User user = userBuilder.build();
-            when(userRepository.findBySub(any())).thenReturn(Optional.of(user));
+            when(oneLoginUserService.getUserFromSub(any())).thenReturn(Optional.of(user));
 
             final Map<String, String> result = oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto, "tokenHint");
 
@@ -314,7 +254,7 @@ public class OneLoginServiceTest {
         @Test
         void shouldAddDepartment() {
             final User user = userBuilder.build();
-            when(userRepository.findBySub(any())).thenReturn(Optional.of(user));
+            when(oneLoginUserService.getUserFromSub(any())).thenReturn(Optional.of(user));
 
             final Map<String, String> result = oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto, "tokenHint");
 
@@ -324,7 +264,7 @@ public class OneLoginServiceTest {
         @Test
         void shouldNotAddDepartment() {
             final User user = userBuilder.department(null).build();
-            when(userRepository.findBySub(any())).thenReturn(Optional.of(user));
+            when(oneLoginUserService.getUserFromSub(any())).thenReturn(Optional.of(user));
 
             final Map<String, String> result = oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto, "tokenHint");
 
@@ -333,103 +273,29 @@ public class OneLoginServiceTest {
 
         @Test
         void shouldThrowUserNotFoundException_whenUserNotFound() {
-            when(userRepository.findBySub(any())).thenReturn(Optional.empty());
-
             assertThrows(UserNotFoundException.class, () -> oneLoginService.generateCustomJwtClaims(oneLoginUserInfoDto, "tokenHint"));
         }
     }
 
-    @Nested
-    class CreateOrGetUserFromInfoTest {
-        @Test
-        void getExistingUser() {
-            final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
-                    .sub("sub")
-                    .emailAddress("email")
-                    .build();
-            final User existingUser = User.builder().sub("sub").build();
+    @Test
+    void testLogoutUser() throws IOException, JSONException {
+        String tokenValue = "token.in.threeParts";
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpResponse httpResponse = mock(HttpResponse.class);
+        DecodedJWT decodedJWT = mock(DecodedJWT.class);
+        JwtPayload payload = new JwtPayload();
+        payload.setIdToken(tokenValue);
 
-            when(userRepository.findBySub(any())).thenReturn(Optional.of(existingUser));
+        when(customJwtService.decodedJwt(tokenValue)).thenReturn(decodedJWT);
+        when(customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJWT)).thenReturn(payload);
+        when(RestUtils.getRequest(any())).thenReturn(httpResponse);
+        Cookie customJWTCookie = new Cookie("customJWT", tokenValue);
 
-            final User result = oneLoginService.createOrGetUserFromInfo(oneLoginUserInfoDto);
+        oneLoginService.logoutUser(customJWTCookie, response);
 
-            Assertions.assertEquals(existingUser, result);
-        }
-
-        @Test
-        void createNewUser() {
-            final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
-                    .sub("sub")
-                    .emailAddress("email")
-                    .build();
-
-            when(userRepository.findBySub(any())).thenReturn(Optional.empty());
-            when(roleRepository.findByName(any())).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
-
-            final User newUser = oneLoginService.createNewUser("sub", "email");
-            final User result = oneLoginService.createOrGetUserFromInfo(oneLoginUserInfoDto);
-
-            Assertions.assertEquals(newUser, result);
-        }
+        verify(customJwtService, times(1)).decodedJwt(tokenValue);
+        verify(customJwtService, times(1)).decodeTheTokenPayloadInAReadableFormat(decodedJWT);
     }
-
-    @Nested
-    class MigrateUserTest {
-        @Test
-        void shouldMigrateUser() {
-            final User user = User.builder()
-                    .colaSub(UUID.randomUUID())
-                    .sub("oneLoginSub")
-                    .build();
-            final MigrateUserDto migrateUserDto = MigrateUserDto.builder()
-                    .oneLoginSub(user.getSub())
-                    .colaSub(user.getColaSub())
-                    .build();
-
-            // TODO not sure how to spy/mock the builder pattern well. If anyone has a better way gimme a shout!
-            final WebClient mockWebClient = mock(WebClient.class);
-            final WebClient.RequestBodyUriSpec mockRequestBodyUriSpec = mock(WebClient.RequestBodyUriSpec.class);
-            final WebClient.RequestBodySpec mockRequestBodySpec = mock(WebClient.RequestBodySpec.class);
-            final WebClient.RequestHeadersSpec mockRequestHeadersSpec = mock(WebClient.RequestHeadersSpec.class);
-            final WebClient.ResponseSpec mockResponseSpec = mock(WebClient.ResponseSpec.class);
-
-            when(webClientBuilder.build()).thenReturn(mockWebClient);
-            when(mockWebClient.patch()).thenReturn(mockRequestBodyUriSpec);
-            when(mockRequestBodyUriSpec.uri(anyString())).thenReturn(mockRequestBodySpec);
-            when(mockRequestBodySpec.header(anyString(), anyString())).thenReturn(mockRequestBodySpec);
-            when(mockRequestBodySpec.contentType(any())).thenReturn(mockRequestBodySpec);
-            when(mockRequestBodySpec.bodyValue(any())).thenReturn(mockRequestHeadersSpec);
-            when(mockRequestHeadersSpec.retrieve()).thenReturn(mockResponseSpec);
-            when(mockResponseSpec.bodyToMono(Void.class)).thenReturn(mock(Mono.class));
-
-            oneLoginService.migrateUser(user, "jwt");
-
-            verify(webClientBuilder).build();
-            verify(mockRequestBodyUriSpec).uri("adminBackend/users/migrate");
-            verify(mockRequestBodySpec).header("Authorization", "Bearer jwt");
-            verify(mockRequestBodySpec).bodyValue(migrateUserDto);
-        }
-
-        @Test
-        void testLogoutUser() throws IOException, JSONException {
-            String tokenValue = "token.in.threeParts";
-            HttpServletResponse response = mock(HttpServletResponse.class);
-            HttpResponse httpResponse = mock(HttpResponse.class);
-            DecodedJWT decodedJWT = mock(DecodedJWT.class);
-            JwtPayload payload = new JwtPayload();
-            payload.setIdToken(tokenValue);
-
-            when(customJwtService.decodedJwt(tokenValue)).thenReturn(decodedJWT);
-            when(customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJWT)).thenReturn(payload);
-            when(RestUtils.getRequest(any())).thenReturn(httpResponse);
-            Cookie customJWTCookie = new Cookie("customJWT", tokenValue);
-
-            oneLoginService.logoutUser(customJWTCookie, response);
-
-            verify(customJwtService, times(1)).decodedJwt(tokenValue);
-            verify(customJwtService, times(1)).decodeTheTokenPayloadInAReadableFormat(decodedJWT);
-        }
-}
 
     @Test
     void generateStateJson() {
