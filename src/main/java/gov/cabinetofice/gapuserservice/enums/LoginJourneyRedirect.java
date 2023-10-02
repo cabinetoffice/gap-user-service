@@ -53,7 +53,7 @@ public enum LoginJourneyRedirect {
         public String getRedirectUrl(GetRedirectUrlArgs getRedirectUrlArgs) {
             final MigrationStatus applyMigrationStatus = getRedirectUrlArgs.user().getApplyAccountMigrated();
             final MigrationStatus findMigrationStatus = getRedirectUrlArgs.user().getFindAccountMigrated();
-            return ADMIN_DASHBOARD.getRedirectUrl(getRedirectUrlArgs) + "?applyMigrationStatus=" + applyMigrationStatus + "&findMigrationStatus=" + findMigrationStatus;
+            return ADMIN_DASHBOARD.getRedirectUrl(getRedirectUrlArgs) + "&applyMigrationStatus=" + applyMigrationStatus + "&findMigrationStatus=" + findMigrationStatus;
         }
     },
 
