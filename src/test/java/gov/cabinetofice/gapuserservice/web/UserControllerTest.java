@@ -149,7 +149,7 @@ class UserControllerTest {
 
 
     @Test
-    public void testGetUserFromJwt() {
+    void testGetUserFromJwt() {
         User mockUser = User.builder().gapUserId(1).build();
         when(roleService.isSuperAdmin(any(HttpServletRequest.class)))
                 .thenReturn(true);
@@ -161,13 +161,13 @@ class UserControllerTest {
     }
 
     @Test
-    public void testGetUserFromJwtThrowsErrorWhenNotSuperAdmin() {
+    void testGetUserFromJwtThrowsErrorWhenNotSuperAdmin() {
         Mockito.doThrow(ForbiddenException.class).when(roleService).isSuperAdmin(any(HttpServletRequest.class));
         assertThrows(ForbiddenException.class, () -> controller.getUserFromJwt(mock(HttpServletRequest.class)));
     }
 
     @Test
-    public void testGetUserFromJwtThrowsInvalidRequestWhenUserIsEmpty()  {
+    void testGetUserFromJwtThrowsInvalidRequestWhenUserIsEmpty()  {
         when(roleService.isSuperAdmin(any(HttpServletRequest.class)))
                 .thenReturn(true);
         when(customJwtService.getUserFromJwt(any(HttpServletRequest.class)))
