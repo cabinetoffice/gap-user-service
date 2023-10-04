@@ -110,7 +110,7 @@ public class ControllerExceptionHandler {
                 keyValue("URL", request.getRequestURL()),
                 keyValue("query", request.getQueryString()),
                 keyValue("method", request.getMethod()),
-                keyValue("headers", loggingUtils.getHeadersFromRequest(request)),
+                keyValue("headers", LoggingUtils.getHeadersFromRequest(request)),
                 keyValue("cookies", loggingUtils.getCookiesFromRequest(request)),
                 ex
         );
