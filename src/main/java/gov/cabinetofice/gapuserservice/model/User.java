@@ -86,18 +86,18 @@ public class User {
     }
 
     public boolean isApplicant() {
-        return this.roles.stream().anyMatch((role) -> role.getName().equals(RoleEnum.APPLICANT) ||
+        return this.roles.stream().anyMatch(role -> role.getName().equals(RoleEnum.APPLICANT) ||
                 role.getName().equals(RoleEnum.ADMIN) ||
                 role.getName().equals(RoleEnum.SUPER_ADMIN));
     }
 
     public boolean isAdmin() {
         return this.roles.stream().anyMatch(
-                (role) -> role.getName().equals(RoleEnum.ADMIN) || role.getName().equals(RoleEnum.SUPER_ADMIN));
+                role -> role.getName().equals(RoleEnum.ADMIN) || role.getName().equals(RoleEnum.SUPER_ADMIN));
     }
 
     public boolean isSuperAdmin() {
-        return this.roles.stream().anyMatch((role) -> role.getName().equals(RoleEnum.SUPER_ADMIN));
+        return this.roles.stream().anyMatch(role -> role.getName().equals(RoleEnum.SUPER_ADMIN));
     }
 
     public boolean isTechnicalSupport() {
