@@ -97,7 +97,7 @@ public class LoggingUtils {
         return Arrays.stream(cookies)
                 .filter(c -> !c.getName().equals(userServiceCookieName))
                 .map(c -> c.getName() + "=" + c.getValue())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<String> getCookiesFromRequest(HttpServletRequest request) {
