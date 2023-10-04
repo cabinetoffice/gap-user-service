@@ -37,6 +37,7 @@ public class UserController {
     private final RoleService roleService;
     private final CustomJwtServiceImpl jwtService;
     private final SecretAuthService secretAuthService;
+    private static final String NO_USER = "Could not get user from jwt";
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
@@ -48,7 +49,7 @@ public class UserController {
         }
         Optional<User> user = jwtService.getUserFromJwt(httpRequest);
         if(user.isEmpty()){
-            throw new InvalidRequestException("Could not get user from jwt");
+            throw new InvalidRequestException(NO_USER);
         }
 
         return ResponseEntity.ok(new UserDto(user.get()));
@@ -117,11 +118,11 @@ public class UserController {
             throw new ForbiddenException();
         }
 
-        boolean isARequestToBlockUser = roleIds.size() == 0;
+        boolean isARequestToBlockUser = roleIds.isEmpty();
         Optional<User> user = jwtService.getUserFromJwt(httpRequest);
 
         if(user.isEmpty()){
-            throw new InvalidRequestException("Could not get user from jwt");
+            throw new InvalidRequestException(NO_USER);
         }
         if (isARequestToBlockUser && id.equals(user.get().getGapUserId())){
             throw new UnsupportedOperationException("You can't block yourself");
@@ -139,7 +140,7 @@ public class UserController {
         final Cookie customJWTCookie = getCustomJwtCookieFromRequest(httpRequest, userServiceCookieName);
         Optional<User> user = jwtService.getUserFromJwt(httpRequest);
         if(user.isEmpty()){
-            throw new InvalidRequestException("Could not get user from jwt");
+            throw new InvalidRequestException(NO_USER);
         }
         if(user.get().getGapUserId().equals(id)) {
             throw new UnsupportedOperationException("You can't delete yourself");
