@@ -16,6 +16,11 @@ import java.util.*;
 
 public class RestUtils {
 
+    //private constructor to hide implicit public one
+    private RestUtils(){
+        throw new IllegalStateException("Utility class");
+    }
+
     public static JSONObject postRequestWithBody(String url, String body, String contentType) throws IOException {
         HttpClient httpClient = HttpClients.createDefault();
         HttpPost httpPost = new HttpPost(url);
