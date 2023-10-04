@@ -43,6 +43,7 @@ public class OneLoginUserService {
     private final ThirdPartyAuthProviderProperties authenticationProvider;
     private final WebClient.Builder webClientBuilder;
     private final RoleMapper roleMapper;
+    private static final String NOT_FOUND = "not found";
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
@@ -72,11 +73,11 @@ public class OneLoginUserService {
 
     public User getUserById(int id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("user with id: " + id + "not found"));
+                .orElseThrow(() -> new UserNotFoundException("user with id: " + id + NOT_FOUND));
     }
     public User getUserBySub(String sub) {
         return userRepository.findBySub(sub)
-                .orElseThrow(() -> new UserNotFoundException("user with sub: " + sub + "not found"));
+                .orElseThrow(() -> new UserNotFoundException("user with sub: " + sub + NOT_FOUND));
     }
 
     public User getUserByUserSub(String userSub) {
@@ -86,7 +87,7 @@ public class OneLoginUserService {
             // If user is not found by One Login sub, get user by Cola sub
             try {
                 return userRepository.findByColaSub(UUID.fromString(userSub))
-                        .orElseThrow(() -> new UserNotFoundException("user with sub: " + userSub + "not found"));
+                        .orElseThrow(() -> new UserNotFoundException("user with sub: " + userSub + NOT_FOUND));
 
             } catch (IllegalArgumentException e) {
                 log.error("Invalid UUID: " + userSub);
@@ -164,7 +165,7 @@ public class OneLoginUserService {
 
     @Transactional
     public void deleteUser(Integer id, String jwt) {
-        final User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("user with id: " + id + "not found"));
+        final User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("user with id: " + id + NOT_FOUND));
         webClientBuilder.build()
                 .delete()
                 .uri(adminBackend + "/users/delete/" + (user.hasSub() ? user.getSub() : "") + (user.hasColaSub() ? "?colaSub=" + user.getColaSub() : ""))
@@ -204,7 +205,7 @@ public class OneLoginUserService {
         final Set<String> formattedUserRoles = userRoles.stream()
                 .map(role -> roleMapper.roleToRoleDto(role).getName())
                 .collect(Collectors.toSet());
-        boolean userHasBeenUnblocked = payloadRoles.equals("[]") && formattedUserRoles.size() > 0;
+        boolean userHasBeenUnblocked = payloadRoles.equals("[]") && !formattedUserRoles.isEmpty();
 
         if (formattedUserRoles.isEmpty()) {
             throw new UnauthorizedException("Payload is invalid - User is blocked");
