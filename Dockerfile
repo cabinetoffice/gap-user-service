@@ -10,7 +10,7 @@
 # Base image splits the jar into layers
 # ====================================================
 
-FROM --platform=linux/amd64 public.ecr.aws/amazoncorretto/amazoncorretto:17 as builder
+FROM --platform=linux/amd64 public.ecr.aws/amazoncorretto/amazoncorretto:17 AS builder
 WORKDIR application
 ARG JAR_FILE=target/*.jar
 COPY ${JAR_FILE} application.jar
