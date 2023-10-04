@@ -12,9 +12,9 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
-public class LoginJourneyStateTest {
+class LoginJourneyStateTest {
     @Test
-    public void testNextStateWithEmailChange() {
+    void testNextStateWithEmailChange() {
         NextStateArgs nextStateArgs = mock(NextStateArgs.class);
         final User user = User.builder()
                 .sub("sub")
@@ -43,7 +43,7 @@ public class LoginJourneyStateTest {
     }
 
     @Test
-    public void testNextStateWithEmailNoChange() {
+    void testNextStateWithEmailNoChange() {
         NextStateArgs nextStateArgs = mock(NextStateArgs.class);
         final User user = User.builder()
                 .sub("sub")
