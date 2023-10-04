@@ -17,7 +17,7 @@ import gov.cabinetofice.gapuserservice.util.HelperUtils;
 import gov.cabinetofice.gapuserservice.repository.SaltRepository;
 
 @ExtendWith(MockitoExtension.class)
-public class Sha512ServiceTest {
+class Sha512ServiceTest {
     @InjectMocks
     private Sha512Service encryptionService;
 
