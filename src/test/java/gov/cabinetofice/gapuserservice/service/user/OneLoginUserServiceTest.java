@@ -36,7 +36,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class OneLoginUserServiceTest {
+class OneLoginUserServiceTest {
 
     @InjectMocks
     private OneLoginUserService oneLoginUserService;
@@ -89,8 +89,9 @@ public class OneLoginUserServiceTest {
         when(userRepository.findById(1)).thenReturn(Optional.of(mockedUser));
         User result = oneLoginUserService.getUserById(1);
 
-        assertThat(result).isNotNull();
-        assertThat(result).isEqualTo(mockedUser);
+        assertThat(result)
+            .isNotNull()
+            .isEqualTo(mockedUser);
         verify(userRepository, times(1)).findById(1);
     }
 
@@ -100,8 +101,9 @@ public class OneLoginUserServiceTest {
             when(userRepository.findBySub("1234")).thenReturn(Optional.of(mockedUser));
             User result = oneLoginUserService.getUserByUserSub("1234");
 
-            assertThat(result).isNotNull();
-            assertThat(result).isEqualTo(mockedUser);
+            assertThat(result)
+                .isNotNull()
+                .isEqualTo(mockedUser);
             verify(userRepository, times(1)).findBySub("1234");
     }
 
@@ -115,8 +117,9 @@ public class OneLoginUserServiceTest {
         when(userRepository.findByColaSub(uuid)).thenReturn(Optional.of(mockedUser));
         User result = oneLoginUserService.getUserByUserSub("f1da81d1-375f-4693-b52e-60f38a253fc9");
 
-        assertThat(result).isNotNull();
-        assertThat(result).isEqualTo(mockedUser);
+        assertThat(result)
+            .isNotNull()
+            .isEqualTo(mockedUser);
         verify(userRepository, times(1)).findBySub("f1da81d1-375f-4693-b52e-60f38a253fc9");
         verify(userRepository, times(1)).findByColaSub(uuid);
     }
@@ -189,7 +192,7 @@ public class OneLoginUserServiceTest {
             Page<User> userPage = new PageImpl<>(users, pageable, users.size());
             UserQueryDto userQueryDto = new UserQueryDto(Collections.emptyList(), Collections.emptyList(), emailAddress);
 
-            when(userRepository.findUsersByFuzzyEmail(eq(emailAddress), eq(pageable)))
+            when(userRepository.findUsersByFuzzyEmail(emailAddress, pageable))
                     .thenReturn(userPage);
 
             Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
@@ -211,7 +214,7 @@ public class OneLoginUserServiceTest {
             Page<User> userPage = new PageImpl<>(users, pageable, users.size());
             UserQueryDto userQueryDto = new UserQueryDto(departmentIds, Collections.emptyList(), "");
 
-            when(userRepository.findUsersByDepartment(eq(departmentIds), eq(pageable)))
+            when(userRepository.findUsersByDepartment(departmentIds, pageable))
                     .thenReturn(userPage);
 
             Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
@@ -233,7 +236,7 @@ public class OneLoginUserServiceTest {
             Page<User> userPage = new PageImpl<>(users, pageable, users.size());
             UserQueryDto userQueryDto = new UserQueryDto(Collections.emptyList(), roleIds, "");
 
-            when(userRepository.findUsersByRoles(eq(roleIds), eq(pageable)))
+            when(userRepository.findUsersByRoles(roleIds, pageable))
                     .thenReturn(userPage);
 
             Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
@@ -256,7 +259,7 @@ public class OneLoginUserServiceTest {
             Page<User> userPage = new PageImpl<>(users, pageable, users.size());
             UserQueryDto userQueryDto = new UserQueryDto(departmentIds, Collections.emptyList(), emailAddress);
 
-            when(userRepository.findUsersByDepartmentAndFuzzyEmail(eq(departmentIds), eq(emailAddress), eq(pageable)))
+            when(userRepository.findUsersByDepartmentAndFuzzyEmail(departmentIds, emailAddress, pageable))
                     .thenReturn(userPage);
 
             Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
@@ -279,7 +282,7 @@ public class OneLoginUserServiceTest {
             Page<User> userPage = new PageImpl<>(users, pageable, users.size());
             UserQueryDto userQueryDto = new UserQueryDto(Collections.emptyList(), roleIds, emailAddress);
 
-            when(userRepository.findUsersByRolesAndFuzzyEmail(eq(roleIds), eq(emailAddress), eq(pageable)))
+            when(userRepository.findUsersByRolesAndFuzzyEmail(roleIds, emailAddress, pageable))
                     .thenReturn(userPage);
 
             Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
@@ -302,7 +305,7 @@ public class OneLoginUserServiceTest {
             Page<User> userPage = new PageImpl<>(users, pageable, users.size());
             UserQueryDto userQueryDto = new UserQueryDto(departmentIds, roleIds, "");
 
-            when(userRepository.findUsersByDepartmentAndRoles(eq(roleIds), eq(departmentIds), eq(pageable)))
+            when(userRepository.findUsersByDepartmentAndRoles(roleIds, departmentIds, pageable))
                     .thenReturn(userPage);
 
             Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
@@ -326,7 +329,7 @@ public class OneLoginUserServiceTest {
             Page<User> userPage = new PageImpl<>(users, pageable, users.size());
             UserQueryDto userQueryDto = new UserQueryDto(departmentIds, roleIds, emailAddress);
 
-            when(userRepository.findUsersByDepartmentAndRolesAndFuzzyEmail(eq(roleIds), eq(departmentIds) ,eq(emailAddress), eq(pageable)))
+            when(userRepository.findUsersByDepartmentAndRolesAndFuzzyEmail(roleIds, departmentIds ,emailAddress, pageable))
                     .thenReturn(userPage);
 
             Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
@@ -422,7 +425,7 @@ public class OneLoginUserServiceTest {
         when(roleRepository.findByName(RoleEnum.FIND)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).build()));
         User updatedUser = oneLoginUserService.updateRoles(userId , newRoles);
 
-        assertThat(updatedUser.getRoles().size()).isEqualTo(4);
+        assertThat(updatedUser.getRoles()).hasSize(4);
         assertThat(updatedUser.getRoles().stream().anyMatch(role -> role.getName().equals(RoleEnum.APPLICANT))).isTrue();
         assertThat(updatedUser.getRoles().stream().anyMatch(role -> role.getName().equals(RoleEnum.FIND))).isTrue();
     }
