@@ -2,6 +2,7 @@ package gov.cabinetofice.gapuserservice.service.user;
 
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
+import gov.cabinetofice.gapuserservice.dto.UserEmailDto;
 import gov.cabinetofice.gapuserservice.dto.UserQueryDto;
 import gov.cabinetofice.gapuserservice.exceptions.*;
 import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
@@ -217,5 +218,14 @@ public class OneLoginUserService {
     public void validateSessionsRoles(String emailAddress, String roles) {
         List<Role> userRoles = userRepository.findByEmailAddress(emailAddress).orElseThrow(() -> new InvalidRequestException("Could not get user from emailAddress")).getRoles();
         validateRoles(userRoles, roles);
+    }
+
+    public List<UserEmailDto> getUserEmailsBySubs(List<String> subs) {
+        return subs.stream()
+                .map(sub -> {
+                    User user = userRepository.findBySub(sub).orElseThrow(() -> new UserNotFoundException("user with sub: " + sub + "not found"));
+                    return new UserEmailDto(user.getEmailAddress(), user.getSub());
+                })
+                .collect(Collectors.toList());
     }
 }
