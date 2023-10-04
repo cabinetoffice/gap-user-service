@@ -16,7 +16,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class HelperUtilsTest {
+class HelperUtilsTest {
     @Test
     void shouldRemoveSquareBracketsAndTrimAndReturnASet() {
         List<String> input = List.of("[FIND ", "APPLY", "ADMIN] ");
