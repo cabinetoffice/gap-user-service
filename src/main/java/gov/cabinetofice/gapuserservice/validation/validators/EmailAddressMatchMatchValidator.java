@@ -29,13 +29,11 @@ public class EmailAddressMatchMatchValidator implements ConstraintValidator<Emai
         final boolean fieldValueIsEmpty = Strings.isEmpty((String) fieldValue);
         final boolean fieldMatchValueIsEmpty = Strings.isEmpty((String) fieldMatchValue);
 
-        if (!fieldValueIsEmpty && !fieldMatchValueIsEmpty) {
-            if (!fieldValue.equals(fieldMatchValue)) {
+        if (!fieldValueIsEmpty && !fieldMatchValueIsEmpty && !fieldValue.equals(fieldMatchValue)){
                 context.disableDefaultConstraintViolation();
                 context.buildConstraintViolationWithTemplate(context.getDefaultConstraintMessageTemplate()).addPropertyNode(field).addConstraintViolation();
                 context.buildConstraintViolationWithTemplate(context.getDefaultConstraintMessageTemplate()).addPropertyNode(fieldMatch).addConstraintViolation();
                 return false;
-            }
         }
 
         return true;
