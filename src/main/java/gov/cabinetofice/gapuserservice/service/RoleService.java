@@ -32,7 +32,7 @@ public class RoleService {
     public List<RoleDto> getAllRoles() {
         return roleRepository.findAll().stream()
                 .map(roleMapper::roleToRoleDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public boolean isSuperAdmin(final HttpServletRequest request) {
