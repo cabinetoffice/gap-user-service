@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import gov.cabinetofice.gapuserservice.exceptions.ConvertJsonToStringException;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -61,7 +62,7 @@ public class HelperUtils {
             return mapper.writeValueAsString(obj);
         }
         catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new ConvertJsonToStringException("Failed to convert Json to string: " + e);
         }
     }
 
