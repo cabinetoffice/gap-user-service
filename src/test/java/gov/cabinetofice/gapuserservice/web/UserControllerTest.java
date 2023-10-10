@@ -24,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -67,18 +68,20 @@ class UserControllerTest {
     void testSuperAdminCannotBlockThemselves() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
+        final ArrayList<Integer> noRoles = new ArrayList<>();
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(1).build()));
 
-        assertThrows(UnsupportedOperationException.class, () -> controller.updateRoles(httpRequest, List.of(), 1));
+        assertThrows(UnsupportedOperationException.class, () -> controller.updateRoles(httpRequest, noRoles, 1));
     }
 
     @Test
     void testSuperAdminThrowsInvalidRequestWithNoUser() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        final ArrayList<Integer> noRoles = new ArrayList<>();
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.empty());
 
-        assertThrows(InvalidRequestException.class, () -> controller.updateRoles(httpRequest, List.of(), 1));
+        assertThrows(InvalidRequestException.class, () -> controller.updateRoles(httpRequest, noRoles, 1));
     }
 
     @Test
