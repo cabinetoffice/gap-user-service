@@ -540,12 +540,12 @@ class LoginControllerV2Test {
         @Test
         void willThrowException_whenUserIsNotFound() {
             final MockHttpServletRequest request = new MockHttpServletRequest();
-            final String redirectUrl = "redirectUrl";
+            final Optional<String> redirectUrl = Optional.of("redirectUrl");
 
             mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
                     .thenReturn(new Cookie("userServiceCookieName", mockJwt));
             doThrow(new UserNotFoundException("User not found")).when(oneLoginService).getUserFromSub(anyString());
-            assertThrows(UserNotFoundException.class, () -> loginController.updatedEmailPage(request, Optional.of(redirectUrl)));
+            assertThrows(UserNotFoundException.class, () -> loginController.updatedEmailPage(request, redirectUrl));
         }
     }
 
