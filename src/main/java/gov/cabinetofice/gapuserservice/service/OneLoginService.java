@@ -209,7 +209,7 @@ public class OneLoginService {
                         "&state=" + state +
                         "&redirect_uri=" + serviceRedirectUrl +
                         "&nonce=" + nonce +
-                        "&vtr=" + (mfaEnabled ? VTR_MFA_ENABLED : VTR_MFA_DISABLED) +
+                        "&vtr=" + (mfaEnabled.equals(Boolean.TRUE) ? VTR_MFA_ENABLED : VTR_MFA_DISABLED) +
                         "&ui_locales=" + UI;
     }
 
