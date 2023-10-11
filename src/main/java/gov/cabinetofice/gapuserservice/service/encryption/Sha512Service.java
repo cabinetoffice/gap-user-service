@@ -25,7 +25,7 @@ public class Sha512Service {
 
     private String storeSalt(String salt) {
         String saltId = generateUUID();
-        final Salt saltModel = Salt.builder().salt(salt).saltId(saltId).build();
+        final Salt saltModel = Salt.builder().saltValue(salt).saltId(saltId).build();
         this.saltRepository.save(saltModel);
         return saltId;
     }
@@ -39,7 +39,7 @@ public class Sha512Service {
                 .findFirstBySaltIdOrderBySaltIdAsc(saltId)
                 .orElseThrow(() -> new NonceExpiredException("Salt not found"));
 
-        return saltModel.getSalt();
+        return saltModel.getSaltValue();
     }
 
     public void deleteSalt(String saltId) {

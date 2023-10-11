@@ -3,6 +3,7 @@ package gov.cabinetofice.gapuserservice.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
+import gov.cabinetofice.gapuserservice.exceptions.RoleNotFoundException;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -104,17 +105,20 @@ public class User {
         return this.roles.stream().anyMatch(role -> role.getName().equals(RoleEnum.TECHNICAL_SUPPORT));
     }
 
-    @SuppressWarnings("OptionalGetWithoutIsPresent")
+
     public Role getHighestRole() {
         if (isSuperAdmin())
-            return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.SUPER_ADMIN)).findFirst().get();
+            return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.SUPER_ADMIN)).findFirst()
+                    .orElseThrow(() -> new RoleNotFoundException("No SUPER_ADMIN_ROLE found."));
         if (isAdmin())
-            return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.ADMIN)).findFirst().get();
+            return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.ADMIN)).findFirst()
+                    .orElseThrow(() -> new RoleNotFoundException("No ADMIN_ROLE found."));
         if (isTechnicalSupport())
             return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.TECHNICAL_SUPPORT)).findFirst()
-                    .get();
+                    .orElseThrow(() -> new RoleNotFoundException("No TECHNICAL_SUPPORT_ROLE found."));
         if (isApplicant())
-            return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.APPLICANT)).findFirst().get();
+            return this.roles.stream().filter(role -> role.getName().equals(RoleEnum.APPLICANT)).findFirst()
+                    .orElseThrow(() -> new RoleNotFoundException("No APPLICANT_ROLE found."));
         return null;
     }
 

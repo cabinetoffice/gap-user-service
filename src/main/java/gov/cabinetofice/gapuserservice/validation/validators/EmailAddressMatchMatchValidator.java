@@ -20,12 +20,13 @@ public class EmailAddressMatchMatchValidator implements ConstraintValidator<Emai
     }
 
     public boolean isValid(Object value, ConstraintValidatorContext context) {
-
         Object fieldValue = new BeanWrapperImpl(value)
                 .getPropertyValue(field);
         Object fieldMatchValue = new BeanWrapperImpl(value)
                 .getPropertyValue(fieldMatch);
 
+        // Suppressing null pointer warning, isEmpty() already checks for null value
+        @SuppressWarnings("Unchecked")
         final boolean fieldValueIsEmpty = Strings.isEmpty((String) fieldValue);
         final boolean fieldMatchValueIsEmpty = Strings.isEmpty((String) fieldMatchValue);
 
