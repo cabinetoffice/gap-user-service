@@ -102,7 +102,6 @@ class OneLoginUserServiceTest {
             User result = oneLoginUserService.getUserByUserSub("1234");
 
             assertThat(result)
-                .isNotNull()
                 .isEqualTo(mockedUser);
             verify(userRepository, times(1)).findBySub("1234");
     }
@@ -118,7 +117,6 @@ class OneLoginUserServiceTest {
         User result = oneLoginUserService.getUserByUserSub("f1da81d1-375f-4693-b52e-60f38a253fc9");
 
         assertThat(result)
-            .isNotNull()
             .isEqualTo(mockedUser);
         verify(userRepository, times(1)).findBySub("f1da81d1-375f-4693-b52e-60f38a253fc9");
         verify(userRepository, times(1)).findByColaSub(uuid);

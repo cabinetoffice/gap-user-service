@@ -95,6 +95,7 @@ public class OneLoginService {
     private static final String UI = "en";
     private static final String GRANT_TYPE = "authorization_code";
     private static final String ID_TOKEN = "idToken";
+    private static final String STATE_COOKIE = "state";
 
     private final ApplicationConfigProperties configProperties;
     private final NonceRepository nonceRepository;
@@ -168,8 +169,7 @@ public class OneLoginService {
     public String generateAndStoreState(final HttpServletResponse response, final String redirectUrl, final String saltId) {
         final String state = this.generateState();
         final String encodedStateJsonString = this.buildEncodedStateJson(redirectUrl, state, saltId);
-        String stateCookieValue = "state";
-        final Cookie stateCookie = WebUtil.buildSecureCookie(stateCookieValue, encodedStateJsonString, 3600);
+        final Cookie stateCookie = WebUtil.buildSecureCookie(STATE_COOKIE, encodedStateJsonString, 3600);
         response.addCookie(stateCookie);
         return encodedStateJsonString;
     }

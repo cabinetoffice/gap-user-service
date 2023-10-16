@@ -17,12 +17,12 @@ import java.util.*;
 public class RestUtils {
 
     //private constructor to hide implicit public one
-    private RestUtils(){
+    private RestUtils() {
         throw new IllegalStateException("Utility class");
     }
 
     public static JSONObject postRequestWithBody(String url, String body, String contentType) throws IOException {
-        try(CloseableHttpClient httpClient = HttpClients.createDefault();) {
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpPost httpPost = new HttpPost(url);
             httpPost.setHeader(HttpHeaders.CONTENT_TYPE, contentType);
 
@@ -33,7 +33,7 @@ public class RestUtils {
     }
 
     public static JSONObject getRequestWithHeaders(String url, Map<String, String> headers) throws IOException {
-        try(CloseableHttpClient httpClient = HttpClients.createDefault();) {
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpGet httpGet = new HttpGet(url);
             headers.forEach(httpGet::setHeader);
 
@@ -43,7 +43,7 @@ public class RestUtils {
     }
 
     public static HttpResponse getRequest(String url) throws IOException {
-        try(CloseableHttpClient httpClient = HttpClients.createDefault();) {
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             HttpGet httpGet = new HttpGet(url);
 
             return httpClient.execute(httpGet);
