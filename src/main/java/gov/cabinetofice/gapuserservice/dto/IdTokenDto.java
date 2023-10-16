@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class IdTokenDto {
     private String sub;
-    private String atHash;
+    private String at_hash;
     private String iss;
     private String aud;
     private long exp;
