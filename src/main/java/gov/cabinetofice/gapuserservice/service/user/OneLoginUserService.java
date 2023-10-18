@@ -2,10 +2,7 @@ package gov.cabinetofice.gapuserservice.service.user;
 
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
-import gov.cabinetofice.gapuserservice.dto.MigrateFindUserDto;
-import gov.cabinetofice.gapuserservice.dto.MigrateUserDto;
-import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
-import gov.cabinetofice.gapuserservice.dto.UserQueryDto;
+import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.enums.MigrationStatus;
 import gov.cabinetofice.gapuserservice.exceptions.*;
@@ -257,7 +254,7 @@ public class OneLoginUserService {
         final Set<String> formattedUserRoles = userRoles.stream()
                 .map(role -> roleMapper.roleToRoleDto(role).getName())
                 .collect(Collectors.toSet());
-        boolean userHasBeenUnblocked = payloadRoles.equals("[]") && formattedUserRoles.size() > 0;
+        boolean userHasBeenUnblocked = payloadRoles.equals("[]") && !formattedUserRoles.isEmpty();
 
         if (formattedUserRoles.isEmpty()) {
             throw new UnauthorizedException("Payload is invalid - User is blocked");
@@ -275,17 +272,16 @@ public class OneLoginUserService {
     public void migrateFindUser(final User user, final String jwt) {
         try {
             final MigrateFindUserDto requestBody = new MigrateFindUserDto(user.getEmailAddress(), user.getSub());
-            webClientBuilder.build()
+            MigrateFindResponseDto response = webClientBuilder.build()
                     .patch()
                     .uri(findFrontend + "/api/user/migrate")
                     .header("Authorization", "Bearer " + jwt)
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(requestBody)
                     .retrieve()
-                    .bodyToMono(Void.class)
+                    .bodyToMono(MigrateFindResponseDto.class)
                     .block();
-            final boolean isNewUser = false; //TODO: get this from the response
-            if (isNewUser) {
+            if (Objects.requireNonNull(response).isNewUser()) {
                 log.info("Successfully created new find user: " + user.getSub());
                 setUsersFindMigrationState(user, MigrationStatus.NEW_USER);
             } else {
