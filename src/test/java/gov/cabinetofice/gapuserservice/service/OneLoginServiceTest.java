@@ -48,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class OneLoginServiceTest {
+class OneLoginServiceTest {
 
     @InjectMocks
     private OneLoginService oneLoginService;

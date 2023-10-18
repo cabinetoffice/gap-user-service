@@ -132,8 +132,8 @@ class LoginControllerV2Test {
 
             assertThat(stateCookie.getName()).isEqualTo("state");
             assertThat(stateCookie.getValue()).isEqualTo("eyJyZWRpcmVjdFVybCI6Imh0dHBzOi8vd3d3LmZpbmQtZ292ZXJubWVudC1ncmFudHMuc2VydmljZS5nb3YudWsvIiwic2FsdElkIjoic2FsdElkIiwic3RhdGUiOiJzdGF0ZSJ9");
-            assertThat(stateCookie.isHttpOnly()).isEqualTo(true);
-            assertThat(stateCookie.getSecure()).isEqualTo(true);
+            assertThat(stateCookie.isHttpOnly()).isTrue();
+            assertThat(stateCookie.getSecure()).isTrue();
             assertThat(stateCookie.getMaxAge()).isEqualTo(3600);
 
             assertThat(methodResponse.getUrl()).isEqualTo(loginUrl);
@@ -540,12 +540,12 @@ class LoginControllerV2Test {
         @Test
         void willThrowException_whenUserIsNotFound() {
             final MockHttpServletRequest request = new MockHttpServletRequest();
-            final String redirectUrl = "redirectUrl";
+            final Optional<String> redirectUrl = Optional.of("redirectUrl");
 
             mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
                     .thenReturn(new Cookie("userServiceCookieName", mockJwt));
             doThrow(new UserNotFoundException("User not found")).when(oneLoginService).getUserFromSub(anyString());
-            assertThrows(UserNotFoundException.class, () -> loginController.updatedEmailPage(request, Optional.of(redirectUrl)));
+            assertThrows(UserNotFoundException.class, () -> loginController.updatedEmailPage(request, redirectUrl));
         }
     }
 

@@ -94,6 +94,8 @@ public class OneLoginService {
     private static final String VTR_MFA_DISABLED = "[\"Cl\"]";
     private static final String UI = "en";
     private static final String GRANT_TYPE = "authorization_code";
+    private static final String ID_TOKEN = "idToken";
+    private static final String STATE_COOKIE = "state";
 
     private final ApplicationConfigProperties configProperties;
     private final NonceRepository nonceRepository;
@@ -167,7 +169,6 @@ public class OneLoginService {
     public String generateAndStoreState(final HttpServletResponse response, final String redirectUrl, final String saltId) {
         final String state = this.generateState();
         final String encodedStateJsonString = this.buildEncodedStateJson(redirectUrl, state, saltId);
-        String STATE_COOKIE = "state";
         final Cookie stateCookie = WebUtil.buildSecureCookie(STATE_COOKIE, encodedStateJsonString, 3600);
         response.addCookie(stateCookie);
         return encodedStateJsonString;
@@ -208,7 +209,7 @@ public class OneLoginService {
                         "&state=" + state +
                         "&redirect_uri=" + serviceRedirectUrl +
                         "&nonce=" + nonce +
-                        "&vtr=" + (mfaEnabled ? VTR_MFA_ENABLED : VTR_MFA_DISABLED) +
+                        "&vtr=" + (mfaEnabled.equals(Boolean.TRUE) ? VTR_MFA_ENABLED : VTR_MFA_DISABLED) +
                         "&ui_locales=" + UI;
     }
 
@@ -226,7 +227,7 @@ public class OneLoginService {
         final User user = getUserFromSub(userInfo.getSub())
                 .orElseThrow(() -> new UserNotFoundException("User not found when generating custom jwt claims"));
         final Map<String, String> claims = new HashMap<>();
-        claims.put("idToken", idToken);
+        claims.put(ID_TOKEN, idToken);
         claims.put("email", userInfo.getEmailAddress());
         claims.put("sub", userInfo.getSub());
         claims.put("roles", user.getRoles().stream().map(Role::getName).toList().toString());
@@ -257,7 +258,7 @@ public class OneLoginService {
     }
 
     public String createOneLoginJwt() {
-        final PrivateKey privateKey = parsePrivateKey();
+        final PrivateKey jwtPrivateKey = parsePrivateKey();
 
         return Jwts.builder()
                 .claim("aud", oneLoginBaseUrl + "/token")
@@ -266,7 +267,7 @@ public class OneLoginService {
                 .claim("exp", System.currentTimeMillis() + 300000L)
                 .claim("jti", UUID.randomUUID().toString())
                 .claim("iat", System.currentTimeMillis())
-                .signWith(privateKey, SignatureAlgorithm.RS256)
+                .signWith(jwtPrivateKey, SignatureAlgorithm.RS256)
                 .compact();
     }
 
@@ -338,7 +339,7 @@ public class OneLoginService {
                     loggingUtils.getLogMessage(message + ": ", 3),
                     keyValue("issFromToken", decodedIdToken.getIss()),
                     keyValue("expectedIss", oneLoginBaseUrl.concat("/")),
-                    keyValue("idToken", decodedIdToken)
+                    keyValue(ID_TOKEN, decodedIdToken)
             );
             throw new UnauthorizedClientException(message);
         }
@@ -348,7 +349,7 @@ public class OneLoginService {
                     loggingUtils.getLogMessage(message + ": ", 3),
                     keyValue("audFromToken", decodedIdToken.getAud()),
                     keyValue("expectedAud", clientId),
-                    keyValue("idToken", decodedIdToken)
+                    keyValue(ID_TOKEN, decodedIdToken)
             );
             throw new UnauthorizedClientException(message);
         }
@@ -358,7 +359,7 @@ public class OneLoginService {
                     loggingUtils.getLogMessage(message +  ": ", 3),
                     keyValue("currentTime", currentEpochSeconds),
                     keyValue("tokenExpiry", decodedIdToken.getExp()),
-                    keyValue("idToken", decodedIdToken)
+                    keyValue(ID_TOKEN, decodedIdToken)
             );
             throw new UnauthorizedClientException(message);
         }
@@ -368,7 +369,7 @@ public class OneLoginService {
                     loggingUtils.getLogMessage(message + ": ", 3),
                     keyValue("currentTime", currentEpochSeconds),
                     keyValue("tokenIat", decodedIdToken.getIat()),
-                    keyValue("idToken", decodedIdToken)
+                    keyValue(ID_TOKEN, decodedIdToken)
             );
             throw new UnauthorizedClientException(message);
         }

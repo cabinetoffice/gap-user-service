@@ -6,7 +6,7 @@ public enum LoginJourneyState {
     PRIVACY_POLICY_PENDING {
         @Override
         public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
-            nextStateArgs.logger().debug("User: " + nextStateArgs.user().getSub() + " accepted the privacy policy");
+            nextStateArgs.logger().debug("User: {} accepted the privacy policy",  nextStateArgs.user().getSub());
             if (!nextStateArgs.hasAcceptedPrivacyPolicy()) return this;
             nextStateArgs.oneLoginService().setUsersLoginJourneyState(nextStateArgs.user(), PRIVACY_POLICY_ACCEPTED);
             return PRIVACY_POLICY_ACCEPTED.nextState(nextStateArgs);
@@ -30,12 +30,12 @@ public enum LoginJourneyState {
     MIGRATING_USER {
         @Override
         public LoginJourneyState nextState(final NextStateArgs nextStateArgs) {
-            nextStateArgs.logger().debug("Migrating user: " + nextStateArgs.user().getSub());
+            nextStateArgs.logger().debug("Migrating user: {}", nextStateArgs.user().getSub());
             LoginJourneyState nextState;
             try {
                 nextStateArgs.oneLoginService().migrateUser(nextStateArgs.user(), nextStateArgs.jwt());
                 nextState = MIGRATION_SUCCEEDED;
-                nextStateArgs.logger().info("Successfully migrated user: " + nextStateArgs.user().getSub());
+                nextStateArgs.logger().info("Successfully migrated user: {}", nextStateArgs.user().getSub());
             } catch (Exception e) {
                 nextState = MIGRATION_FAILED;
                 nextStateArgs.logger().error("Failed to migrate user: " + nextStateArgs.user().getSub(), e);

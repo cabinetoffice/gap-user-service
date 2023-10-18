@@ -67,7 +67,7 @@ public class LoginControllerV2 {
 
     private static final String REDIRECT_URL_NAME = "redirectUrl";
 
-    private final String STATE_COOKIE = "state";
+    private static final String STATE_COOKIE = "state";
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
@@ -161,7 +161,7 @@ public class LoginControllerV2 {
                 user,
                 customJWTCookie.getValue(), true, null);
         return new ModelAndView(UPDATED_EMAIL_PAGE_VIEW).addObject("email", user.getEmailAddress())
-                .addObject("redirectUrl", redirectUrl). addObject("homePageUrl", findProperties.getUrl());
+                .addObject(REDIRECT_URL_NAME, redirectUrl). addObject("homePageUrl", findProperties.getUrl());
     }
 
     @GetMapping("/privacy-policy")

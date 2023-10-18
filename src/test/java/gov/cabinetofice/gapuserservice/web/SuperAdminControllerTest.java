@@ -69,7 +69,7 @@ class SuperAdminControllerTest {
         when(departmentService.getAllDepartments()).thenReturn(departments);
         when(roleService.getAllRoles()).thenReturn(roles);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
-        when(oneLoginUserService.getPaginatedUsers(eq(pagination), eq(userQueryDto))).thenReturn(pagedUsers);
+        when(oneLoginUserService.getPaginatedUsers(pagination, userQueryDto)).thenReturn(pagedUsers);
 
         List<UserDto> dtoUsers = users.stream().map(UserDto::new).collect(Collectors.toList());
 
@@ -122,8 +122,7 @@ class SuperAdminControllerTest {
         when(departmentService.getAllDepartments()).thenReturn(departments);
         when(roleService.getAllRoles()).thenReturn(roles);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
-        when(oneLoginUserService.getPaginatedUsers(
-                eq(pagination), eq(userQueryDto)
+        when(oneLoginUserService.getPaginatedUsers(pagination, userQueryDto
         )).thenReturn(pageUsers);
 
 
