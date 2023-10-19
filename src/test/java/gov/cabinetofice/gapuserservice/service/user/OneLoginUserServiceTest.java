@@ -1,11 +1,11 @@
 package gov.cabinetofice.gapuserservice.service.user;
 
+import gov.cabinetofice.gapuserservice.dto.MigrateUserDto;
+import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.RoleDto;
 import gov.cabinetofice.gapuserservice.dto.UserQueryDto;
-import gov.cabinetofice.gapuserservice.exceptions.DepartmentNotFoundException;
-import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
-import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
-import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
+import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
+import gov.cabinetofice.gapuserservice.exceptions.*;
 import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
 import gov.cabinetofice.gapuserservice.model.Department;
 import gov.cabinetofice.gapuserservice.model.Role;
@@ -14,9 +14,13 @@ import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.DepartmentRepository;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
+import org.assertj.core.api.AssertionsForClassTypes;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -25,6 +29,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -55,6 +60,11 @@ class OneLoginUserServiceTest {
 
     @Mock
     private WebClient.Builder webClientBuilder;
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(oneLoginUserService, "adminBackend", "adminBackend");
+    }
 
     @Test
     void shouldReturnUpdatedUserWhenValidIdAndRolesAreGiven() {
@@ -522,6 +532,135 @@ class OneLoginUserServiceTest {
         assertThat(updatedUser.getDepartment()).isNotNull();
     }
 
+    @Test
+    void shouldReturnNewUserRoles() {
+        final List<RoleEnum> result = oneLoginUserService.getNewUserRoles();
+
+        Assertions.assertEquals(2, result.size());
+        Assertions.assertEquals(RoleEnum.APPLICANT, result.get(0));
+        Assertions.assertEquals(RoleEnum.FIND, result.get(1));
+    }
+
+    @Nested
+    class CreateUserTest {
+        @Test
+        void shouldReturnSavedUser() {
+            when(roleRepository.findByName(any())).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
+            when(userRepository.save(any())).thenReturn(User.builder().roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build())).build());
+
+            final User result = oneLoginUserService.createNewUser("", "");
+
+            Assertions.assertEquals(1, result.getRoles().size());
+            Assertions.assertEquals(RoleEnum.APPLICANT, result.getRoles().get(0).getName());
+        }
+
+        @Test
+        void shouldSaveUserWithSubAndEmailWhenUserIsCreated() {
+            when(roleRepository.findByName(any())).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
+
+            oneLoginUserService.createNewUser("sub", "test@email.com");
+
+            final ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
+            verify(userRepository).save(userArgumentCaptor.capture());
+            Assertions.assertEquals("sub", userArgumentCaptor.getValue().getSub());
+            Assertions.assertEquals("test@email.com", userArgumentCaptor.getValue().getEmailAddress());
+        }
+
+        @Test
+        void shouldThrowExceptionWhenRoleDoesNotExist() {
+            when(roleRepository.findByName(any())).thenReturn(Optional.empty());
+
+            assertThrows(RoleNotFoundException.class, () -> oneLoginUserService.createNewUser("", ""));
+        }
+    }
+
+    @Nested
+    class SetUsersLoginJourneyStateTest {
+        @Test
+        void shouldSetUsersLoginJourneyState() {
+            final User user = User.builder()
+                    .loginJourneyState(LoginJourneyState.PRIVACY_POLICY_PENDING)
+                    .build();
+
+            oneLoginUserService.setUsersLoginJourneyState(user, LoginJourneyState.USER_READY);
+
+            final ArgumentCaptor<User> userArgumentCaptor = ArgumentCaptor.forClass(User.class);
+            verify(userRepository).save(userArgumentCaptor.capture());
+            AssertionsForClassTypes.assertThat(userArgumentCaptor.getValue().getLoginJourneyState()).isEqualTo(LoginJourneyState.USER_READY);
+        }
+    }
+
+    @Nested
+    class CreateOrGetUserFromInfoTest {
+        @Test
+        void getExistingUser() {
+            final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
+                    .sub("sub")
+                    .emailAddress("email")
+                    .build();
+            final User existingUser = User.builder().sub("sub").build();
+
+            when(userRepository.findBySub(any())).thenReturn(Optional.of(existingUser));
+
+            final User result = oneLoginUserService.createOrGetUserFromInfo(oneLoginUserInfoDto);
+
+            Assertions.assertEquals(existingUser, result);
+        }
+
+        @Test
+        void createNewUser() {
+            final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
+                    .sub("sub")
+                    .emailAddress("email")
+                    .build();
+
+            when(userRepository.findBySub(any())).thenReturn(Optional.empty());
+            when(roleRepository.findByName(any())).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
+
+            final User newUser = oneLoginUserService.createNewUser("sub", "email");
+            final User result = oneLoginUserService.createOrGetUserFromInfo(oneLoginUserInfoDto);
+
+            Assertions.assertEquals(newUser, result);
+        }
+    }
+
+    @Nested
+    class MigrateApplyUserTest {
+        @Test
+        void shouldMigrateUser() {
+            final User user = User.builder()
+                    .colaSub(UUID.randomUUID())
+                    .sub("oneLoginSub")
+                    .build();
+            final MigrateUserDto migrateUserDto = MigrateUserDto.builder()
+                    .oneLoginSub(user.getSub())
+                    .colaSub(user.getColaSub())
+                    .build();
+
+            // TODO not sure how to spy/mock the builder pattern well. If anyone has a better way gimme a shout!
+            final WebClient mockWebClient = mock(WebClient.class);
+            final WebClient.RequestBodyUriSpec mockRequestBodyUriSpec = mock(WebClient.RequestBodyUriSpec.class);
+            final WebClient.RequestBodySpec mockRequestBodySpec = mock(WebClient.RequestBodySpec.class);
+            final WebClient.RequestHeadersSpec mockRequestHeadersSpec = mock(WebClient.RequestHeadersSpec.class);
+            final WebClient.ResponseSpec mockResponseSpec = mock(WebClient.ResponseSpec.class);
+
+            when(webClientBuilder.build()).thenReturn(mockWebClient);
+            when(mockWebClient.patch()).thenReturn(mockRequestBodyUriSpec);
+            when(mockRequestBodyUriSpec.uri(anyString())).thenReturn(mockRequestBodySpec);
+            when(mockRequestBodySpec.header(anyString(), anyString())).thenReturn(mockRequestBodySpec);
+            when(mockRequestBodySpec.contentType(any())).thenReturn(mockRequestBodySpec);
+            when(mockRequestBodySpec.bodyValue(any())).thenReturn(mockRequestHeadersSpec);
+            when(mockRequestHeadersSpec.retrieve()).thenReturn(mockResponseSpec);
+            when(mockResponseSpec.bodyToMono(Void.class)).thenReturn(mock(Mono.class));
+
+            oneLoginUserService.migrateApplyUser(user, "jwt");
+
+            verify(webClientBuilder).build();
+            verify(mockRequestBodyUriSpec).uri("adminBackend/users/migrate");
+            verify(mockRequestBodySpec).header("Authorization", "Bearer jwt");
+            verify(mockRequestBodySpec).bodyValue(migrateUserDto);
+        }
+    }
 }
 
 

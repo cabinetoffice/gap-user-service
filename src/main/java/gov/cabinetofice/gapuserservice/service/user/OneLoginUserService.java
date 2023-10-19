@@ -2,7 +2,9 @@ package gov.cabinetofice.gapuserservice.service.user;
 
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
-import gov.cabinetofice.gapuserservice.dto.UserQueryDto;
+import gov.cabinetofice.gapuserservice.dto.*;
+import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
+import gov.cabinetofice.gapuserservice.enums.MigrationStatus;
 import gov.cabinetofice.gapuserservice.exceptions.*;
 import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
 import gov.cabinetofice.gapuserservice.model.Department;
@@ -13,6 +15,7 @@ import gov.cabinetofice.gapuserservice.repository.DepartmentRepository;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.service.JwtBlacklistService;
+import gov.cabinetofice.gapuserservice.service.encryption.AwsEncryptionServiceImpl;
 import gov.cabinetofice.gapuserservice.util.UserQueryCondition;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
@@ -23,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -45,11 +49,16 @@ public class OneLoginUserService {
     private final RoleMapper roleMapper;
     private static final String NOT_FOUND = "not found";
 
+    private final AwsEncryptionServiceImpl awsEncryptionService;
+
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
 
     @Value("${admin-backend}")
     private String adminBackend;
+
+    @Value("${find-a-grant.url}")
+    private String findFrontend;
 
     public Page<User> getPaginatedUsers(Pageable pageable, UserQueryDto userQueryDto) {
         final Map<UserQueryCondition, BiFunction<UserQueryDto, Pageable, Page<User>>> conditionMap = createUserQueryConditionMap();
@@ -79,6 +88,50 @@ public class OneLoginUserService {
         return userRepository.findBySub(sub)
                 .orElseThrow(() -> new UserNotFoundException("user with sub: " + sub + NOT_FOUND));
     }
+
+    public Optional<User> getUserFromSub(final String sub) {
+        return userRepository.findBySub(sub);
+    }
+
+    public Optional<User> getUserFromSubOrEmail(final String sub, final String email) {
+        final Optional<User> userOptional = userRepository.findBySub(sub);
+        if (userOptional.isPresent()) return userOptional;
+        return userRepository.findByEmailAddress(email);
+    }
+
+    public List<RoleEnum> getNewUserRoles() {
+        return List.of(RoleEnum.APPLICANT, RoleEnum.FIND);
+    }
+
+    public User createNewUser(final String sub, final String email) {
+        final User user = User.builder()
+                .sub(sub)
+                .emailAddress(email)
+                .loginJourneyState(LoginJourneyState.PRIVACY_POLICY_PENDING)
+                .applyAccountMigrated(MigrationStatus.NEW_USER)
+                .build();
+        final List<RoleEnum> newUserRoles = getNewUserRoles();
+        for (RoleEnum roleEnum : newUserRoles) {
+            final Role role = roleRepository.findByName(roleEnum)
+                    .orElseThrow(() -> new RoleNotFoundException("Could not create user: '" + roleEnum + "' role not found"));
+            user.addRole(role);
+        }
+        return userRepository.save(user);
+    }
+
+    public User createOrGetUserFromInfo(final OneLoginUserInfoDto userInfo) {
+        final Optional<User> userOptional = getUserFromSubOrEmail(userInfo.getSub(), userInfo.getEmailAddress());
+        if (userOptional.isPresent()) {
+            final User user = userOptional.get();
+            if (!user.hasSub()) {
+                user.setSub(userInfo.getSub());
+                return userRepository.save(user);
+            }
+            return user;
+        }
+        return createNewUser(userInfo.getSub(), userInfo.getEmailAddress());
+    }
+
 
     public User getUserByUserSub(String userSub) {
         // Get user by One Login sub first
@@ -218,5 +271,78 @@ public class OneLoginUserService {
     public void validateSessionsRoles(String emailAddress, String roles) {
         List<Role> userRoles = userRepository.findByEmailAddress(emailAddress).orElseThrow(() -> new InvalidRequestException("Could not get user from emailAddress")).getRoles();
         validateRoles(userRoles, roles);
+    }
+
+    public void migrateFindUser(final User user, final String jwt) {
+        byte[] encryptedEmail = awsEncryptionService.encryptField(user.getEmailAddress());
+        try {
+            final MigrateFindUserDto requestBody = new MigrateFindUserDto(encryptedEmail, user.getSub());
+            MigrateFindResponseDto response = webClientBuilder.build()
+                    .patch()
+                    .uri(findFrontend + "/api/user/migrate")
+                    .header("Authorization", "Bearer " + jwt)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(MigrateFindResponseDto.class)
+                    .block();
+            if (Objects.requireNonNull(response).isNewUser()) {
+                log.info("Successfully created new find user: " + user.getSub());
+                setUsersFindMigrationState(user, MigrationStatus.NEW_USER);
+            } else {
+                log.info("Successfully migrated find user: " + user.getSub());
+                setUsersFindMigrationState(user, MigrationStatus.SUCCEEDED);
+            }
+        } catch (Exception e) {
+            log.error("Failed to migrate user: " + user.getSub(), e);
+            setUsersFindMigrationState(user, MigrationStatus.FAILED);
+        }
+    }
+
+    public void migrateApplyUser(final User user, final String jwt) {
+        try {
+            final MigrateUserDto requestBody = MigrateUserDto.builder()
+                    .oneLoginSub(user.getSub())
+                    .colaSub(user.getColaSub())
+                    .build();
+            webClientBuilder.build()
+                    .patch()
+                    .uri(adminBackend + "/users/migrate")
+                    .header("Authorization", "Bearer " + jwt)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(Void.class)
+                    .block();
+            log.info("Successfully migrated apply user: " + user.getSub());
+            setUsersApplyMigrationState(user, MigrationStatus.SUCCEEDED);
+        } catch (Exception e) {
+            log.error("Failed to migrate user: " + user.getSub(), e);
+            setUsersApplyMigrationState(user, MigrationStatus.FAILED);
+        }
+    }
+
+    public void setUsersApplyMigrationState(final User user, final MigrationStatus migrationStatus) {
+        user.setApplyAccountMigrated(migrationStatus);
+        userRepository.save(user);
+    }
+
+    public void setUsersFindMigrationState(final User user, final MigrationStatus migrationStatus) {
+        user.setFindAccountMigrated(migrationStatus);
+        userRepository.save(user);
+    }
+
+    public void setUsersEmail(final User user, final String newEmail) {
+        user.setEmailAddress(newEmail);
+        userRepository.save(user);
+    }
+
+    public void setUsersLoginJourneyState(final User user, final LoginJourneyState newState) {
+        user.setLoginJourneyState(newState);
+        userRepository.save(user);
+    }
+
+    public boolean hasEmailChanged(final User user, final OneLoginUserInfoDto userInfo) {
+        return userInfo != null && !userInfo.getEmailAddress().equals(user.getEmailAddress());
     }
 }
