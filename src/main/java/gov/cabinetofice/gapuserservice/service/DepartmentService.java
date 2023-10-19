@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +20,7 @@ public class DepartmentService {
     public List<DepartmentDto> getAllDepartments() {
         return departmentRepository.findAll().stream()
                 .map(departmentMapper::departmentToDepartmentDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public Optional<Department> getDepartmentById(int id) {

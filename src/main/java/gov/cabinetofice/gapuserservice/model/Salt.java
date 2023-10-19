@@ -19,7 +19,7 @@ public class Salt {
     private String saltId;
 
     @Column(name = "salt")
-    private String salt;
+    private String saltValue;
 
     @Column(name = "created_at")
     private Date createdAt;

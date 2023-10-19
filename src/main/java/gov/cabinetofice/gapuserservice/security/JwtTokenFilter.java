@@ -67,13 +67,13 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             throw new UnauthorizedException("Token not valid");
         }
 
-        //TODO set the Security context, so we can access user details in rest of app
-        final UsernamePasswordAuthenticationToken user_authentication = new UsernamePasswordAuthenticationToken(
+        //Set the Security context, so we can access user details in rest of app
+        final UsernamePasswordAuthenticationToken userAuthentication = new UsernamePasswordAuthenticationToken(
                 "Placeholder",
                 null,
                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
 
-        SecurityContextHolder.getContext().setAuthentication(user_authentication);
+        SecurityContextHolder.getContext().setAuthentication(userAuthentication);
         chain.doFilter(request, response);
     }
 

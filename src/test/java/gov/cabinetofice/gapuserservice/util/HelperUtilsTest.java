@@ -10,19 +10,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Set;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class HelperUtilsTest {
+class HelperUtilsTest {
     @Test
     void shouldRemoveSquareBracketsAndTrimAndReturnASet() {
         List<String> input = List.of("[FIND ", "APPLY", "ADMIN] ");
         Set<String> output = Set.of("FIND", "APPLY", "ADMIN");
         Set<String> result = HelperUtils.removeSquareBracketsAndTrim(input);
-        assert(result.equals(output));
+        assertThat(result.equals(output));
     }
 
     @Test

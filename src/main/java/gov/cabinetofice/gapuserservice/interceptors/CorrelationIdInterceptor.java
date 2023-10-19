@@ -17,25 +17,28 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CorrelationIdInterceptor implements HandlerInterceptor {
 
+    public static final String TCO_CORRELATION_ID = "tco-correlation-id";
+    public static final String CORRELATION_ID = "CorrelationId";
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         String correlationId =
-                request.getHeader("tco-correlation-id") != null ?
-                        request.getHeader("tco-correlation-id") :
+                request.getHeader(TCO_CORRELATION_ID) != null ?
+                        request.getHeader(TCO_CORRELATION_ID) :
                         getCorrelationId();
-        MDC.put("CorrelationId", correlationId);
+        MDC.put(CORRELATION_ID, correlationId);
         return true;
     }
 
     @Override
     public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler,
                            @Nullable ModelAndView modelAndView) {
-        response.addHeader("tco-correlation-id", MDC.get("CorrelationId"));
+        response.addHeader(TCO_CORRELATION_ID, MDC.get(CORRELATION_ID));
     }
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
-        MDC.remove("CorrelationId");
+        MDC.remove(CORRELATION_ID);
     }
 
     private String getCorrelationId() {

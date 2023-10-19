@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(MockitoExtension.class)
-public class SecretAuthServiceTest {
+class SecretAuthServiceTest {
     @InjectMocks
     private SecretAuthService secretAuthService;
 

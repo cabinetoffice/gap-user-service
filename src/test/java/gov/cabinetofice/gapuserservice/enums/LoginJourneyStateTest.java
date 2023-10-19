@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-public class LoginJourneyStateTest {
+class LoginJourneyStateTest {
 
     @Mock
     private OneLoginUserService oneLoginUserService = mock(OneLoginUserService.class);
