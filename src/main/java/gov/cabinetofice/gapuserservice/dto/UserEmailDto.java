@@ -5,10 +5,10 @@ import lombok.Data;
 
 @Data
 public class UserEmailDto {
-    private String emailAddress;
+    private byte[] emailAddress;
     private String sub;
 
-    public UserEmailDto(String emailAddress, String sub) {
+    public UserEmailDto(byte[] emailAddress, String sub) {
         this.emailAddress = emailAddress;
         this.sub = sub;
     }
