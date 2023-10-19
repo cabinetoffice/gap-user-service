@@ -345,4 +345,13 @@ public class OneLoginUserService {
     public boolean hasEmailChanged(final User user, final OneLoginUserInfoDto userInfo) {
         return userInfo != null && !userInfo.getEmailAddress().equals(user.getEmailAddress());
     }
+
+    public List<UserEmailDto> getUserEmailsBySubs(List<String> subs) {
+        return subs.stream()
+                .map(sub -> {
+                    User user = userRepository.findBySub(sub).orElseThrow(() -> new UserNotFoundException("user with sub: " + sub + "not found"));
+                    return new UserEmailDto(user.getEmailAddress(), user.getSub());
+                })
+                .collect(Collectors.toList());
+    }
 }
