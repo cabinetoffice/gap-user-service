@@ -1,5 +1,3 @@
 package gov.cabinetofice.gapuserservice.dto;
 
-public record MigrateFindUserDto(String email, String sub) {
-
-}
+public record MigrateFindUserDto(byte[] email, String sub) {}

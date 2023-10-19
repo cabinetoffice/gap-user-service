@@ -15,6 +15,7 @@ import gov.cabinetofice.gapuserservice.repository.DepartmentRepository;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.service.JwtBlacklistService;
+import gov.cabinetofice.gapuserservice.service.encryption.AwsEncryptionServiceImpl;
 import gov.cabinetofice.gapuserservice.util.UserQueryCondition;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
@@ -46,6 +47,8 @@ public class OneLoginUserService {
     private final ThirdPartyAuthProviderProperties authenticationProvider;
     private final WebClient.Builder webClientBuilder;
     private final RoleMapper roleMapper;
+
+    private final AwsEncryptionServiceImpl awsEncryptionService;
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
@@ -270,8 +273,9 @@ public class OneLoginUserService {
     }
 
     public void migrateFindUser(final User user, final String jwt) {
+        byte[] encryptedEmail = awsEncryptionService.encryptField(user.getEmailAddress());
         try {
-            final MigrateFindUserDto requestBody = new MigrateFindUserDto(user.getEmailAddress(), user.getSub());
+            final MigrateFindUserDto requestBody = new MigrateFindUserDto(encryptedEmail, user.getSub());
             MigrateFindResponseDto response = webClientBuilder.build()
                     .patch()
                     .uri(findFrontend + "/api/user/migrate")
