@@ -493,6 +493,7 @@ class LoginControllerV2Test {
                 ReflectionTestUtils.setField(loginController, "findAccountsMigrationEnabled", migrateFindEnabled);
                 mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
                         .thenReturn(new Cookie("userServiceCookieName", mockJwt));
+                when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
                 when(result.hasErrors()).thenReturn(false);
                 when(oneLoginUserService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
 
@@ -539,6 +540,7 @@ class LoginControllerV2Test {
                 ReflectionTestUtils.setField(loginController, "findAccountsMigrationEnabled", migrateFindEnabled);
                 mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
                         .thenReturn(new Cookie("userServiceCookieName", mockJwt));
+                when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
                 when(result.hasErrors()).thenReturn(false);
                 when(oneLoginUserService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
 
