@@ -146,19 +146,24 @@ public class LoginControllerV2 {
         final User user = oneLoginUserService.createOrGetUserFromInfo(userInfo);
 
         final Cookie customJwtCookie = addCustomJwtCookie(response, userInfo, idToken);
-        return new RedirectView(runStateMachine(redirectUrl, user, customJwtCookie.getValue(), user.hasAcceptedPrivacyPolicy(), userInfo));
+        return new RedirectView(runStateMachine(redirectUrl, user, customJwtCookie.getValue(),
+                user.hasAcceptedPrivacyPolicy(), userInfo));
     }
 
     @GetMapping("/updated-email")
     public ModelAndView updatedEmailPage(
             final HttpServletRequest request,
-            final @CookieValue(name = REDIRECT_URL_NAME, required = false) Optional<String> redirectUrlCookie) {
+            final @CookieValue(name = STATE_COOKIE, required = false) Optional<String> stateCookie) {
         final Cookie customJWTCookie = getCustomJwtCookieFromRequest(request, userServiceCookieName);
         final User user = getUserFromCookie(customJWTCookie)
                 .orElseThrow(() -> new UserNotFoundException("Update email: Could not fetch user from jwt"));
-        final String redirectUrl = runStateMachine(redirectUrlCookie.orElse(configProperties.getDefaultRedirectUrl()),
+
+        final String redirectUrlCookieValue = getRedirectUrlFromStateCookie(stateCookie);
+
+        final String redirectUrl = runStateMachine(redirectUrlCookieValue,
                 user,
                 customJWTCookie.getValue(), true, null);
+
         return new ModelAndView(UPDATED_EMAIL_PAGE_VIEW).addObject("email", user.getEmailAddress())
                 .addObject(REDIRECT_URL_NAME, redirectUrl). addObject("homePageUrl", findProperties.getUrl());
     }
@@ -175,14 +180,17 @@ public class LoginControllerV2 {
             final @Valid @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto,
             final BindingResult result,
             final HttpServletRequest request,
-            final @CookieValue(name = REDIRECT_URL_NAME, required = false) Optional<String> redirectUrlCookie) {
+            final @CookieValue(name = STATE_COOKIE, required = false) Optional<String> stateCookie) {
         if (result.hasErrors())
             return submitToPrivacyPolicyPage(privacyPolicyDto);
         final Cookie customJWTCookie = getCustomJwtCookieFromRequest(request, userServiceCookieName);
         final User user = getUserFromCookie(customJWTCookie)
                 .orElseThrow(() -> new UserNotFoundException("Privacy policy: Could not fetch user from jwt"));
+
+        final String redirectUrlCookieValue = getRedirectUrlFromStateCookie(stateCookie);
+
         return new ModelAndView(
-                "redirect:" + runStateMachine(redirectUrlCookie.orElse(configProperties.getDefaultRedirectUrl()), user,
+                "redirect:" + runStateMachine(redirectUrlCookieValue, user,
                         customJWTCookie.getValue(), true, null));
     }
 
@@ -203,6 +211,12 @@ public class LoginControllerV2 {
         final Cookie customJwt = WebUtil.buildSecureCookie(userServiceCookieName, customServiceJwt);
         response.addCookie(customJwt);
         return customJwt;
+    }
+
+    private String getRedirectUrlFromStateCookie(Optional<String> stateCookie) {
+        return stateCookie.isPresent() ?
+                oneLoginService.decodeStateCookie(stateCookie.get()).getRedirectUrl():
+                configProperties.getDefaultRedirectUrl();
     }
 
     private Optional<User> getUserFromCookie(final Cookie customJWTCookie) {
