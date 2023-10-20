@@ -579,6 +579,7 @@ class LoginControllerV2Test {
 
                 mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
                         .thenReturn(new Cookie("userServiceCookieName", mockJwt));
+                when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
                 when(oneLoginUserService.getUserFromSub(anyString())).thenReturn(Optional.of(user));
 
 

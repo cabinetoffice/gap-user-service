@@ -152,13 +152,17 @@ public class LoginControllerV2 {
     @GetMapping("/updated-email")
     public ModelAndView updatedEmailPage(
             final HttpServletRequest request,
-            final @CookieValue(name = REDIRECT_URL_NAME, required = false) Optional<String> redirectUrlCookie) {
+            final @CookieValue(name = STATE_COOKIE, required = false) Optional<String> stateCookie) {
         final Cookie customJWTCookie = getCustomJwtCookieFromRequest(request, userServiceCookieName);
         final User user = getUserFromCookie(customJWTCookie)
                 .orElseThrow(() -> new UserNotFoundException("Update email: Could not fetch user from jwt"));
-        final String redirectUrl = runStateMachine(redirectUrlCookie.orElse(configProperties.getDefaultRedirectUrl()),
+
+        final String redirectUrlCookieValue = getRedirectUrlFromStateCookie(stateCookie);
+
+        final String redirectUrl = runStateMachine(redirectUrlCookieValue,
                 user,
                 customJWTCookie.getValue(), true, null);
+
         return new ModelAndView(UPDATED_EMAIL_PAGE_VIEW).addObject("email", user.getEmailAddress())
                 .addObject(REDIRECT_URL_NAME, redirectUrl). addObject("homePageUrl", findProperties.getUrl());
     }
@@ -182,12 +186,10 @@ public class LoginControllerV2 {
         final User user = getUserFromCookie(customJWTCookie)
                 .orElseThrow(() -> new UserNotFoundException("Privacy policy: Could not fetch user from jwt"));
 
-        final String redirectUrl = stateCookie.isPresent() ?
-                oneLoginService.decodeStateCookie(stateCookie.get()).getRedirectUrl():
-                configProperties.getDefaultRedirectUrl();
+        final String redirectUrlCookieValue = getRedirectUrlFromStateCookie(stateCookie);
 
         return new ModelAndView(
-                "redirect:" + runStateMachine(redirectUrl, user,
+                "redirect:" + runStateMachine(redirectUrlCookieValue, user,
                         customJWTCookie.getValue(), true, null));
     }
 
@@ -199,6 +201,12 @@ public class LoginControllerV2 {
         }
 
         return oneLoginService.logoutUser(customJWTCookie, response);
+    }
+
+    private String getRedirectUrlFromStateCookie(Optional<String> stateCookie) {
+        return stateCookie.isPresent() ?
+                oneLoginService.decodeStateCookie(stateCookie.get()).getRedirectUrl():
+                configProperties.getDefaultRedirectUrl();
     }
 
     private void addCustomJwtCookie(final HttpServletResponse response, final OneLoginUserInfoDto userInfo,
