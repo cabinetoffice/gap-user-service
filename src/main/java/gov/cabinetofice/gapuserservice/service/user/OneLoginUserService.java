@@ -280,7 +280,7 @@ public class OneLoginUserService {
             MigrateFindResponseDto response = webClientBuilder.build()
                     .patch()
                     .uri(findFrontend + "/api/user/migrate")
-                    .header("Authorization", "Bearer " + jwt)
+                    .cookie("user-service-token", jwt)
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(requestBody)
                     .retrieve()
