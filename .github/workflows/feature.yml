@@ -1,20 +1,9 @@
 name: Java CI with Maven
 
 on:
-  push:
-    branches:
-      - feature/**
-      - bug/**
-      - bugfix/**
-      - FGP-**
-      - fix/**
-      - GAP-**
   pull_request:
     branches:
-      - feature/**
-      - bug/**
-      - bugfix/**
-      - FGP-**
+      - develop
 
 jobs:
   build:
@@ -33,6 +22,7 @@ jobs:
           java-version: "17"
           distribution: "temurin"
           cache: maven
+
       - name: Build with Maven
         run: mvn -B package --file pom.xml
 
@@ -48,6 +38,7 @@ jobs:
           args: >
             --enableRetired
             --disableOssIndex true
+
       - name: Upload Test results
         uses: actions/upload-artifact@master
         with:
