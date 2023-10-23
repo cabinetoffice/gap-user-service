@@ -153,7 +153,8 @@ public class UserController {
     }
 
     @PostMapping("/users/emails")
-    public ResponseEntity<List<UserEmailDto>> getUserEmailsBySubs(@RequestBody() List<String> subs) {
+    public ResponseEntity<List<UserEmailDto>> getUserEmailsBySubs(@RequestBody() List<String> subs, @RequestHeader(HttpHeaders.AUTHORIZATION) byte[] authHeader) {
+        secretAuthService.authenticateEncryptedSecret(authHeader);
         return ResponseEntity.ok(oneLoginUserService.getUserEmailsBySubs(subs));
     }
 }
