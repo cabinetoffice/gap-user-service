@@ -68,6 +68,8 @@ public class LoginControllerV2 {
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
 
+    @Value("${jwt.cookie-domain}")
+    public String userServiceCookieDomain;
     @Value("${admin-base-url}")
     private String adminBaseUrl;
 
@@ -209,7 +211,7 @@ public class LoginControllerV2 {
         final Map<String, String> customJwtClaims = oneLoginService.generateCustomJwtClaims(userInfo, idToken);
         final String customServiceJwt = customJwtService.generateToken(customJwtClaims);
         final Cookie customJwt = WebUtil.buildSecureCookie(userServiceCookieName, customServiceJwt);
-        customJwt.setDomain("cabinetoffice.gov.uk");
+        customJwt.setDomain(userServiceCookieDomain);
         response.addCookie(customJwt);
         return customJwt;
     }
