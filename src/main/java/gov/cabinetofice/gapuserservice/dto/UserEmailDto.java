@@ -1,9 +1,11 @@
 package gov.cabinetofice.gapuserservice.dto;
 
+import lombok.Builder;
 import lombok.Data;
 
 
 @Data
+@Builder
 public class UserEmailDto {
     private byte[] emailAddress;
     private String sub;

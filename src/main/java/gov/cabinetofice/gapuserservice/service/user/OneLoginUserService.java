@@ -347,12 +347,13 @@ public class OneLoginUserService {
     }
 
     public List<UserEmailDto> getUserEmailsBySubs(List<String> subs) {
-        return subs.stream()
-                .map(sub -> {
-                    User user = userRepository.findBySub(sub).orElseThrow(() -> new UserNotFoundException("user with sub: " + sub + "not found"));
-                    byte[] encryptedEmail = awsEncryptionService.encryptField(user.getEmailAddress());
-                    return new UserEmailDto(encryptedEmail, user.getSub());
-                })
-                .collect(Collectors.toList());
+        List<User> users = userRepository.findBySubs(subs);
+        if (users.isEmpty()) {
+            throw new UserNotFoundException("user with sub: " + subs + NOT_FOUND);
+        }
+        return users.stream().map(user -> UserEmailDto.builder()
+                .emailAddress(awsEncryptionService.encryptField(user.getEmailAddress()))
+                .sub(user.getSub())
+                .build()).collect(Collectors.toList());
     }
 }

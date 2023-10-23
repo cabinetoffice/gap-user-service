@@ -1,9 +1,6 @@
 package gov.cabinetofice.gapuserservice.service.user;
 
-import gov.cabinetofice.gapuserservice.dto.MigrateUserDto;
-import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
-import gov.cabinetofice.gapuserservice.dto.RoleDto;
-import gov.cabinetofice.gapuserservice.dto.UserQueryDto;
+import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.*;
 import gov.cabinetofice.gapuserservice.mappers.RoleMapper;
@@ -14,6 +11,7 @@ import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.DepartmentRepository;
 import gov.cabinetofice.gapuserservice.repository.RoleRepository;
 import gov.cabinetofice.gapuserservice.repository.UserRepository;
+import gov.cabinetofice.gapuserservice.service.encryption.AwsEncryptionServiceImpl;
 import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,6 +58,9 @@ class OneLoginUserServiceTest {
 
     @Mock
     private WebClient.Builder webClientBuilder;
+
+    @Mock
+    private AwsEncryptionServiceImpl awsEncryptionService;
 
     @BeforeEach
     void setUp() {
@@ -622,7 +623,30 @@ class OneLoginUserServiceTest {
 
             Assertions.assertEquals(newUser, result);
         }
+
+        @Test
+        void shouldGetUserEmailsFromSubsAndEncryptThem() {
+            final List<String> subs = List.of("sub1", "sub2");
+            final List<UserEmailDto> encryptedUserEmailDtos = List.of(
+                    new UserEmailDto("encrypted1".getBytes(), "sub1"),
+                    new UserEmailDto("encrypted2".getBytes(), "sub2")
+            );
+
+            when(userRepository.findBySubs(subs)).thenReturn(
+                    List.of(
+                            User.builder().sub("sub1").emailAddress("unencrypted1").build(),
+                            User.builder().sub("sub2").emailAddress("unencrypted2").build()
+                    )
+            );
+            when(awsEncryptionService.encryptField("unencrypted1")).thenReturn("encrypted1".getBytes());
+            when(awsEncryptionService.encryptField("unencrypted2")).thenReturn("encrypted2".getBytes());
+            List<UserEmailDto> returnedList = oneLoginUserService.getUserEmailsBySubs(subs);
+            assertThat(returnedList).isEqualTo(encryptedUserEmailDtos);
+        }
+
     }
+
+
 
     @Nested
     class MigrateApplyUserTest {

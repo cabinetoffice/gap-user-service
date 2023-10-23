@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,6 +22,8 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     Optional<User> findByEmailAddress(String email);
     @EntityGraph(attributePaths = {"department", "roles"})
     Optional<User> findBySub(String sub);
+
+    List<User> findBySubs(List<String> subs);
 
     @EntityGraph(attributePaths = {"department", "roles"})
     Optional<User> findByColaSub(UUID sub);
