@@ -245,7 +245,7 @@ class LoginControllerV2Test {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final Map<String, String> claims = Map.of("claim1", "value1", "claim2", "value2");
             final Cookie cookie = WebUtil.buildSecureCookie("userServiceCookieName", "jwtToken");
-            cookie.setDomain(".cabinetoffice.gov.uk");
+            cookie.setDomain("cabinetoffice.gov.uk");
             final JSONObject tokenResponse = new JSONObject();
             tokenResponse.put("id_token", idToken).put("access_token", accessToken);
 
