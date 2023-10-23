@@ -93,6 +93,7 @@ class LoginControllerV2Test {
         ReflectionTestUtils.setField(loginController, "applicantBaseUrl", "/applicantBaseUrl");
         ReflectionTestUtils.setField(loginController, "migrationEnabled", "true");
         ReflectionTestUtils.setField(loginController, "techSupportAppBaseUrl", "/techSupportAppBaseUrl");
+        ReflectionTestUtils.setField(loginController, "userServiceCookieDomain", "cabinetoffice.gov.uk");
     }
 
     @AfterEach
