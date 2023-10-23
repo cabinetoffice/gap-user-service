@@ -632,7 +632,7 @@ class OneLoginUserServiceTest {
                     new UserEmailDto("encrypted2".getBytes(), "sub2")
             );
 
-            when(userRepository.findBySubs(subs)).thenReturn(
+            when(userRepository.findBySubIn(subs)).thenReturn(
                     List.of(
                             User.builder().sub("sub1").emailAddress("unencrypted1").build(),
                             User.builder().sub("sub2").emailAddress("unencrypted2").build()

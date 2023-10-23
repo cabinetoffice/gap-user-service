@@ -347,10 +347,7 @@ public class OneLoginUserService {
     }
 
     public List<UserEmailDto> getUserEmailsBySubs(List<String> subs) {
-        List<User> users = userRepository.findBySubs(subs);
-        if (users.isEmpty()) {
-            throw new UserNotFoundException("user with sub: " + subs + NOT_FOUND);
-        }
+        List<User> users = userRepository.findBySubIn(subs);
         return users.stream().map(user -> UserEmailDto.builder()
                 .emailAddress(awsEncryptionService.encryptField(user.getEmailAddress()))
                 .sub(user.getSub())
