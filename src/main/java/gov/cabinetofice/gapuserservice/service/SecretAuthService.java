@@ -15,8 +15,6 @@ public class SecretAuthService {
     @Value("${lambda.secret}")
     private String lambdaSecret;
 
-    private AwsEncryptionServiceImpl awsEncryptionService;
-
     /**
      * Intended to authenticate requests coming from lambdas, which shouldn't pass through
      * the JWT auth process.
@@ -28,12 +26,4 @@ public class SecretAuthService {
             throw new UnauthorizedException("Secret key does not match");
         }
     }
-
-    public void authenticateEncryptedSecret(byte[] authHeader) {
-        String decryptedLambdaSecret = awsEncryptionService.decryptField(authHeader);
-        if(!Objects.equals(lambdaSecret, decryptedLambdaSecret)) {
-            throw new UnauthorizedException("Secret key does not match");
-        }
-    }
-
 }

@@ -11,6 +11,7 @@ import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
+import gov.cabinetofice.gapuserservice.service.SecretAuthService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import jakarta.servlet.http.Cookie;
@@ -49,6 +50,9 @@ class UserControllerTest {
 
     @Mock
     private RoleService roleService;
+
+    @Mock
+    private SecretAuthService secretAuthService;
 
     @BeforeEach
     void setUp() {
@@ -213,7 +217,8 @@ class UserControllerTest {
         );
 
         when(oneLoginUserService.getUserEmailsBySubs(userEmails)).thenReturn(userEmailDtos);
-        final ResponseEntity<List<UserEmailDto>> methodResponse = controller.getUserEmailsBySubs(userEmails);
+        doNothing().when(secretAuthService).authenticateSecret(anyString());
+        final ResponseEntity<List<UserEmailDto>> methodResponse = controller.getUserEmailsBySubs(userEmails, "anauthheader");
 
         assertThat(methodResponse.getBody()).isEqualTo(
                 List.of(new UserEmailDto(mockUser.getEmailAddress().getBytes(), mockUser.getSub()),
