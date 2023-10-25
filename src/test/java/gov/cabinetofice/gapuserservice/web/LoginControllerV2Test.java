@@ -248,7 +248,7 @@ class LoginControllerV2Test {
             final Cookie cookie = WebUtil.buildSecureCookie("userServiceCookieName", "jwtToken");
             final JSONObject tokenResponse = new JSONObject();
             tokenResponse.put("id_token", idToken).put("access_token", accessToken);
-//            cookie.setDomain("cabinetoffice.gov.uk");
+            cookie.setDomain("cabinetoffice.gov.uk");
 
             final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
                     .emailAddress("email")
