@@ -211,10 +211,8 @@ public class LoginControllerV2 {
         final Map<String, String> customJwtClaims = oneLoginService.generateCustomJwtClaims(userInfo, idToken);
         final String customServiceJwt = customJwtService.generateToken(customJwtClaims);
         final Cookie customJwt = WebUtil.buildSecureCookie(userServiceCookieName, customServiceJwt);
-//        customJwt.setDomain(userServiceCookieDomain);
+        customJwt.setDomain(userServiceCookieDomain);
         response.addCookie(customJwt);
-        response.addHeader("Access-Control-Allow-Origin", "https://dev-env.find-a-grant-support-dev.service.cabinetoffice.gov.uk/");
-        response.addHeader("Access-Control-Allow-Credentials", "true");
         return customJwt;
     }
 
