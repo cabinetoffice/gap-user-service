@@ -55,7 +55,8 @@ public class WebSecurityConfig {
                 "/error/**",
                 "/.well-known/jwks.json",
                 "/v2/validateSessionsRoles",
-                "/user"
+                "/user",
+                "/users/emails"
                 );
     }
 
