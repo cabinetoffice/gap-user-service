@@ -1,7 +1,6 @@
 name: Push Image Workflow
 
 on:
-  create:
   push:
     branches:
       - release/**
