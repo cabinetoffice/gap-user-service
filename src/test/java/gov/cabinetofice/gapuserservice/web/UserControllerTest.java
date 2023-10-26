@@ -3,6 +3,7 @@ package gov.cabinetofice.gapuserservice.web;
 import gov.cabinetofice.gapuserservice.dto.ChangeDepartmentPageDto;
 import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
 import gov.cabinetofice.gapuserservice.dto.UserDto;
+import gov.cabinetofice.gapuserservice.dto.UserEmailDto;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetofice.gapuserservice.model.Role;
@@ -10,6 +11,7 @@ import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
+import gov.cabinetofice.gapuserservice.service.SecretAuthService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import jakarta.servlet.http.Cookie;
@@ -48,6 +50,9 @@ class UserControllerTest {
 
     @Mock
     private RoleService roleService;
+
+    @Mock
+    private SecretAuthService secretAuthService;
 
     @BeforeEach
     void setUp() {
@@ -195,6 +200,30 @@ class UserControllerTest {
 
         assertThrows(InvalidRequestException.class, () -> controller.updateDepartment(httpRequest, 1, 1));
 
+    }
+
+    @Test
+    void testGetUserEmailsBySub() {
+        User mockUser = User.builder().sub("1").gapUserId(1)
+                .emailAddress("test1@test.com").build();
+        User mockUser2 = User.builder().sub("2").gapUserId(2)
+                .emailAddress("test2@test.com").build();
+
+        List<String> userEmails = List.of(mockUser.getEmailAddress(), mockUser2.getEmailAddress());
+
+        List<UserEmailDto> userEmailDtos = List.of(
+                new UserEmailDto(mockUser.getEmailAddress().getBytes(), mockUser.getSub()),
+                new UserEmailDto(mockUser2.getEmailAddress().getBytes(), mockUser2.getSub())
+        );
+
+        when(oneLoginUserService.getUserEmailsBySubs(userEmails)).thenReturn(userEmailDtos);
+        doNothing().when(secretAuthService).authenticateSecret(anyString());
+        final ResponseEntity<List<UserEmailDto>> methodResponse = controller.getUserEmailsBySubs(userEmails, "anauthheader");
+
+        assertThat(methodResponse.getBody()).isEqualTo(
+                List.of(new UserEmailDto(mockUser.getEmailAddress().getBytes(), mockUser.getSub()),
+                        new UserEmailDto(mockUser2.getEmailAddress().getBytes(), mockUser2.getSub()))
+        );
     }
 
 }

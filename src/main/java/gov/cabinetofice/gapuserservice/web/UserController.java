@@ -3,6 +3,7 @@ package gov.cabinetofice.gapuserservice.web;
 import gov.cabinetofice.gapuserservice.dto.ChangeDepartmentPageDto;
 import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
 import gov.cabinetofice.gapuserservice.dto.UserDto;
+import gov.cabinetofice.gapuserservice.dto.UserEmailDto;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -149,6 +150,12 @@ public class UserController {
         oneLoginUserService.deleteUser(id, customJWTCookie.getValue());
         return ResponseEntity.ok("success");
 
+    }
+
+    @PostMapping("/users/emails")
+    public ResponseEntity<List<UserEmailDto>> getUserEmailsBySubs(@RequestBody() List<String> subs, @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader) {
+        secretAuthService.authenticateSecret(authHeader);
+        return ResponseEntity.ok(oneLoginUserService.getUserEmailsBySubs(subs));
     }
 }
 

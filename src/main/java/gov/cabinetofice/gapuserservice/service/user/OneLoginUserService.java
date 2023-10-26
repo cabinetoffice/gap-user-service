@@ -345,4 +345,12 @@ public class OneLoginUserService {
     public boolean hasEmailChanged(final User user, final OneLoginUserInfoDto userInfo) {
         return userInfo != null && !userInfo.getEmailAddress().equals(user.getEmailAddress());
     }
+
+    public List<UserEmailDto> getUserEmailsBySubs(List<String> subs) {
+        List<User> users = userRepository.findBySubIn(subs);
+        return users.stream().map(user -> UserEmailDto.builder()
+                .emailAddress(awsEncryptionService.encryptField(user.getEmailAddress()))
+                .sub(user.getSub())
+                .build()).collect(Collectors.toList());
+    }
 }
