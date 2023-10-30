@@ -178,7 +178,7 @@ class LoginControllerV2Test {
         //B64 encoded stateCookie containing '{"state":"state","redirectUrl":"redirectUrl"}'
         final String stateCookie = "eyJzdGF0ZSI6InN0YXRlIiwicmVkaXJlY3RVcmwiOiJyZWRpcmVjdFVybCJ9";
         final String mockJwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzdWIiLCJlbWFpbCI6ImVtYWlsIiwicm9sZXMiOlsiRklORCIsIkFQUExJQ0FOVCJdfQ.MrlNeug1Wos6UYKgwSBHxFw0XxdgQvcCdO-Xi3RMqBk";
-        final String redirectUrlCookie = "redirectUrl";
+        final String redirectUrlCookie = "http://redirectUrl.com";
         final String code = "code";
         final String state = "state";
         final String nonce = "nonce";
@@ -459,7 +459,7 @@ class LoginControllerV2Test {
                 final PrivacyPolicyDto privacyPolicyDto = PrivacyPolicyDto.builder().acceptPrivacyPolicy("no").build();
                 final BindingResult result = Mockito.mock(BindingResult.class);
                 final MockHttpServletRequest request = new MockHttpServletRequest();
-                final String redirectUrl = "redirectUrl";
+                final String redirectUrl = "http://redirectUrl.com";
 
                 ReflectionTestUtils.setField(loginController, "findAccountsMigrationEnabled", migrateFindEnabled);
                 mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
@@ -483,7 +483,7 @@ class LoginControllerV2Test {
                 final PrivacyPolicyDto privacyPolicyDto = PrivacyPolicyDto.builder().acceptPrivacyPolicy("yes").build();
                 final BindingResult result = Mockito.mock(BindingResult.class);
                 final MockHttpServletRequest request = new MockHttpServletRequest();
-                final String redirectUrl = "redirectUrl";
+                final String redirectUrl = "http://redirectUrl.com";
                 final User user = userBuilder
                         .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
                         .loginJourneyState(LoginJourneyState.PRIVACY_POLICY_PENDING)
@@ -636,12 +636,12 @@ class LoginControllerV2Test {
                 final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, response, code, state);
 
                 if (migratingUsersFindAccount) {
-                    assertThat(methodResponse.getUrl()).isEqualTo("redirectUrl?applyMigrationStatus=SUCCEEDED&findMigrationStatus=SUCCEEDED");
+                    assertThat(methodResponse.getUrl()).isEqualTo("http://redirectUrl.com?applyMigrationStatus=SUCCEEDED&findMigrationStatus=SUCCEEDED");
                 } else {
                     if (hasEmailChanged) {
                         assertThat(methodResponse.getUrl()).isEqualTo("updated-email");
                     } else {
-                        assertThat(methodResponse.getUrl()).isEqualTo("redirectUrl");
+                        assertThat(methodResponse.getUrl()).isEqualTo("http://redirectUrl.com");
                     }
                 }
             }

@@ -1,5 +1,10 @@
 package gov.cabinetofice.gapuserservice.enums;
 
+import gov.cabinetofice.gapuserservice.util.WebUtil;
+
+import java.util.Arrays;
+import java.util.List;
+
 import static gov.cabinetofice.gapuserservice.web.LoginControllerV2.PRIVACY_POLICY_PAGE_VIEW;
 import static gov.cabinetofice.gapuserservice.web.LoginControllerV2.UPDATED_EMAIL_PAGE_VIEW;
 
@@ -44,7 +49,11 @@ public enum LoginJourneyRedirect {
         public String getRedirectUrl(GetRedirectUrlArgs getRedirectUrlArgs) {
             final MigrationStatus applyMigrationStatus = getRedirectUrlArgs.user().getApplyAccountMigrated();
             final MigrationStatus findMigrationStatus = getRedirectUrlArgs.user().getFindAccountMigrated();
-            return getRedirectUrlArgs.redirectUrlCookie() + "?applyMigrationStatus=" + applyMigrationStatus + "&findMigrationStatus=" + findMigrationStatus;
+            List<String> queryParams = Arrays.asList(
+                    "applyMigrationStatus=" + applyMigrationStatus,
+                    "findMigrationStatus=" + findMigrationStatus);
+
+            return WebUtil.parseUrlRequestParameters(getRedirectUrlArgs.redirectUrlCookie(), queryParams);
         }
     },
 
