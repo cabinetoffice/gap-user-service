@@ -1,5 +1,6 @@
 package gov.cabinetofice.gapuserservice.enums;
 
+import gov.cabinetofice.gapuserservice.util.EncodeURIComponent;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
 
 import java.util.Arrays;
@@ -62,7 +63,12 @@ public enum LoginJourneyRedirect {
         public String getRedirectUrl(GetRedirectUrlArgs getRedirectUrlArgs) {
             final MigrationStatus applyMigrationStatus = getRedirectUrlArgs.user().getApplyAccountMigrated();
             final MigrationStatus findMigrationStatus = getRedirectUrlArgs.user().getFindAccountMigrated();
-            return ADMIN_DASHBOARD.getRedirectUrl(getRedirectUrlArgs) + "&applyMigrationStatus=" + applyMigrationStatus + "&findMigrationStatus=" + findMigrationStatus;
+            String encodedRedirectUrl = EncodeURIComponent.encodeURI("/dashboard?" +
+                    "applyMigrationStatus=" + applyMigrationStatus +
+                    "&findMigrationStatus=" + findMigrationStatus
+            );
+            List<String> queryParams = List.of("redirectUrl=" + encodedRedirectUrl);
+            return WebUtil.parseUrlRequestParameters(getRedirectUrlArgs.adminBaseUrl(), queryParams);
         }
     },
 
