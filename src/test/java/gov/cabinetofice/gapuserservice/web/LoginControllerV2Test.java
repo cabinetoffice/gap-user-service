@@ -89,10 +89,10 @@ class LoginControllerV2Test {
 
         loginController = new LoginControllerV2(oneLoginService, customJwtService, configProperties, encryptionService, oneLoginUserService, findProperties, loggingUtils);
         ReflectionTestUtils.setField(loginController, "userServiceCookieName", "userServiceCookieName");
-        ReflectionTestUtils.setField(loginController, "adminBaseUrl", "/adminBaseUrl");
-        ReflectionTestUtils.setField(loginController, "applicantBaseUrl", "/applicantBaseUrl");
+        ReflectionTestUtils.setField(loginController, "adminBaseUrl", "http:localhost:3000/adminBaseUrl");
+        ReflectionTestUtils.setField(loginController, "applicantBaseUrl", "http:localhost:3000/applicantBaseUrl");
         ReflectionTestUtils.setField(loginController, "migrationEnabled", "true");
-        ReflectionTestUtils.setField(loginController, "techSupportAppBaseUrl", "/techSupportAppBaseUrl");
+        ReflectionTestUtils.setField(loginController, "techSupportAppBaseUrl", "http:localhost:3000/techSupportAppBaseUrl");
         ReflectionTestUtils.setField(loginController, "userServiceCookieDomain", "cabinetoffice.gov.uk");
     }
 
@@ -329,7 +329,7 @@ class LoginControllerV2Test {
 
                 final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, response, code, state);
 
-                assertThat(methodResponse.getUrl()).isEqualTo("/adminBaseUrl?redirectUrl=/super-admin-dashboard");
+                assertThat(methodResponse.getUrl()).isEqualTo("http:localhost:3000/adminBaseUrl?redirectUrl=/super-admin-dashboard");
             }
 
             @ParameterizedTest
@@ -360,9 +360,9 @@ class LoginControllerV2Test {
                 final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, response, code, state);
 
                 if(migrateFindEnabled.equals("true") && initialState.equals(LoginJourneyState.USER_READY)) {
-                    assertThat(methodResponse.getUrl()).isEqualTo("/adminBaseUrl?redirectUrl=/dashboard&applyMigrationStatus=ALREADY_MIGRATED&findMigrationStatus=NOT_STARTED");
+                    assertThat(methodResponse.getUrl()).isEqualTo("http:localhost:3000/adminBaseUrl?redirectUrl=%2Fdashboard%3FapplyMigrationStatus%3DALREADY_MIGRATED%26findMigrationStatus%3DNOT_STARTED");
                 } else {
-                    assertThat(methodResponse.getUrl()).isEqualTo("/adminBaseUrl?redirectUrl=/dashboard");
+                    assertThat(methodResponse.getUrl()).isEqualTo("http:localhost:3000/adminBaseUrl?redirectUrl=/dashboard");
                 }
             }
 
@@ -424,7 +424,7 @@ class LoginControllerV2Test {
 
                 final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, response, code, state);
 
-                assertThat(methodResponse.getUrl()).isEqualTo("/techSupportAppBaseUrl");
+                assertThat(methodResponse.getUrl()).isEqualTo("http:localhost:3000/techSupportAppBaseUrl");
             }
         }
 
@@ -548,7 +548,7 @@ class LoginControllerV2Test {
 
                 final ModelAndView methodResponse = loginController.submitToPrivacyPolicyPage(privacyPolicyDto, result, request, Optional.of(redirectUrl));
 
-                assertThat(methodResponse.getViewName()).isEqualTo("redirect:/adminBaseUrl?redirectUrl=/dashboard&applyMigrationStatus=" + migrationStatus + "&findMigrationStatus=" + migrationStatus);
+                assertThat(methodResponse.getViewName()).isEqualTo("redirect:http:localhost:3000/adminBaseUrl?redirectUrl=%2Fdashboard%3FapplyMigrationStatus%3D" + migrationStatus + "%26findMigrationStatus%3D" + migrationStatus);
                 if (hasColaSub) {
                     verify(oneLoginUserService, times(1)).migrateApplyUser(user, mockJwt);
                 } else {
@@ -653,7 +653,7 @@ class LoginControllerV2Test {
         @Test
         void testLogoutWithBlankCookie() {
             String userServiceCookieName = "customJWT";
-            String applicantBaseUrl = "/applicantBaseUrl";
+            String applicantBaseUrl = "http:localhost:3000/applicantBaseUrl";
 
             HttpServletRequest request = mock(HttpServletRequest.class);
             HttpServletResponse response = mock(HttpServletResponse.class);
