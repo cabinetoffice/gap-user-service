@@ -210,6 +210,13 @@
 			<artifactId>aws-encryption-sdk-java</artifactId>
 			<version>2.4.1</version>
 		</dependency>
+
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>kms</artifactId>
+			<version>2.21.0</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>
