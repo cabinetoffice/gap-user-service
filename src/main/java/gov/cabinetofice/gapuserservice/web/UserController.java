@@ -157,5 +157,12 @@ public class UserController {
         secretAuthService.authenticateSecret(authHeader);
         return ResponseEntity.ok(oneLoginUserService.getUserEmailsBySubs(subs));
     }
+
+    @GetMapping("/user/email/{email}")
+    public ResponseEntity<User> getUserByEmail(@PathVariable("email") String email) {
+        return ResponseEntity.ok(oneLoginUserService.getUserByEmail(email));
+    }
+
+
 }
 

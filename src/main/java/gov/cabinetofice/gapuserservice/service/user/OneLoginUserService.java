@@ -353,4 +353,8 @@ public class OneLoginUserService {
                 .sub(user.getSub())
                 .build()).collect(Collectors.toList());
     }
+
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmailAddress(email).orElseThrow(() -> new UserNotFoundException("user with email: " + email + NOT_FOUND));
+    }
 }
