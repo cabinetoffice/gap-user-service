@@ -27,6 +27,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -354,6 +355,7 @@ public class OneLoginUserService {
                 .build()).collect(Collectors.toList());
     }
 
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public User getUserByEmail(String email) {
         return userRepository.findByEmailAddress(email).orElseThrow(() -> new UserNotFoundException("user with email: " + email + NOT_FOUND));
     }
