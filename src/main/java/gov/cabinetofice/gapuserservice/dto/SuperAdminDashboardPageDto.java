@@ -10,6 +10,6 @@ import java.util.List;
 public class SuperAdminDashboardPageDto {
     private List<RoleDto> roles;
     private List<DepartmentDto> departments;
-    private List<UserDto> users;
+    private List<UserAndRelationsDto> users;
     private long userCount;
 }

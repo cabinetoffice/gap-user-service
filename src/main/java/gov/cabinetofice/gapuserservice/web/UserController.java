@@ -1,17 +1,13 @@
 package gov.cabinetofice.gapuserservice.web;
 
-import gov.cabinetofice.gapuserservice.dto.ChangeDepartmentPageDto;
-import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
-import gov.cabinetofice.gapuserservice.dto.UserDto;
-import gov.cabinetofice.gapuserservice.dto.UserEmailDto;
+import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
-import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
-import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.SecretAuthService;
+import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -46,7 +42,7 @@ public class UserController {
     public String userServiceCookieName;
 
     @GetMapping("/userFromJwt")
-    public ResponseEntity<UserDto> getUserFromJwt(HttpServletRequest httpRequest) {
+    public ResponseEntity<UserAndRelationsDto> getUserFromJwt(HttpServletRequest httpRequest) {
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
@@ -55,7 +51,7 @@ public class UserController {
             throw new InvalidRequestException(NO_USER);
         }
 
-        return ResponseEntity.ok(new UserDto(user.get()));
+        return ResponseEntity.ok(new UserAndRelationsDto(user.get()));
     }
 
     @GetMapping("/isSuperAdmin")
@@ -67,20 +63,20 @@ public class UserController {
     }
 
     @GetMapping("/user/{id}")
-    public ResponseEntity<UserDto> getUserById(HttpServletRequest httpRequest, @PathVariable("id") Integer id) {
+    public ResponseEntity<UserAndRelationsDto> getUserById(HttpServletRequest httpRequest, @PathVariable("id") Integer id) {
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
 
-        return ResponseEntity.ok(new UserDto(oneLoginUserService.getUserById(id)));
+        return ResponseEntity.ok(new UserAndRelationsDto(oneLoginUserService.getUserById(id)));
     }
 
     @GetMapping("/user")
-    public ResponseEntity<UserDto> getUserByUserSub(@RequestParam("userSub") String userSub,
-                                                    @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader) {
+    public ResponseEntity<UserAndRelationsDto> getUserByUserSub(@RequestParam("userSub") String userSub,
+                                                                @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader) {
         // authenticate request from lambda function
         secretAuthService.authenticateSecret(authHeader);
-        return ResponseEntity.ok(new UserDto(oneLoginUserService.getUserByUserSub(userSub)));
+        return ResponseEntity.ok(new UserAndRelationsDto(oneLoginUserService.getUserByUserSub(userSub)));
     }
 
     @PatchMapping("/user/{userId}/department")
@@ -162,11 +158,11 @@ public class UserController {
 
     @GetMapping("/user/email/{email}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ResponseEntity<UserDto> getUserByEmail(@PathVariable("email") String email, @RequestParam Optional<Role> role) {
-        if(role.isPresent()){
-            return ResponseEntity.ok(new UserDto(oneLoginUserService.getUserByEmailAndRole(email, role.get())));
-        }
-        return ResponseEntity.ok(new UserDto(oneLoginUserService.getUserByEmail(email)));
+    public ResponseEntity<UserDto> getUserByEmail(@PathVariable("email") String email, @RequestParam Optional<String> role) {
+        return ResponseEntity.ok(
+                role.map(s -> new UserDto(oneLoginUserService.getUserByEmailAndRole(email, s)))
+                        .orElseGet(() -> new UserDto(oneLoginUserService.getUserByEmail(email)))
+        );
     }
 
 

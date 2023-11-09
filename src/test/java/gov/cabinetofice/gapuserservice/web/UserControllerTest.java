@@ -1,9 +1,6 @@
 package gov.cabinetofice.gapuserservice.web;
 
-import gov.cabinetofice.gapuserservice.dto.ChangeDepartmentPageDto;
-import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
-import gov.cabinetofice.gapuserservice.dto.UserDto;
-import gov.cabinetofice.gapuserservice.dto.UserEmailDto;
+import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetofice.gapuserservice.model.Role;
@@ -99,9 +96,9 @@ class UserControllerTest {
                 .emailAddress("test@gov.uk").build();
         when(oneLoginUserService.getUserById(1)).thenReturn(mockUser);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
-        final ResponseEntity<UserDto> methodResponse = controller.getUserById(httpRequest, 1);
+        final ResponseEntity<UserAndRelationsDto> methodResponse = controller.getUserById(httpRequest, 1);
 
-        assertThat(methodResponse.getBody()).isEqualTo(new UserDto(mockUser));
+        assertThat(methodResponse.getBody()).isEqualTo(new UserAndRelationsDto(mockUser));
     }
 
     @Test
@@ -163,9 +160,9 @@ class UserControllerTest {
                 .thenReturn(true);
         when(customJwtService.getUserFromJwt(any(HttpServletRequest.class)))
                 .thenReturn(Optional.of(mockUser));
-        final ResponseEntity<UserDto> methodResponse = controller.getUserFromJwt(mock(HttpServletRequest.class));
+        final ResponseEntity<UserAndRelationsDto> methodResponse = controller.getUserFromJwt(mock(HttpServletRequest.class));
 
-        assertThat(methodResponse.getBody()).isEqualTo(new UserDto(mockUser));
+        assertThat(methodResponse.getBody()).isEqualTo(new UserAndRelationsDto(mockUser));
     }
 
     @Test
@@ -234,8 +231,8 @@ class UserControllerTest {
                 .emailAddress(testEmail).build();
         UserDto mockUserDto = new UserDto(mockUser);
 
-        when(oneLoginUserService.getUserByEmailAndRole(testEmail, roles)).thenReturn(mockUser);
-        final ResponseEntity<UserDto> methodResponse = controller.getUserByEmail(testEmail, Optional.of(roles));
+        when(oneLoginUserService.getUserByEmailAndRole(testEmail, "ADMIN")).thenReturn(mockUser);
+        final ResponseEntity<UserDto> methodResponse = controller.getUserByEmail(testEmail, Optional.of("ADMIN"));
 
         assertThat(methodResponse.getBody()).isEqualTo(mockUserDto);
     }
