@@ -161,8 +161,8 @@ public class UserController {
 
     @GetMapping("/user/email/{email}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ResponseEntity<User> getUserByEmail(@PathVariable("email") String email) {
-        return ResponseEntity.ok(oneLoginUserService.getUserByEmail(email));
+    public ResponseEntity<UserDto> getUserByEmail(@PathVariable("email") String email) {
+        return ResponseEntity.ok(new UserDto(oneLoginUserService.getUserByEmail(email)));
     }
 
 

@@ -226,4 +226,16 @@ class UserControllerTest {
         );
     }
 
+    @Test
+    void testGetUserByEmail() {
+        User mockUser = User.builder().sub("1").gapUserId(1)
+                .emailAddress("test@test.com").build();
+        UserDto mockUserDto = new UserDto(mockUser);
+
+        when(oneLoginUserService.getUserByEmail("test@test.com")).thenReturn(mockUser);
+        final ResponseEntity<UserDto> methodResponse = controller.getUserByEmail("test@test.com");
+
+        assertThat(methodResponse.getBody()).isEqualTo(mockUserDto);
+    }
+
 }

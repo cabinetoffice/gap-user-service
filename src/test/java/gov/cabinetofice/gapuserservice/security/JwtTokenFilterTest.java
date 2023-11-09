@@ -1,9 +1,12 @@
 package gov.cabinetofice.gapuserservice.security;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.config.DebugProperties;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
+import gov.cabinetofice.gapuserservice.dto.JwtPayload;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.service.jwt.JwtService;
+import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -23,6 +26,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -34,7 +38,7 @@ class JwtTokenFilterTest {
     private JwtTokenFilter jwtTokenFilter;
     private @Mock DebugProperties debugProperties;
     private @Mock JwtProperties jwtProperties;
-    private @Mock JwtService customJwtServiceImpl;
+    private @Mock CustomJwtServiceImpl customJwtServiceImpl;
     private @Mock HttpServletRequest request;
     private @Mock HttpServletResponse response;
     private @Mock FilterChain chain;
@@ -55,6 +59,11 @@ class JwtTokenFilterTest {
         when(jwtProperties.getCookieName()).thenReturn("customJwt");
         when(request.getCookies()).thenReturn(new Cookie[]{new Cookie("customJwt", "value")});
         when(customJwtServiceImpl.isTokenValid("value")).thenReturn(true);
+        final DecodedJWT decodedJwt = mock(DecodedJWT.class);
+        final JwtPayload payload = mock(JwtPayload.class);
+        when(customJwtServiceImpl.decodedJwt("value")).thenReturn(decodedJwt);
+        when(customJwtServiceImpl.decodeTheTokenPayloadInAReadableFormat(decodedJwt)).thenReturn(payload);
+        when(payload.getRoles()).thenReturn("[USER]");
 
         try (MockedStatic<SecurityContextHolder> staticSecurityContextHolder = Mockito.mockStatic(SecurityContextHolder.class)) {
             staticSecurityContextHolder.when(SecurityContextHolder::getContext).thenReturn(securityContext);
@@ -144,6 +153,12 @@ class JwtTokenFilterTest {
         when(jwtProperties.getCookieName()).thenReturn("customJwt");
         when(request.getCookies()).thenReturn(new Cookie[]{new Cookie("customJwt", "value")});
         when(customJwtServiceImpl.isTokenValid("value")).thenReturn(false);
+
+        final DecodedJWT decodedJwt = mock(DecodedJWT.class);
+        final JwtPayload payload = mock(JwtPayload.class);
+        when(customJwtServiceImpl.decodedJwt("value")).thenReturn(decodedJwt);
+        when(customJwtServiceImpl.decodeTheTokenPayloadInAReadableFormat(decodedJwt)).thenReturn(payload);
+        when(payload.getRoles()).thenReturn("[USER]");
 
         try (MockedStatic<SecurityContextHolder> staticSecurityContextHolder = Mockito.mockStatic(SecurityContextHolder.class)) {
             staticSecurityContextHolder.when(SecurityContextHolder::getContext).thenReturn(securityContext);
