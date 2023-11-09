@@ -6,6 +6,7 @@ import gov.cabinetofice.gapuserservice.dto.UserDto;
 import gov.cabinetofice.gapuserservice.dto.UserEmailDto;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
+import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
@@ -161,7 +162,10 @@ public class UserController {
 
     @GetMapping("/user/email/{email}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ResponseEntity<UserDto> getUserByEmail(@PathVariable("email") String email) {
+    public ResponseEntity<UserDto> getUserByEmail(@PathVariable("email") String email, @RequestParam Optional<Role> role) {
+        if(role.isPresent()){
+            return ResponseEntity.ok(new UserDto(oneLoginUserService.getUserByEmailAndRole(email, role.get())));
+        }
         return ResponseEntity.ok(new UserDto(oneLoginUserService.getUserByEmail(email)));
     }
 

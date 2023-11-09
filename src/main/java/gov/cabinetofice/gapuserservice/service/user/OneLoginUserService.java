@@ -359,4 +359,12 @@ public class OneLoginUserService {
     public User getUserByEmail(String email) {
         return userRepository.findByEmailAddress(email).orElseThrow(() -> new UserNotFoundException("user with email: " + email + NOT_FOUND));
     }
+
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public User getUserByEmailAndRole(String email, Role role) {
+        if(roleRepository.findById(role.getId()).isEmpty()){
+            throw new RoleNotFoundException("role with id: " + role.getId() + NOT_FOUND);
+        }
+        return userRepository.findByEmailAddressAndRolesId(email, role.getId()).orElseThrow(() -> new UserNotFoundException("user with email: " + email + NOT_FOUND));
+    }
 }

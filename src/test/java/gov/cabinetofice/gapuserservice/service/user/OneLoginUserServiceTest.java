@@ -698,8 +698,23 @@ class OneLoginUserServiceTest {
     @Test
     void getUserByEmailThrowsWhenNoCorrespondingUserFound() {
         when(userRepository.findByEmailAddress("test@test.com")).thenReturn(Optional.empty());
-
         assertThrows(UserNotFoundException.class, () -> oneLoginUserService.getUserByEmail("test@test.com"));
+    }
+
+    @Test
+    void getUserByEmailAndRoleReturnsUser() {
+        User user = User.builder().emailAddress("test@test.com").roles(List.of(Role.builder().id(1).name(RoleEnum.ADMIN).build())).build();
+        when(roleRepository.findById(1)).thenReturn(Optional.of(Role.builder().id(1).name(RoleEnum.ADMIN).build()));
+        when(userRepository.findByEmailAddressAndRolesId("test@test.com", 1)).thenReturn(Optional.of(user));
+
+        User result = oneLoginUserService.getUserByEmailAndRole("test@test.com", Role.builder().id(1).name(RoleEnum.ADMIN).build());
+        assertThat(result).isEqualTo(user);
+    }
+
+    @Test
+    void getUserByEmailAndRoleThrowsExceptionWhenInvalidRole() {
+        when(roleRepository.findById(1)).thenReturn(Optional.empty());
+        assertThrows(RoleNotFoundException.class, () -> oneLoginUserService.getUserByEmailAndRole("test@test.com", Role.builder().id(1).name(RoleEnum.ADMIN).build()));
     }
 }
 

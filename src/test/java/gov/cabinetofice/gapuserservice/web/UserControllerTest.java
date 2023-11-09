@@ -227,13 +227,29 @@ class UserControllerTest {
     }
 
     @Test
-    void testGetUserByEmail() {
-        User mockUser = User.builder().sub("1").gapUserId(1)
-                .emailAddress("test@test.com").build();
+    void testGetUserByEmailWhenARoleIsSpecified() {
+        String testEmail = "test@test.com";
+        Role roles = Role.builder().id(1).name(RoleEnum.ADMIN).build();
+        User mockUser = User.builder().sub("1").gapUserId(1).roles(List.of(roles))
+                .emailAddress(testEmail).build();
         UserDto mockUserDto = new UserDto(mockUser);
 
-        when(oneLoginUserService.getUserByEmail("test@test.com")).thenReturn(mockUser);
-        final ResponseEntity<UserDto> methodResponse = controller.getUserByEmail("test@test.com");
+        when(oneLoginUserService.getUserByEmailAndRole(testEmail, roles)).thenReturn(mockUser);
+        final ResponseEntity<UserDto> methodResponse = controller.getUserByEmail(testEmail, Optional.of(roles));
+
+        assertThat(methodResponse.getBody()).isEqualTo(mockUserDto);
+    }
+
+    @Test
+    void testGetUserByEmailWhenRoleIsAbsent() {
+        String testEmail = "test@test.com";
+        User mockUser = User.builder().sub("1").gapUserId(1)
+                .emailAddress(testEmail).build();
+
+        UserDto mockUserDto = new UserDto(mockUser);
+
+        when(oneLoginUserService.getUserByEmail(testEmail)).thenReturn(mockUser);
+        final ResponseEntity<UserDto> methodResponse = controller.getUserByEmail(testEmail, Optional.empty());
 
         assertThat(methodResponse.getBody()).isEqualTo(mockUserDto);
     }
