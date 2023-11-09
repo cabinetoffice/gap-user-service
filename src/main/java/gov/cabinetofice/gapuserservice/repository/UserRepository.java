@@ -26,9 +26,6 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     @Query("SELECT u from User u inner join u.roles roles WHERE roles.id = :roleId and u.emailAddress = :emailAddress")
     Optional<User> findByEmailAddressAndRole(String emailAddress, Integer roleId);
 
-    @Query("select u from User u inner join u.roles roles where roles.id = ?1")
-    User findByRoles_Id(Integer id);
-
     @EntityGraph(attributePaths = {"department", "roles"})
     Optional<User> findBySub(String sub);
 
