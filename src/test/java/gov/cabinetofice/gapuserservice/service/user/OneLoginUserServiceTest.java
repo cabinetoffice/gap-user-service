@@ -685,6 +685,37 @@ class OneLoginUserServiceTest {
             verify(mockRequestBodySpec).bodyValue(migrateUserDto);
         }
     }
+
+    @Test
+    void getUserByEmailReturnsUser() {
+        User user = User.builder().emailAddress("test@test.com").build();
+        when(userRepository.findByEmailAddress("test@test.com")).thenReturn(Optional.of(user));
+
+        User result = oneLoginUserService.getUserByEmail("test@test.com");
+        assertThat(result).isEqualTo(user);
+    }
+
+    @Test
+    void getUserByEmailThrowsWhenNoCorrespondingUserFound() {
+        when(userRepository.findByEmailAddress("test@test.com")).thenReturn(Optional.empty());
+        assertThrows(UserNotFoundException.class, () -> oneLoginUserService.getUserByEmail("test@test.com"));
+    }
+
+    @Test
+    void getUserByEmailAndRoleReturnsUser() {
+        User user = User.builder().emailAddress("test@test.com").roles(List.of(Role.builder().id(1).name(RoleEnum.ADMIN).build())).build();
+        when(roleRepository.findByName(RoleEnum.ADMIN)).thenReturn(Optional.of(Role.builder().id(1).name(RoleEnum.ADMIN).build()));
+        when(userRepository.findByEmailAddressAndRole("test@test.com", 1)).thenReturn(Optional.of(user));
+
+        User result = oneLoginUserService.getUserByEmailAndRole("test@test.com", "ADMIN");
+        assertThat(result).isEqualTo(user);
+    }
+
+    @Test
+    void getUserByEmailAndRoleThrowsExceptionWhenInvalidRole() {
+        when(roleRepository.findByName(RoleEnum.ADMIN)).thenReturn(Optional.empty());
+        assertThrows(RoleNotFoundException.class, () -> oneLoginUserService.getUserByEmailAndRole("test@test.com", "ADMIN"));
+    }
 }
 
 

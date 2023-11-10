@@ -27,6 +27,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -352,5 +353,17 @@ public class OneLoginUserService {
                 .emailAddress(awsEncryptionService.encryptField(user.getEmailAddress()))
                 .sub(user.getSub())
                 .build()).collect(Collectors.toList());
+    }
+
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmailAddress(email).orElseThrow(() -> new UserNotFoundException("user with email: " + email + NOT_FOUND));
+    }
+
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public User getUserByEmailAndRole(String email, String roleName) {
+        final RoleEnum roleEnum = RoleEnum.valueOf(roleName);
+        final Role role = roleRepository.findByName(roleEnum).orElseThrow(() -> new RoleNotFoundException("Could not find user: '" + roleEnum + "' role not found"));
+        return userRepository.findByEmailAddressAndRole(email, role.getId()).orElseThrow(() -> new UserNotFoundException("user with email: " + email + " and role: " + roleName + " " + NOT_FOUND));
     }
 }

@@ -71,7 +71,7 @@ class SuperAdminControllerTest {
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(oneLoginUserService.getPaginatedUsers(pagination, userQueryDto)).thenReturn(pagedUsers);
 
-        List<UserDto> dtoUsers = users.stream().map(UserDto::new).collect(Collectors.toList());
+        List<UserAndRelationsDto> dtoUsers = users.stream().map(UserAndRelationsDto::new).collect(Collectors.toList());
 
         SuperAdminDashboardPageDto expectedResponseDto = SuperAdminDashboardPageDto.builder().departments(departments).roles(roles).users(dtoUsers).build();
 

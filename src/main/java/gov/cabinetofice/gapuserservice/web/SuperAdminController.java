@@ -48,7 +48,7 @@ public class SuperAdminController {
         return ResponseEntity.ok(SuperAdminDashboardPageDto.builder()
                 .departments(allDepartments)
                 .roles(allRoles)
-                .users(users.stream().map(UserDto::new).toList())
+                .users(users.stream().map(UserAndRelationsDto::new).toList())
                 .userCount(users.getTotalElements())
                 .build());
     }

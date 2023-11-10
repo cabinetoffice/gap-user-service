@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -20,6 +21,11 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
     @EntityGraph(attributePaths = {"department", "roles"})
     Optional<User> findByEmailAddress(String email);
+
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @Query("SELECT u from User u inner join u.roles roles WHERE roles.id = :roleId and u.emailAddress = :emailAddress")
+    Optional<User> findByEmailAddressAndRole(String emailAddress, Integer roleId);
+
     @EntityGraph(attributePaths = {"department", "roles"})
     Optional<User> findBySub(String sub);
 
