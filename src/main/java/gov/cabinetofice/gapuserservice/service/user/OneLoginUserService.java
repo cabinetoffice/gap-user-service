@@ -363,7 +363,7 @@ public class OneLoginUserService {
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public User getUserByEmailAndRole(String email, String roleName) {
         final RoleEnum roleEnum = RoleEnum.valueOf(roleName);
-        final Role role = roleRepository.findByName(roleEnum).orElseThrow(() -> new RoleNotFoundException("Could not create user: '" + roleEnum + "' role not found"));
+        final Role role = roleRepository.findByName(roleEnum).orElseThrow(() -> new RoleNotFoundException("Could not find user: '" + roleEnum + "' role not found"));
         return userRepository.findByEmailAddressAndRole(email, role.getId()).orElseThrow(() -> new UserNotFoundException("user with email: " + email + " and role: " + roleName + " " + NOT_FOUND));
     }
 }
