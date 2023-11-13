@@ -14,7 +14,6 @@ import gov.cabinetofice.gapuserservice.config.JwtProperties;
 import gov.cabinetofice.gapuserservice.dto.JwtPayload;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.GenerateTokenFailedException;
-import gov.cabinetofice.gapuserservice.exceptions.JwkNotValidTokenException;
 import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.model.Role;
