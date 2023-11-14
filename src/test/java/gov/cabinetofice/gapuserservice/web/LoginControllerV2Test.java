@@ -91,9 +91,7 @@ class LoginControllerV2Test {
         ReflectionTestUtils.setField(loginController, "userServiceCookieName", "userServiceCookieName");
         ReflectionTestUtils.setField(loginController, "adminBaseUrl", "http:localhost:3000/adminBaseUrl");
         ReflectionTestUtils.setField(loginController, "applicantBaseUrl", "http:localhost:3000/applicantBaseUrl");
-        ReflectionTestUtils.setField(loginController, "migrationEnabled", "true");
         ReflectionTestUtils.setField(loginController, "techSupportAppBaseUrl", "http:localhost:3000/techSupportAppBaseUrl");
-        ReflectionTestUtils.setField(loginController, "userServiceCookieDomain", "cabinetoffice.gov.uk");
     }
 
     @AfterEach
@@ -109,7 +107,6 @@ class LoginControllerV2Test {
         final String loginUrl = "loginUrl";
         @Test
         void shouldRedirectToLoginPage_IfTokenIsNull_AndMigrationJourneyDisabled() {
-            ReflectionTestUtils.setField(loginController, "migrationEnabled", "false");
             final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/");
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final MockHttpServletRequest request = new MockHttpServletRequest();
@@ -248,7 +245,6 @@ class LoginControllerV2Test {
             final Cookie cookie = WebUtil.buildSecureCookie("userServiceCookieName", "jwtToken");
             final JSONObject tokenResponse = new JSONObject();
             tokenResponse.put("id_token", idToken).put("access_token", accessToken);
-            cookie.setDomain("cabinetoffice.gov.uk");
 
             final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
                     .emailAddress("email")
