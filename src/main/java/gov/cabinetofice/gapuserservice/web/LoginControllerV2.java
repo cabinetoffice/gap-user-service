@@ -211,7 +211,6 @@ public class LoginControllerV2 {
         final Map<String, String> customJwtClaims = oneLoginService.generateCustomJwtClaims(userInfo, idToken);
         final String customServiceJwt = customJwtService.generateToken(customJwtClaims);
         final Cookie customJwt = WebUtil.buildSecureCookie(userServiceCookieName, customServiceJwt);
-        customJwt.setDomain(userServiceCookieDomain);
         response.addCookie(customJwt);
         return customJwt;
     }
