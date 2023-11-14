@@ -92,6 +92,7 @@ class LoginControllerV2Test {
         ReflectionTestUtils.setField(loginController, "adminBaseUrl", "http:localhost:3000/adminBaseUrl");
         ReflectionTestUtils.setField(loginController, "applicantBaseUrl", "http:localhost:3000/applicantBaseUrl");
         ReflectionTestUtils.setField(loginController, "techSupportAppBaseUrl", "http:localhost:3000/techSupportAppBaseUrl");
+        ReflectionTestUtils.setField(loginController, "postLogoutRedirectUri", "http:localhost:3002/postLogoutRedirectUri");
     }
 
     @AfterEach
@@ -649,7 +650,7 @@ class LoginControllerV2Test {
         @Test
         void testLogoutWithBlankCookie() {
             String userServiceCookieName = "customJWT";
-            String applicantBaseUrl = "http:localhost:3000/applicantBaseUrl";
+            String postLogoutUri = "http:localhost:3002/postLogoutRedirectUri";
 
             HttpServletRequest request = mock(HttpServletRequest.class);
             HttpServletResponse response = mock(HttpServletResponse.class);
@@ -657,7 +658,7 @@ class LoginControllerV2Test {
             RedirectView methodResponse = loginController.logout(request, response);
 
             verify(oneLoginService, never()).logoutUser(any(Cookie.class), any(HttpServletResponse.class));
-            Assertions.assertEquals(applicantBaseUrl, methodResponse.getUrl());
+            Assertions.assertEquals(postLogoutUri, methodResponse.getUrl());
         }
 
         @Test
