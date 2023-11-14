@@ -68,8 +68,6 @@ public class LoginControllerV2 {
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
 
-    @Value("${jwt.cookie-domain}")
-    public String userServiceCookieDomain;
     @Value("${admin-base-url}")
     private String adminBaseUrl;
 
@@ -78,9 +76,6 @@ public class LoginControllerV2 {
 
     @Value("${tech-support-dash-base-url}")
     private String techSupportAppBaseUrl;
-
-    @Value("${feature.onelogin.migration.enabled}")
-    public String migrationEnabled;
 
     @Value("${feature.find-accounts.migration.enabled}")
     private String findAccountsMigrationEnabled;
