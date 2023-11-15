@@ -91,9 +91,8 @@ class LoginControllerV2Test {
         ReflectionTestUtils.setField(loginController, "userServiceCookieName", "userServiceCookieName");
         ReflectionTestUtils.setField(loginController, "adminBaseUrl", "http:localhost:3000/adminBaseUrl");
         ReflectionTestUtils.setField(loginController, "applicantBaseUrl", "http:localhost:3000/applicantBaseUrl");
-        ReflectionTestUtils.setField(loginController, "migrationEnabled", "true");
         ReflectionTestUtils.setField(loginController, "techSupportAppBaseUrl", "http:localhost:3000/techSupportAppBaseUrl");
-        ReflectionTestUtils.setField(loginController, "userServiceCookieDomain", "cabinetoffice.gov.uk");
+        ReflectionTestUtils.setField(loginController, "postLogoutRedirectUri", "http:localhost:3002/postLogoutRedirectUri");
     }
 
     @AfterEach
@@ -109,7 +108,6 @@ class LoginControllerV2Test {
         final String loginUrl = "loginUrl";
         @Test
         void shouldRedirectToLoginPage_IfTokenIsNull_AndMigrationJourneyDisabled() {
-            ReflectionTestUtils.setField(loginController, "migrationEnabled", "false");
             final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/");
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final MockHttpServletRequest request = new MockHttpServletRequest();
@@ -248,7 +246,6 @@ class LoginControllerV2Test {
             final Cookie cookie = WebUtil.buildSecureCookie("userServiceCookieName", "jwtToken");
             final JSONObject tokenResponse = new JSONObject();
             tokenResponse.put("id_token", idToken).put("access_token", accessToken);
-            cookie.setDomain("cabinetoffice.gov.uk");
 
             final OneLoginUserInfoDto oneLoginUserInfoDto = OneLoginUserInfoDto.builder()
                     .emailAddress("email")
@@ -653,7 +650,7 @@ class LoginControllerV2Test {
         @Test
         void testLogoutWithBlankCookie() {
             String userServiceCookieName = "customJWT";
-            String applicantBaseUrl = "http:localhost:3000/applicantBaseUrl";
+            String postLogoutUri = "http:localhost:3002/postLogoutRedirectUri";
 
             HttpServletRequest request = mock(HttpServletRequest.class);
             HttpServletResponse response = mock(HttpServletResponse.class);
@@ -661,7 +658,7 @@ class LoginControllerV2Test {
             RedirectView methodResponse = loginController.logout(request, response);
 
             verify(oneLoginService, never()).logoutUser(any(Cookie.class), any(HttpServletResponse.class));
-            Assertions.assertEquals(applicantBaseUrl, methodResponse.getUrl());
+            Assertions.assertEquals(postLogoutUri, methodResponse.getUrl());
         }
 
         @Test
