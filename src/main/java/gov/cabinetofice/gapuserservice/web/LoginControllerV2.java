@@ -4,16 +4,16 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.FindAGrantConfigProperties;
+import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
+import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
+import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
+import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
+import gov.cabinetofice.gapuserservice.enums.GetRedirectUrlArgs;
 import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.enums.NextStateArgs;
-import gov.cabinetofice.gapuserservice.exceptions.NonceExpiredException;
-import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedClientException;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
-import gov.cabinetofice.gapuserservice.model.Nonce;
 import gov.cabinetofice.gapuserservice.model.User;
-import gov.cabinetofice.gapuserservice.repository.NonceRepository;
 import gov.cabinetofice.gapuserservice.service.OneLoginService;
-import gov.cabinetofice.gapuserservice.service.RoleService;
 import gov.cabinetofice.gapuserservice.service.encryption.Sha512Service;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
@@ -36,14 +36,12 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
 
-import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 import static gov.cabinetofice.gapuserservice.util.HelperUtils.getCustomJwtCookieFromRequest;
 import static net.logstash.logback.argument.StructuredArguments.entries;
-import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @RequiredArgsConstructor
 @Controller
@@ -52,11 +50,9 @@ import static net.logstash.logback.argument.StructuredArguments.keyValue;
 @Slf4j
 public class LoginControllerV2 {
     private final OneLoginService oneLoginService;
-    private final RoleService roleService;
     private final CustomJwtServiceImpl customJwtService;
     private final ApplicationConfigProperties configProperties;
     private final Sha512Service encryptionService;
-    private final NonceRepository nonceRepository;
     private final OneLoginUserService oneLoginUserService;
     private final FindAGrantConfigProperties findProperties;
     private final LoggingUtils loggingUtils;
@@ -67,7 +63,7 @@ public class LoginControllerV2 {
 
     private static final String REDIRECT_URL_NAME = "redirectUrl";
 
-    private final String STATE_COOKIE = "state";
+    private static final String STATE_COOKIE = "state";
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
@@ -81,8 +77,11 @@ public class LoginControllerV2 {
     @Value("${tech-support-dash-base-url}")
     private String techSupportAppBaseUrl;
 
-    @Value("${feature.onelogin.migration.enabled}")
-    public String migrationEnabled;
+    @Value("${feature.find-accounts.migration.enabled}")
+    private String findAccountsMigrationEnabled;
+
+    @Value("${onelogin.post-logout-redirect-uri}")
+    private String postLogoutRedirectUri;
 
     @PostMapping("/validateSessionsRoles")
     public ResponseEntity<Boolean> validateSessionsRoles(@RequestBody final ValidateSessionsRolesRequestBodyDto requestBody){
@@ -136,7 +135,7 @@ public class LoginControllerV2 {
         final StateCookieDto stateCookieDto = oneLoginService.decodeStateCookie(stateCookie);
         final String redirectUrl = stateCookieDto.getRedirectUrl();
 
-        verifyStateAndNonce(decodedIdToken.getNonce(), stateCookieDto, state);
+        oneLoginService.verifyStateAndNonce(decodedIdToken.getNonce(), stateCookieDto, state);
 
         final OneLoginUserInfoDto userInfo = oneLoginService.getOneLoginUserInfoDto(authToken);
 
@@ -144,24 +143,29 @@ public class LoginControllerV2 {
             oneLoginService.validateUserSub(decodedIdToken.getSub(), userInfo.getSub());
         }
 
-        final User user = oneLoginService.createOrGetUserFromInfo(userInfo);
+        final User user = oneLoginUserService.createOrGetUserFromInfo(userInfo);
 
-        addCustomJwtCookie(response, userInfo, idToken);
-        return new RedirectView(runStateMachine(redirectUrl, user, "jwt", user.hasAcceptedPrivacyPolicy(), userInfo));
+        final Cookie customJwtCookie = addCustomJwtCookie(response, userInfo, idToken);
+        return new RedirectView(runStateMachine(redirectUrl, user, customJwtCookie.getValue(),
+                user.hasAcceptedPrivacyPolicy(), userInfo));
     }
 
     @GetMapping("/updated-email")
     public ModelAndView updatedEmailPage(
             final HttpServletRequest request,
-            final @CookieValue(name = REDIRECT_URL_NAME, required = false) Optional<String> redirectUrlCookie) {
+            final @CookieValue(name = STATE_COOKIE, required = false) Optional<String> stateCookie) {
         final Cookie customJWTCookie = getCustomJwtCookieFromRequest(request, userServiceCookieName);
         final User user = getUserFromCookie(customJWTCookie)
                 .orElseThrow(() -> new UserNotFoundException("Update email: Could not fetch user from jwt"));
-        final String redirectUrl = runStateMachine(redirectUrlCookie.orElse(configProperties.getDefaultRedirectUrl()),
+
+        final String redirectUrlCookieValue = getRedirectUrlFromStateCookie(stateCookie);
+
+        final String redirectUrl = runStateMachine(redirectUrlCookieValue,
                 user,
                 customJWTCookie.getValue(), true, null);
+
         return new ModelAndView(UPDATED_EMAIL_PAGE_VIEW).addObject("email", user.getEmailAddress())
-                .addObject("redirectUrl", redirectUrl). addObject("homePageUrl", findProperties.getUrl());
+                .addObject(REDIRECT_URL_NAME, redirectUrl). addObject("homePageUrl", findProperties.getUrl());
     }
 
     @GetMapping("/privacy-policy")
@@ -176,14 +180,17 @@ public class LoginControllerV2 {
             final @Valid @ModelAttribute("privacyPolicy") PrivacyPolicyDto privacyPolicyDto,
             final BindingResult result,
             final HttpServletRequest request,
-            final @CookieValue(name = REDIRECT_URL_NAME, required = false) Optional<String> redirectUrlCookie) {
+            final @CookieValue(name = STATE_COOKIE, required = false) Optional<String> stateCookie) {
         if (result.hasErrors())
             return submitToPrivacyPolicyPage(privacyPolicyDto);
         final Cookie customJWTCookie = getCustomJwtCookieFromRequest(request, userServiceCookieName);
         final User user = getUserFromCookie(customJWTCookie)
                 .orElseThrow(() -> new UserNotFoundException("Privacy policy: Could not fetch user from jwt"));
+
+        final String redirectUrlCookieValue = getRedirectUrlFromStateCookie(stateCookie);
+
         return new ModelAndView(
-                "redirect:" + runStateMachine(redirectUrlCookie.orElse(configProperties.getDefaultRedirectUrl()), user,
+                "redirect:" + runStateMachine(redirectUrlCookieValue, user,
                         customJWTCookie.getValue(), true, null));
     }
 
@@ -191,83 +198,42 @@ public class LoginControllerV2 {
     public RedirectView logout(final HttpServletRequest request, final HttpServletResponse response) {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
         if (customJWTCookie == null || customJWTCookie.getValue().isBlank()) {
-            return new RedirectView(applicantBaseUrl);
+            return new RedirectView(postLogoutRedirectUri);
         }
 
         return oneLoginService.logoutUser(customJWTCookie, response);
     }
 
-    private void addCustomJwtCookie(final HttpServletResponse response, final OneLoginUserInfoDto userInfo,
+    private Cookie addCustomJwtCookie(final HttpServletResponse response, final OneLoginUserInfoDto userInfo,
             final String idToken) {
         final Map<String, String> customJwtClaims = oneLoginService.generateCustomJwtClaims(userInfo, idToken);
         final String customServiceJwt = customJwtService.generateToken(customJwtClaims);
         final Cookie customJwt = WebUtil.buildSecureCookie(userServiceCookieName, customServiceJwt);
         response.addCookie(customJwt);
+        return customJwt;
+    }
+
+    private String getRedirectUrlFromStateCookie(Optional<String> stateCookie) {
+        return stateCookie.isPresent() ?
+                oneLoginService.decodeStateCookie(stateCookie.get()).getRedirectUrl():
+                configProperties.getDefaultRedirectUrl();
     }
 
     private Optional<User> getUserFromCookie(final Cookie customJWTCookie) {
         final DecodedJWT decodedJWT = JWT.decode(customJWTCookie.getValue());
-        return oneLoginService.getUserFromSub(decodedJWT.getSubject());
-    }
-
-    private void verifyStateAndNonce(final String nonce, final StateCookieDto stateCookieDto, final String state) {
-        // Validate that state returned is the same as the one stored in the cookie
-        final String saltId = stateCookieDto.getSaltId();
-        final String encodedStateJson = oneLoginService.buildEncodedStateJson(
-                stateCookieDto.getRedirectUrl(),
-                stateCookieDto.getState(),
-                saltId
-        );
-        final String hashedStateCookie = encryptionService.getSHA512SecurePassword(encodedStateJson, saltId);
-        final boolean isStateVerified = state.equals(hashedStateCookie);
-        // by only deleting the salt if the state matches we can ensure that an attacker can't arbitrarily delete salts
-        // as we know they haven't changed the saltId
-        if (isStateVerified) encryptionService.deleteSalt(saltId);
-
-        // Validate that nonce is stored in the DB
-        final Nonce storedNonce = oneLoginService.readAndDeleteNonce(nonce);
-        final boolean isNonceVerified = nonce.equals(storedNonce.getNonceString());
-
-        // Validate that nonce is less than 10 mins old
-        final boolean isNonceExpired = oneLoginService.isNonceExpired(storedNonce);
-
-        if (!isStateVerified || !isNonceVerified) {
-            log.error(
-                    loggingUtils.getLogMessage("/redirect-after-login encountered unauthorised user", 7),
-                    keyValue("nonceVerified", isNonceVerified),
-                    keyValue("stateVerified", isStateVerified),
-                    keyValue("nonceFromToken", nonce),
-                    keyValue("nonceFromDB", storedNonce.getNonceString()),
-                    keyValue("stateFromResponse", state),
-                    keyValue("hashedStateFromCookie", hashedStateCookie),
-                    keyValue("stateFromCookie", encodedStateJson)
-            );
-            throw new UnauthorizedClientException("User authorization failed");
-        } else if (isNonceExpired) {
-            log.error(
-                    loggingUtils.getLogMessage("/redirect-after-login encountered unauthorized user - nonce expired", 7),
-                    keyValue("nonceFromToken", nonce),
-                    keyValue("nonceFromDB", storedNonce.getNonceString()),
-                    keyValue("nonceCreatedAt", storedNonce.getCreatedAt()),
-                    keyValue("now", new Date()),
-                    keyValue("stateFromResponse", state),
-                    keyValue("hashedStateFromCookie", hashedStateCookie),
-                    keyValue("stateFromCookie", encodedStateJson)
-            );
-            throw new NonceExpiredException("User authorization failed, please try again");
-        }
+        return oneLoginUserService.getUserFromSub(decodedJWT.getSubject());
     }
 
     private String runStateMachine(final String redirectUrlCookie, final User user, final String jwt,
             final boolean hasAcceptedPrivacyPolicy, final OneLoginUserInfoDto userInfo) {
-        log.debug(loggingUtils.getLogMessage("Running state machine", 5), redirectUrlCookie, user, jwt,
+        log.info(loggingUtils.getLogMessage("Running state machine", 5), redirectUrlCookie, user, jwt,
                 hasAcceptedPrivacyPolicy, userInfo);
 
         String redirectUrl = user.getLoginJourneyState()
-                .nextState(new NextStateArgs(oneLoginService, user, jwt, log, hasAcceptedPrivacyPolicy, userInfo))
+                .nextState(new NextStateArgs(oneLoginUserService, user, jwt, log, hasAcceptedPrivacyPolicy, userInfo, findAccountsMigrationEnabled))
                 .getLoginJourneyRedirect(user.getHighestRole().getName())
-                .getRedirectUrl(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl, redirectUrlCookie);
-        log.debug(loggingUtils.getLogMessage("Redirecting to: ", 1), redirectUrl);
+                .getRedirectUrl(new GetRedirectUrlArgs(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl, redirectUrlCookie, user));
+        log.info(loggingUtils.getLogMessage("Redirecting to: ", 1), redirectUrl);
         return redirectUrl;
     }
 }

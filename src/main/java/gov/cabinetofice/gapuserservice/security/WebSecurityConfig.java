@@ -2,7 +2,7 @@ package gov.cabinetofice.gapuserservice.security;
 
 import gov.cabinetofice.gapuserservice.config.DebugProperties;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
-import gov.cabinetofice.gapuserservice.service.jwt.JwtService;
+import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,7 +25,7 @@ public class WebSecurityConfig {
 
     public WebSecurityConfig(final DebugProperties debugProperties,
                              final JwtProperties jwtProperties,
-                             final JwtService customJwtServiceImpl,
+                             final CustomJwtServiceImpl customJwtServiceImpl,
                              final @Value("${spring.profiles.active:PROD}") String profile) {
         this.jwtTokenFilter = new JwtTokenFilter(debugProperties, jwtProperties, customJwtServiceImpl, profile);
     }
@@ -47,6 +47,7 @@ public class WebSecurityConfig {
                 "/login",
                 "/v2/redirect-after-login",
                 "/v2/login",
+                "/v2/logout",
                 "/v2/notice-page",
                 "/v2/privacy-policy",
                 "/v2/updated-email",
@@ -55,7 +56,8 @@ public class WebSecurityConfig {
                 "/error/**",
                 "/.well-known/jwks.json",
                 "/v2/validateSessionsRoles",
-                "/user"
+                "/user",
+                "/users/emails"
                 );
     }
 

@@ -13,6 +13,8 @@ import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
 import gov.cabinetofice.gapuserservice.config.JwtProperties;
 import gov.cabinetofice.gapuserservice.dto.JwtPayload;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
+import gov.cabinetofice.gapuserservice.exceptions.GenerateTokenFailedException;
+import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -104,7 +106,7 @@ public class CustomJwtServiceImpl implements JwtService {
             return false;
         } catch (JOSEException exception) {
             log.error("isTokenValid failed", exception);
-            throw new RuntimeException(exception);
+            throw new TokenNotValidException("Token is not valid");
         } catch (UnauthorizedException exception) {
             log.error("JWT payload verification failed", exception);
             return false;
@@ -126,7 +128,7 @@ public class CustomJwtServiceImpl implements JwtService {
                     .sign(signingKey);
         } catch (JOSEException exception) {
             log.error("generateToken failed", exception);
-            throw new RuntimeException(exception);
+            throw new GenerateTokenFailedException("Failed to generate a token");
         }
     }
 

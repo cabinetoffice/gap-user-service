@@ -31,7 +31,7 @@ public class LoggingInterceptor implements HandlerInterceptor {
                 keyValue("query", request.getQueryString()),
                 keyValue("correlationId", MDC.get("CorrelationId")),
                 keyValue("method", request.getMethod()),
-                keyValue("headers", loggingUtils.getHeadersFromRequest(request)),
+                keyValue("headers", LoggingUtils.getHeadersFromRequest(request)),
                 keyValue("cookies", loggingUtils.getCookiesFromRequest(request))
         );
         return true;
@@ -50,7 +50,7 @@ public class LoggingInterceptor implements HandlerInterceptor {
                 keyValue("correlationId", MDC.get("CorrelationId")),
                 keyValue("requestMethod", request.getMethod()),
                 keyValue("status", response.getStatus()),
-                keyValue("headers", loggingUtils.getHeadersFromResponse(response))
+                keyValue("headers", LoggingUtils.getHeadersFromResponse(response))
         );
     }
 }

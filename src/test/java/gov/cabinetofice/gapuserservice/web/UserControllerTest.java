@@ -1,8 +1,6 @@
 package gov.cabinetofice.gapuserservice.web;
 
-import gov.cabinetofice.gapuserservice.dto.ChangeDepartmentPageDto;
-import gov.cabinetofice.gapuserservice.dto.DepartmentDto;
-import gov.cabinetofice.gapuserservice.dto.UserDto;
+import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetofice.gapuserservice.model.Role;
@@ -10,6 +8,7 @@ import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
+import gov.cabinetofice.gapuserservice.service.SecretAuthService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import jakarta.servlet.http.Cookie;
@@ -24,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -48,6 +48,9 @@ class UserControllerTest {
     @Mock
     private RoleService roleService;
 
+    @Mock
+    private SecretAuthService secretAuthService;
+
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(controller, "userServiceCookieName", "userServiceCookieName");
@@ -67,18 +70,20 @@ class UserControllerTest {
     void testSuperAdminCannotBlockThemselves() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
+        final ArrayList<Integer> noRoles = new ArrayList<>();
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(1).build()));
 
-        assertThrows(UnsupportedOperationException.class, () -> controller.updateRoles(httpRequest, List.of(), 1));
+        assertThrows(UnsupportedOperationException.class, () -> controller.updateRoles(httpRequest, noRoles, 1));
     }
 
     @Test
     void testSuperAdminThrowsInvalidRequestWithNoUser() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        final ArrayList<Integer> noRoles = new ArrayList<>();
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.empty());
 
-        assertThrows(InvalidRequestException.class, () -> controller.updateRoles(httpRequest, List.of(), 1));
+        assertThrows(InvalidRequestException.class, () -> controller.updateRoles(httpRequest, noRoles, 1));
     }
 
     @Test
@@ -91,9 +96,9 @@ class UserControllerTest {
                 .emailAddress("test@gov.uk").build();
         when(oneLoginUserService.getUserById(1)).thenReturn(mockUser);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
-        final ResponseEntity<UserDto> methodResponse = controller.getUserById(httpRequest, 1);
+        final ResponseEntity<UserAndRelationsDto> methodResponse = controller.getUserById(httpRequest, 1);
 
-        assertThat(methodResponse.getBody()).isEqualTo(new UserDto(mockUser));
+        assertThat(methodResponse.getBody()).isEqualTo(new UserAndRelationsDto(mockUser));
     }
 
     @Test
@@ -149,25 +154,25 @@ class UserControllerTest {
 
 
     @Test
-    public void testGetUserFromJwt() {
+    void testGetUserFromJwt() {
         User mockUser = User.builder().gapUserId(1).build();
         when(roleService.isSuperAdmin(any(HttpServletRequest.class)))
                 .thenReturn(true);
         when(customJwtService.getUserFromJwt(any(HttpServletRequest.class)))
                 .thenReturn(Optional.of(mockUser));
-        final ResponseEntity<UserDto> methodResponse = controller.getUserFromJwt(mock(HttpServletRequest.class));
+        final ResponseEntity<UserAndRelationsDto> methodResponse = controller.getUserFromJwt(mock(HttpServletRequest.class));
 
-        assertThat(methodResponse.getBody()).isEqualTo(new UserDto(mockUser));
+        assertThat(methodResponse.getBody()).isEqualTo(new UserAndRelationsDto(mockUser));
     }
 
     @Test
-    public void testGetUserFromJwtThrowsErrorWhenNotSuperAdmin() {
+    void testGetUserFromJwtThrowsErrorWhenNotSuperAdmin() {
         Mockito.doThrow(ForbiddenException.class).when(roleService).isSuperAdmin(any(HttpServletRequest.class));
         assertThrows(ForbiddenException.class, () -> controller.getUserFromJwt(mock(HttpServletRequest.class)));
     }
 
     @Test
-    public void testGetUserFromJwtThrowsInvalidRequestWhenUserIsEmpty()  {
+    void testGetUserFromJwtThrowsInvalidRequestWhenUserIsEmpty()  {
         when(roleService.isSuperAdmin(any(HttpServletRequest.class)))
                 .thenReturn(true);
         when(customJwtService.getUserFromJwt(any(HttpServletRequest.class)))
@@ -192,6 +197,58 @@ class UserControllerTest {
 
         assertThrows(InvalidRequestException.class, () -> controller.updateDepartment(httpRequest, 1, 1));
 
+    }
+
+    @Test
+    void testGetUserEmailsBySub() {
+        User mockUser = User.builder().sub("1").gapUserId(1)
+                .emailAddress("test1@test.com").build();
+        User mockUser2 = User.builder().sub("2").gapUserId(2)
+                .emailAddress("test2@test.com").build();
+
+        List<String> userEmails = List.of(mockUser.getEmailAddress(), mockUser2.getEmailAddress());
+
+        List<UserEmailDto> userEmailDtos = List.of(
+                new UserEmailDto(mockUser.getEmailAddress().getBytes(), mockUser.getSub()),
+                new UserEmailDto(mockUser2.getEmailAddress().getBytes(), mockUser2.getSub())
+        );
+
+        when(oneLoginUserService.getUserEmailsBySubs(userEmails)).thenReturn(userEmailDtos);
+        doNothing().when(secretAuthService).authenticateSecret(anyString());
+        final ResponseEntity<List<UserEmailDto>> methodResponse = controller.getUserEmailsBySubs(userEmails, "anauthheader");
+
+        assertThat(methodResponse.getBody()).isEqualTo(
+                List.of(new UserEmailDto(mockUser.getEmailAddress().getBytes(), mockUser.getSub()),
+                        new UserEmailDto(mockUser2.getEmailAddress().getBytes(), mockUser2.getSub()))
+        );
+    }
+
+    @Test
+    void testGetUserByEmailWhenARoleIsSpecified() {
+        String testEmail = "test@test.com";
+        Role roles = Role.builder().id(1).name(RoleEnum.ADMIN).build();
+        User mockUser = User.builder().sub("1").gapUserId(1).roles(List.of(roles))
+                .emailAddress(testEmail).build();
+        UserDto mockUserDto = new UserDto(mockUser);
+
+        when(oneLoginUserService.getUserByEmailAndRole(testEmail, "ADMIN")).thenReturn(mockUser);
+        final ResponseEntity<UserDto> methodResponse = controller.getUserByEmail(testEmail, Optional.of("ADMIN"));
+
+        assertThat(methodResponse.getBody()).isEqualTo(mockUserDto);
+    }
+
+    @Test
+    void testGetUserByEmailWhenRoleIsAbsent() {
+        String testEmail = "test@test.com";
+        User mockUser = User.builder().sub("1").gapUserId(1)
+                .emailAddress(testEmail).build();
+
+        UserDto mockUserDto = new UserDto(mockUser);
+
+        when(oneLoginUserService.getUserByEmail(testEmail)).thenReturn(mockUser);
+        final ResponseEntity<UserDto> methodResponse = controller.getUserByEmail(testEmail, Optional.empty());
+
+        assertThat(methodResponse.getBody()).isEqualTo(mockUserDto);
     }
 
 }

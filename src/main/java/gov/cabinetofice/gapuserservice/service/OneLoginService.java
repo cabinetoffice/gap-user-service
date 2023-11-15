@@ -12,15 +12,12 @@ import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jwt.SignedJWT;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.dto.*;
-import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
 import gov.cabinetofice.gapuserservice.exceptions.*;
 import gov.cabinetofice.gapuserservice.model.Nonce;
 import gov.cabinetofice.gapuserservice.model.Role;
-import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.repository.NonceRepository;
-import gov.cabinetofice.gapuserservice.repository.RoleRepository;
-import gov.cabinetofice.gapuserservice.repository.UserRepository;
+import gov.cabinetofice.gapuserservice.service.encryption.Sha512Service;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import gov.cabinetofice.gapuserservice.util.LoggingUtils;
@@ -31,8 +28,6 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import static net.logstash.logback.argument.StructuredArguments.*;
-
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
@@ -41,9 +36,7 @@ import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.view.RedirectView;
 
 import java.io.IOException;
@@ -56,6 +49,8 @@ import java.time.Instant;
 import java.util.*;
 
 import static gov.cabinetofice.gapuserservice.util.HelperUtils.generateSecureRandomString;
+import static net.logstash.logback.argument.StructuredArguments.entries;
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
 
 @RequiredArgsConstructor
 @Service
@@ -72,38 +67,27 @@ public class OneLoginService {
     private String serviceRedirectUrl;
     @Value("${onelogin.private-key}")
     public String privateKey;
-
-    @Value("${admin-backend}")
-    private String adminBackend;
-
-    @Value("${jwt.cookie-name}")
-    public String userServiceCookieName;
-
     @Value("${onelogin.logout-url}")
-    public String oneLoginLogoutEndpoint;
-
+    private String oneLoginLogoutEndpoint;
     @Value("${onelogin.post-logout-redirect-uri}")
-    public String postLogoutRedirectUri;
-
+    private String postLogoutRedirectUri;
     @Value("${onelogin.mfa.enabled}")
-    public Boolean mfaEnabled;
-
+    private Boolean mfaEnabled;
 
     private static final String SCOPE = "openid email";
     private static final String VTR_MFA_ENABLED = "[\"Cl.Cm\"]";
     private static final String VTR_MFA_DISABLED = "[\"Cl\"]";
     private static final String UI = "en";
     private static final String GRANT_TYPE = "authorization_code";
+    private static final String ID_TOKEN = "idToken";
+    private static final String STATE_COOKIE = "state";
 
     private final ApplicationConfigProperties configProperties;
     private final NonceRepository nonceRepository;
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final WebClient.Builder webClientBuilder;
-    private final JwtBlacklistService jwtBlacklistService;
     private final CustomJwtServiceImpl customJwtService;
     private final OneLoginUserService oneLoginUserService;
     private final LoggingUtils loggingUtils;
+    private final Sha512Service encryptionService;
 
     public PrivateKey parsePrivateKey() {
         try {
@@ -113,25 +97,6 @@ public class OneLoginService {
         } catch (Exception e) {
             throw new PrivateKeyParsingException("Unable to parse private key");
         }
-    }
-
-    public List<RoleEnum> getNewUserRoles() {
-        return List.of(RoleEnum.APPLICANT, RoleEnum.FIND);
-    }
-
-    public User createNewUser(final String sub, final String email) {
-        final User user = User.builder()
-                .sub(sub)
-                .emailAddress(email)
-                .loginJourneyState(LoginJourneyState.PRIVACY_POLICY_PENDING)
-                .build();
-        final List<RoleEnum> newUserRoles = getNewUserRoles();
-        for (RoleEnum roleEnum : newUserRoles) {
-            final Role role = roleRepository.findByName(roleEnum)
-                    .orElseThrow(() -> new RoleNotFoundException("Could not create user: '" + roleEnum + "' role not found"));
-            user.addRole(role);
-        }
-        return userRepository.save(user);
     }
 
     public String generateNonce() {
@@ -167,7 +132,6 @@ public class OneLoginService {
     public String generateAndStoreState(final HttpServletResponse response, final String redirectUrl, final String saltId) {
         final String state = this.generateState();
         final String encodedStateJsonString = this.buildEncodedStateJson(redirectUrl, state, saltId);
-        String STATE_COOKIE = "state";
         final Cookie stateCookie = WebUtil.buildSecureCookie(STATE_COOKIE, encodedStateJsonString, 3600);
         response.addCookie(stateCookie);
         return encodedStateJsonString;
@@ -195,11 +159,6 @@ public class OneLoginService {
         return nonceCreatedAt == null || nonceCreatedAt.before(expiryTime) || nonceCreatedAt.after(new Date());
     }
 
-    public void setUsersLoginJourneyState(final User user, final LoginJourneyState newState) {
-        user.setLoginJourneyState(newState);
-        userRepository.save(user);
-    }
-
     public String getOneLoginAuthorizeUrl(final String state, final String nonce) {
         return oneLoginBaseUrl +
                         "/authorize?response_type=code" +
@@ -208,25 +167,15 @@ public class OneLoginService {
                         "&state=" + state +
                         "&redirect_uri=" + serviceRedirectUrl +
                         "&nonce=" + nonce +
-                        "&vtr=" + (mfaEnabled ? VTR_MFA_ENABLED : VTR_MFA_DISABLED) +
+                        "&vtr=" + (mfaEnabled.equals(Boolean.TRUE) ? VTR_MFA_ENABLED : VTR_MFA_DISABLED) +
                         "&ui_locales=" + UI;
     }
 
-    public Optional<User> getUserFromSub(final String sub) {
-        return userRepository.findBySub(sub);
-    }
-
-    public Optional<User> getUserFromSubOrEmail(final String sub, final String email) {
-        final Optional<User> userOptional = userRepository.findBySub(sub);
-        if (userOptional.isPresent()) return userOptional;
-        return userRepository.findByEmailAddress(email);
-    }
-
     public Map<String, String> generateCustomJwtClaims(final OneLoginUserInfoDto userInfo, final String idToken) {
-        final User user = getUserFromSub(userInfo.getSub())
+        final User user = oneLoginUserService.getUserFromSub(userInfo.getSub())
                 .orElseThrow(() -> new UserNotFoundException("User not found when generating custom jwt claims"));
         final Map<String, String> claims = new HashMap<>();
-        claims.put("idToken", idToken);
+        claims.put(ID_TOKEN, idToken);
         claims.put("email", userInfo.getEmailAddress());
         claims.put("sub", userInfo.getSub());
         claims.put("roles", user.getRoles().stream().map(Role::getName).toList().toString());
@@ -243,21 +192,8 @@ public class OneLoginService {
         return getUserInfo(accessToken);
     }
 
-    public User createOrGetUserFromInfo(final OneLoginUserInfoDto userInfo) {
-        final Optional<User> userOptional = getUserFromSubOrEmail(userInfo.getSub(), userInfo.getEmailAddress());
-        if (userOptional.isPresent()) {
-            final User user = userOptional.get();
-            if (!user.hasSub()) {
-                user.setSub(userInfo.getSub());
-                return userRepository.save(user);
-            }
-            return user;
-        }
-        return createNewUser(userInfo.getSub(), userInfo.getEmailAddress());
-    }
-
     public String createOneLoginJwt() {
-        final PrivateKey privateKey = parsePrivateKey();
+        final PrivateKey jwtPrivateKey = parsePrivateKey();
 
         return Jwts.builder()
                 .claim("aud", oneLoginBaseUrl + "/token")
@@ -266,7 +202,7 @@ public class OneLoginService {
                 .claim("exp", System.currentTimeMillis() + 300000L)
                 .claim("jti", UUID.randomUUID().toString())
                 .claim("iat", System.currentTimeMillis())
-                .signWith(privateKey, SignatureAlgorithm.RS256)
+                .signWith(jwtPrivateKey, SignatureAlgorithm.RS256)
                 .compact();
     }
 
@@ -304,22 +240,6 @@ public class OneLoginService {
         }
     }
 
-    public void migrateUser(final User user, final String jwt) {
-        final MigrateUserDto requestBody = MigrateUserDto.builder()
-                .oneLoginSub(user.getSub())
-                .colaSub(user.getColaSub())
-                .build();
-        webClientBuilder.build()
-                .patch()
-                .uri(adminBackend + "/users/migrate")
-                .header("Authorization", "Bearer " + jwt)
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(requestBody)
-                .retrieve()
-                .bodyToMono(Void.class)
-                .block();
-    }
-
     public RedirectView logoutUser(final Cookie customJWTCookie, final HttpServletResponse response) {
         final DecodedJWT decodedJwt = customJwtService.decodedJwt(customJWTCookie.getValue());
         final JwtPayload payload = customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJwt);
@@ -338,7 +258,7 @@ public class OneLoginService {
                     loggingUtils.getLogMessage(message + ": ", 3),
                     keyValue("issFromToken", decodedIdToken.getIss()),
                     keyValue("expectedIss", oneLoginBaseUrl.concat("/")),
-                    keyValue("idToken", decodedIdToken)
+                    keyValue(ID_TOKEN, decodedIdToken)
             );
             throw new UnauthorizedClientException(message);
         }
@@ -348,7 +268,7 @@ public class OneLoginService {
                     loggingUtils.getLogMessage(message + ": ", 3),
                     keyValue("audFromToken", decodedIdToken.getAud()),
                     keyValue("expectedAud", clientId),
-                    keyValue("idToken", decodedIdToken)
+                    keyValue(ID_TOKEN, decodedIdToken)
             );
             throw new UnauthorizedClientException(message);
         }
@@ -358,7 +278,7 @@ public class OneLoginService {
                     loggingUtils.getLogMessage(message +  ": ", 3),
                     keyValue("currentTime", currentEpochSeconds),
                     keyValue("tokenExpiry", decodedIdToken.getExp()),
-                    keyValue("idToken", decodedIdToken)
+                    keyValue(ID_TOKEN, decodedIdToken)
             );
             throw new UnauthorizedClientException(message);
         }
@@ -368,7 +288,7 @@ public class OneLoginService {
                     loggingUtils.getLogMessage(message + ": ", 3),
                     keyValue("currentTime", currentEpochSeconds),
                     keyValue("tokenIat", decodedIdToken.getIat()),
-                    keyValue("idToken", decodedIdToken)
+                    keyValue(ID_TOKEN, decodedIdToken)
             );
             throw new UnauthorizedClientException(message);
         }
@@ -383,7 +303,6 @@ public class OneLoginService {
                     keyValue("subFromUserInfo", userInfoSub)
             );
             throw new UnauthorizedClientException(message);
-
         }
     }
 
@@ -442,9 +361,52 @@ public class OneLoginService {
         );
     }
 
-    public void setUsersEmail(User user, String newEmail) {
-        user.setEmailAddress(newEmail);
-        userRepository.save(user);
+    public void verifyStateAndNonce(final String nonce, final StateCookieDto stateCookieDto, final String state) {
+        // Validate that state returned is the same as the one stored in the cookie
+        final String saltId = stateCookieDto.getSaltId();
+        final String encodedStateJson = buildEncodedStateJson(
+                stateCookieDto.getRedirectUrl(),
+                stateCookieDto.getState(),
+                saltId
+        );
+        final String hashedStateCookie = encryptionService.getSHA512SecurePassword(encodedStateJson, saltId);
+        final boolean isStateVerified = state.equals(hashedStateCookie);
+        // by only deleting the salt if the state matches we can ensure that an attacker can't arbitrarily delete salts
+        // as we know they haven't changed the saltId
+        if (isStateVerified) encryptionService.deleteSalt(saltId);
+
+        // Validate that nonce is stored in the DB
+        final Nonce storedNonce = readAndDeleteNonce(nonce);
+        final boolean isNonceVerified = nonce.equals(storedNonce.getNonceString());
+
+        // Validate that nonce is less than 10 mins old
+        final boolean isNonceExpired = isNonceExpired(storedNonce);
+
+        if (!isStateVerified || !isNonceVerified) {
+            log.error(
+                    loggingUtils.getLogMessage("/redirect-after-login encountered unauthorised user", 7),
+                    keyValue("nonceVerified", isNonceVerified),
+                    keyValue("stateVerified", isStateVerified),
+                    keyValue("nonceFromToken", nonce),
+                    keyValue("nonceFromDB", storedNonce.getNonceString()),
+                    keyValue("stateFromResponse", state),
+                    keyValue("hashedStateFromCookie", hashedStateCookie),
+                    keyValue("stateFromCookie", encodedStateJson)
+            );
+            throw new UnauthorizedClientException("User authorization failed");
+        } else if (isNonceExpired) {
+            log.error(
+                    loggingUtils.getLogMessage("/redirect-after-login encountered unauthorized user - nonce expired", 7),
+                    keyValue("nonceFromToken", nonce),
+                    keyValue("nonceFromDB", storedNonce.getNonceString()),
+                    keyValue("nonceCreatedAt", storedNonce.getCreatedAt()),
+                    keyValue("now", new Date()),
+                    keyValue("stateFromResponse", state),
+                    keyValue("hashedStateFromCookie", hashedStateCookie),
+                    keyValue("stateFromCookie", encodedStateJson)
+            );
+            throw new NonceExpiredException("User authorization failed, please try again");
+        }
     }
 }
 

@@ -1,7 +1,12 @@
 package gov.cabinetofice.gapuserservice.util;
 
+import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.List;
 
 public class WebUtil {
 
@@ -44,5 +49,17 @@ public class WebUtil {
     public static void deleteCookie(final String name, final HttpServletResponse response) {
         final Cookie cookie = buildNullCookie(name);
         response.addCookie(cookie);
+    }
+
+    public static String parseUrlRequestParameters(String inputUrl, List<String> params) {
+        try {
+            URL url = new URL(inputUrl);
+            String separator = (url.getQuery() == null || url.getQuery().isEmpty()) ? "?" : "&";
+            return inputUrl + separator + String.join("&", params);
+
+        } catch (MalformedURLException e) {
+            throw new InvalidRequestException("Invalid redirect URL: ".concat(inputUrl)
+                    .concat(" ").concat(e.getMessage()));
+        }
     }
 }

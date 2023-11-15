@@ -13,10 +13,10 @@ env:
   AWS_REGION: eu-west-2
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
-    # Need to check here as create event can't be filtered by branch name...
+    # Need to check here as create event can't be filtered by branch name: https://github.com/orgs/community/discussions/54860
     if: github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/release')
 
     steps:
@@ -27,6 +27,7 @@ jobs:
           java-version: "17"
           distribution: "temurin"
           cache: maven
+
       - name: Build with Maven
         run: mvn -B package --file pom.xml
 
@@ -42,17 +43,21 @@ jobs:
           args: >
             --enableRetired
             --disableOssIndex true
+
       - name: Upload Test results
         uses: actions/upload-artifact@master
         with:
           name: DependencyCheck report
           path: ${{github.workspace}}/reports
 
-  imageBuild:
-    needs: build
+  build:
+    # Need to check here as create event can't be filtered by branch name: https://github.com/orgs/community/discussions/54860
+    if: github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/release')
 
-    environment: AWS
     runs-on: ubuntu-latest
+
+    outputs:
+      docker-image-name: ${{ steps.docker-image-name.outputs.name }}
 
     steps:
       - uses: actions/checkout@v3
@@ -76,22 +81,81 @@ jobs:
 
       - name: Login to AWS ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Determine & set BUILD_VERSION
         run: |
           GIT_COUNT=$(git rev-list $GITHUB_SHA --count)
           echo "BUILD_VERSION=b_$GIT_COUNT" >> $GITHUB_ENV
           echo BUILD_VERSION is ${{ env.BUILD_VERSION }}
+
       - name: Build project
-        run: |
-          ./mvnw package
-      - name: Build, tag and push Docker image to AWS ECR
+        run: ./mvnw package
+
+      - name: Build Docker image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: docker build --tag $ECR_REGISTRY/gap-user-service:${{ env.BUILD_VERSION }} .
+
+      - name: Generate Docker image name
+        id: docker-image-name
         run: |
-          docker build --tag $ECR_REGISTRY/gap-user-service:${{ env.BUILD_VERSION }} .
-          docker push $ECR_REGISTRY/gap-user-service:${{ env.BUILD_VERSION }}
+          NAME=${{ (github.ref == 'refs/heads/develop' && 'user-service-dev-image') || (startsWith(github.ref, 'refs/heads/release') && 'user-service-qa-image') }}
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+
+      - name: Save Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: docker save --output ${{ steps.docker-image-name.outputs.name }}.tar $ECR_REGISTRY/gap-user-service:${{ env.BUILD_VERSION }}
+
+      - name: Upload Docker image
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.docker-image-name.outputs.name }}
+          path: ${{ steps.docker-image-name.outputs.name }}.tar
+          retention-days: 1
+
+  deploy:
+    environment: AWS
+    runs-on: ubuntu-latest
+    needs: [build, test]
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          # Fetch all commits since we use the total commit count to determine the build version
+          fetch-depth: 0
+
+      - name: Setup AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to AWS ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Determine & set BUILD_VERSION
+        run: |
+          GIT_COUNT=$(git rev-list $GITHUB_SHA --count)
+          echo "BUILD_VERSION=b_$GIT_COUNT" >> $GITHUB_ENV
+          echo BUILD_VERSION is ${{ env.BUILD_VERSION }}
+          
+      - name: Download Docker image
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ needs.build.outputs.docker-image-name }}
+
+      - name: Load Docker image
+        run: docker load --input ${{ needs.build.outputs.docker-image-name }}.tar
+
+      - name: Push Docker image to AWS ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: docker push $ECR_REGISTRY/gap-user-service:${{ env.BUILD_VERSION }}
+
       - name: Create env tag
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -99,6 +163,7 @@ jobs:
           ENV_TAG=${{ (github.ref == 'refs/heads/develop' && 'develop') || (startsWith(github.ref, 'refs/heads/release') && 'qa') }}
           docker tag $ECR_REGISTRY/gap-user-service:${{ env.BUILD_VERSION }} $ECR_REGISTRY/gap-user-service:$ENV_TAG
           docker push $ECR_REGISTRY/gap-user-service:$ENV_TAG
+
       - name: Create release tag - if we are committing to a release branch
         if: ${{ startsWith(github.ref, 'refs/heads/release/') }}
         env:

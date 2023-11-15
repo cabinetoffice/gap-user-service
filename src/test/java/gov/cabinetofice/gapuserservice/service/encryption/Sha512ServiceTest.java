@@ -17,7 +17,7 @@ import gov.cabinetofice.gapuserservice.util.HelperUtils;
 import gov.cabinetofice.gapuserservice.repository.SaltRepository;
 
 @ExtendWith(MockitoExtension.class)
-public class Sha512ServiceTest {
+class Sha512ServiceTest {
     @InjectMocks
     private Sha512Service encryptionService;
 
@@ -35,7 +35,7 @@ public class Sha512ServiceTest {
             Assertions.assertEquals(saltId, result);
             final ArgumentCaptor<Salt> saltArgumentCaptor = ArgumentCaptor.forClass(Salt.class);
             verify(saltRepository).save(saltArgumentCaptor.capture());
-            Assertions.assertEquals(salt, saltArgumentCaptor.getValue().getSalt());
+            Assertions.assertEquals(salt, saltArgumentCaptor.getValue().getSaltValue());
             Assertions.assertEquals(saltId, saltArgumentCaptor.getValue().getSaltId());
         }
     }
@@ -44,7 +44,7 @@ public class Sha512ServiceTest {
     void deleteSalt() {
         String salt = "A_VERY_SECURE_SALT";
         String saltId = "saltId";
-        Salt saltModel = Salt.builder().salt(salt).saltId(saltId).build();
+        Salt saltModel = Salt.builder().saltValue(salt).saltId(saltId).build();
         when(saltRepository.findFirstBySaltIdOrderBySaltIdAsc(saltId)).thenReturn(Optional.ofNullable(saltModel));
         encryptionService.deleteSalt(saltId);
         assert saltModel != null;
@@ -61,7 +61,7 @@ public class Sha512ServiceTest {
         void shouldGenerateSameHash_IfPayloadAndSaltAreTheSame() {
             String input = "input";
             String salt = "A_VERY_SECURE_SALT";
-            Salt saltModel = Salt.builder().salt(salt).saltId(saltId).build();
+            Salt saltModel = Salt.builder().saltValue(salt).saltId(saltId).build();
             when(saltRepository.findFirstBySaltIdOrderBySaltIdAsc(saltId)).thenReturn(Optional.ofNullable(saltModel));
             String result = encryptionService.getSHA512SecurePassword(input, saltId);
             Assertions.assertEquals(expectedHash, result);
@@ -71,7 +71,7 @@ public class Sha512ServiceTest {
         void shouldNotGenerateSameHash_IfSaltIsDifferent() {
             String input = "input";
             String salt = "NOT_A_VERY_SECURE_SALT";
-            Salt saltModel = Salt.builder().salt(salt).saltId(saltId).build();
+            Salt saltModel = Salt.builder().saltValue(salt).saltId(saltId).build();
             when(saltRepository.findFirstBySaltIdOrderBySaltIdAsc(saltId)).thenReturn(Optional.ofNullable(saltModel));
             String result = encryptionService.getSHA512SecurePassword(input, saltId);
             Assertions.assertNotEquals(expectedHash, result);
@@ -81,7 +81,7 @@ public class Sha512ServiceTest {
         void shouldNotGenerateSameHash_IfPayloadIsDifferent() {
             String input = "egg mcmuffin";
             String salt = "A_VERY_SECURE_SALT";
-            Salt saltModel = Salt.builder().salt(salt).saltId(saltId).build();
+            Salt saltModel = Salt.builder().saltValue(salt).saltId(saltId).build();
             when(saltRepository.findFirstBySaltIdOrderBySaltIdAsc(saltId)).thenReturn(Optional.ofNullable(saltModel));
             String result = encryptionService.getSHA512SecurePassword(input, saltId);
             Assertions.assertNotEquals(expectedHash, result);

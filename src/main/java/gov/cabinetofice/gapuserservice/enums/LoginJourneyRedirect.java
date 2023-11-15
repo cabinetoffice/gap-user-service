@@ -1,74 +1,83 @@
 package gov.cabinetofice.gapuserservice.enums;
 
+import gov.cabinetofice.gapuserservice.util.EncodeURIComponent;
+import gov.cabinetofice.gapuserservice.util.WebUtil;
+
+import java.util.Arrays;
+import java.util.List;
+
 import static gov.cabinetofice.gapuserservice.web.LoginControllerV2.PRIVACY_POLICY_PAGE_VIEW;
 import static gov.cabinetofice.gapuserservice.web.LoginControllerV2.UPDATED_EMAIL_PAGE_VIEW;
 
 public enum LoginJourneyRedirect {
     PRIVACY_POLICY_PAGE {
         @Override
-        public String getRedirectUrl(String adminBaseUrl, String applicantBaseUrl, String techSupportBaseUrl, String redirectUrlCookie) {
+        public String getRedirectUrl(GetRedirectUrlArgs getRedirectUrlArgs) {
             return PRIVACY_POLICY_PAGE_VIEW;
         }
     },
+
     EMAIL_UPDATED_PAGE {
         @Override
-        public String getRedirectUrl(String adminBaseUrl, String applicantBaseUrl, String techSupportBaseUrl, String redirectUrlCookie) {
+        public String getRedirectUrl(GetRedirectUrlArgs getRedirectUrlArgs) {
             return UPDATED_EMAIL_PAGE_VIEW;
         }
     },
+
     SUPER_ADMIN_DASHBOARD {
         @Override
-        public String getRedirectUrl(String adminBaseUrl, String applicantBaseUrl, String techSupportBaseUrl, String redirectUrlCookie) {
-            return adminBaseUrl + "?redirectUrl=/super-admin-dashboard";
+        public String getRedirectUrl(GetRedirectUrlArgs getRedirectUrlArgs) {
+            return getRedirectUrlArgs.adminBaseUrl() + "?redirectUrl=/super-admin-dashboard";
         }
     },
+
     ADMIN_DASHBOARD {
         @Override
-        public String getRedirectUrl(String adminBaseUrl, String applicantBaseUrl, String techSupportBaseUrl, String redirectUrlCookie) {
-            return adminBaseUrl + "?redirectUrl=/dashboard";
-        }
-    },
-    APPLICANT_APP {
-        @Override
-        public String getRedirectUrl(String adminBaseUrl, String applicantBaseUrl, String techSupportBaseUrl, String redirectUrlCookie) {
-            return redirectUrlCookie;
+        public String getRedirectUrl(GetRedirectUrlArgs getRedirectUrlArgs) {
+            return getRedirectUrlArgs.adminBaseUrl() + "?redirectUrl=/dashboard";
         }
     },
 
-    APPLICANT_APP_MIGRATION_PASS {
+    REDIRECT_URL_COOKIE {
         @Override
-        public String getRedirectUrl(String adminBaseUrl, String applicantBaseUrl, String techSupportBaseUrl, String redirectUrlCookie) {
-            return APPLICANT_APP.getRedirectUrl(adminBaseUrl, applicantBaseUrl, techSupportBaseUrl ,redirectUrlCookie) + "?migrationStatus=success";
+        public String getRedirectUrl(GetRedirectUrlArgs getRedirectUrlArgs) {
+            return getRedirectUrlArgs.redirectUrlCookie();
         }
     },
 
-    APPLICANT_APP_MIGRATION_FAIL {
+    APPLICANT_MIGRATED {
         @Override
-        public String getRedirectUrl(String adminBaseUrl, String applicantBaseUrl, String techSupportBaseUrl, String redirectUrlCookie) {
-            return applicantBaseUrl + "/api/isNewApplicant?migrationStatus=error";
+        public String getRedirectUrl(GetRedirectUrlArgs getRedirectUrlArgs) {
+            final MigrationStatus applyMigrationStatus = getRedirectUrlArgs.user().getApplyAccountMigrated();
+            final MigrationStatus findMigrationStatus = getRedirectUrlArgs.user().getFindAccountMigrated();
+            List<String> queryParams = Arrays.asList(
+                    "applyMigrationStatus=" + applyMigrationStatus,
+                    "findMigrationStatus=" + findMigrationStatus);
+
+            return WebUtil.parseUrlRequestParameters(getRedirectUrlArgs.redirectUrlCookie(), queryParams);
         }
     },
 
-    ADMIN_DASHBOARD_MIGRATION_PASS {
+    ADMIN_MIGRATED {
         @Override
-        public String getRedirectUrl(String adminBaseUrl, String applicantBaseUrl, String techSupportBaseUrl, String redirectUrlCookie) {
-            return ADMIN_DASHBOARD.getRedirectUrl(adminBaseUrl, applicantBaseUrl, techSupportBaseUrl ,redirectUrlCookie) + "?migrationStatus=success";
-        }
-    },
-
-    ADMIN_DASHBOARD_MIGRATION_FAIL {
-        @Override
-        public String getRedirectUrl(String adminBaseUrl, String applicantBaseUrl, String techSupportBaseUrl, String redirectUrlCookie) {
-            return ADMIN_DASHBOARD.getRedirectUrl(adminBaseUrl, applicantBaseUrl, techSupportBaseUrl ,redirectUrlCookie) + "?migrationStatus=error";
+        public String getRedirectUrl(GetRedirectUrlArgs getRedirectUrlArgs) {
+            final MigrationStatus applyMigrationStatus = getRedirectUrlArgs.user().getApplyAccountMigrated();
+            final MigrationStatus findMigrationStatus = getRedirectUrlArgs.user().getFindAccountMigrated();
+            String encodedRedirectUrl = EncodeURIComponent.encodeURI("/dashboard?" +
+                    "applyMigrationStatus=" + applyMigrationStatus +
+                    "&findMigrationStatus=" + findMigrationStatus
+            );
+            List<String> queryParams = List.of("redirectUrl=" + encodedRedirectUrl);
+            return WebUtil.parseUrlRequestParameters(getRedirectUrlArgs.adminBaseUrl(), queryParams);
         }
     },
 
     TECHNICAL_SUPPORT_DASHBOARD {
         @Override
-        public String getRedirectUrl(String adminBaseUrl, String applicantBaseUrl, String techSupportBaseUrl, String redirectUrlCookie) {
-            return techSupportBaseUrl;
+        public String getRedirectUrl(GetRedirectUrlArgs getRedirectUrlArgs) {
+            return getRedirectUrlArgs.techSupportBaseUrl();
         }
     };
 
-    public abstract String getRedirectUrl(String adminBaseUrl, String applicantBaseUrl, String techSupportBaseUrl, String redirectUrlCookie);
+    public abstract String getRedirectUrl(GetRedirectUrlArgs getRedirectUrlArgs);
 }

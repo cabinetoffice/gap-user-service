@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.util.WebUtils;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +31,7 @@ public class RoleService {
     public List<RoleDto> getAllRoles() {
         return roleRepository.findAll().stream()
                 .map(roleMapper::roleToRoleDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public boolean isSuperAdmin(final HttpServletRequest request) {

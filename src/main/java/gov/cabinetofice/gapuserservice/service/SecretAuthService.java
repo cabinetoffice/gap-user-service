@@ -25,5 +25,4 @@ public class SecretAuthService {
             throw new UnauthorizedException("Secret key does not match");
         }
     }
-
 }

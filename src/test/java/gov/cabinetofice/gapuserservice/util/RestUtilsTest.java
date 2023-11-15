@@ -28,7 +28,7 @@ import static org.mockito.Mockito.*;
 
 
 @ExtendWith(MockitoExtension.class)
-public class RestUtilsTest {
+class RestUtilsTest {
 
     private static MockedStatic<HttpClients> httpClientsMockedStatic;
 
