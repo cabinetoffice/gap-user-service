@@ -80,6 +80,9 @@ public class LoginControllerV2 {
     @Value("${feature.find-accounts.migration.enabled}")
     private String findAccountsMigrationEnabled;
 
+    @Value("${onelogin.post-logout-redirect-uri}")
+    private String postLogoutRedirectUri;
+
     @PostMapping("/validateSessionsRoles")
     public ResponseEntity<Boolean> validateSessionsRoles(@RequestBody final ValidateSessionsRolesRequestBodyDto requestBody){
         oneLoginUserService.validateSessionsRoles(requestBody.emailAddress(), requestBody.roles());
@@ -195,7 +198,7 @@ public class LoginControllerV2 {
     public RedirectView logout(final HttpServletRequest request, final HttpServletResponse response) {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
         if (customJWTCookie == null || customJWTCookie.getValue().isBlank()) {
-            return new RedirectView(applicantBaseUrl);
+            return new RedirectView(postLogoutRedirectUri);
         }
 
         return oneLoginService.logoutUser(customJWTCookie, response);

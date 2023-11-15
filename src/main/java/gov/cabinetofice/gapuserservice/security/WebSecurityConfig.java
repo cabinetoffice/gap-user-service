@@ -47,6 +47,7 @@ public class WebSecurityConfig {
                 "/login",
                 "/v2/redirect-after-login",
                 "/v2/login",
+                "/v2/logout",
                 "/v2/notice-page",
                 "/v2/privacy-policy",
                 "/v2/updated-email",
