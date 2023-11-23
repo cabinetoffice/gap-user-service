@@ -7,6 +7,7 @@ import gov.cabinetofice.gapuserservice.exceptions.SpotlightInvalidStateException
 import gov.cabinetofice.gapuserservice.model.SpotlightOAuthAudit;
 import gov.cabinetofice.gapuserservice.repository.SpotlightOAuthAuditRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -18,8 +19,6 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
-import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
@@ -37,10 +36,13 @@ import java.util.List;
 @RequiredArgsConstructor
 @Service
 @Slf4j
+@Setter
 public class SpotlightService {
 
     private final SpotlightConfig spotlightConfig;
     private final SpotlightOAuthAuditRepository spotlightOAuthAuditRepository;
+
+    private final SecretsManagerClient secretsManagerClient;
 
     // TODO: This won't work in a horizontally scaled environment, as the state will be different for each instance
     private String state;
@@ -154,32 +156,28 @@ public class SpotlightService {
 
     private void updateSecret(String name, String value) {
         log.info("Updating secret {}...", spotlightConfig.getSecretName());
-        SecretsManagerClient secretsManagerClient = SecretsManagerClient.builder()
-                .region(Region.EU_WEST_2)
-                .credentialsProvider(ProfileCredentialsProvider.create())
+
+        // Get the current value of the secret
+        log.info("Getting secret {}...", spotlightConfig.getSecretName());
+        GetSecretValueRequest valueRequest = GetSecretValueRequest.builder()
+                .secretId(spotlightConfig.getSecretName())
                 .build();
+        GetSecretValueResponse valueResponse = secretsManagerClient.getSecretValue(valueRequest);
+        String secretString = valueResponse.secretString();
 
-            // Get the current value of the secret
-            log.info("Getting secret {}...", spotlightConfig.getSecretName());
-            GetSecretValueRequest valueRequest = GetSecretValueRequest.builder()
-                    .secretId(spotlightConfig.getSecretName())
-                    .build();
-            GetSecretValueResponse valueResponse = secretsManagerClient.getSecretValue(valueRequest);
-            String secretString = valueResponse.secretString();
+        log.info("Secret: {}", secretString);
 
-            log.info("Secret: {}", secretString);
+        // Parse the secret string into a JSON object
+        JsonObject secretJson = JsonParser.parseString(secretString).getAsJsonObject();
 
-            // Parse the secret string into a JSON object
-            JsonObject secretJson = JsonParser.parseString(secretString).getAsJsonObject();
+        // Update the key-value pairs as needed
+        secretJson.addProperty(name, value);
 
-            // Update the key-value pairs as needed
-            secretJson.addProperty(name, value);
-
-            // Update the secret
-            UpdateSecretRequest updateSecretRequest = UpdateSecretRequest.builder()
-                    .secretId(spotlightConfig.getSecretName())
-                    .secretString(secretJson.toString())
-                    .build();
-            secretsManagerClient.updateSecret(updateSecretRequest);
+        // Update the secret
+        UpdateSecretRequest updateSecretRequest = UpdateSecretRequest.builder()
+                .secretId(spotlightConfig.getSecretName())
+                .secretString(secretJson.toString())
+                .build();
+        secretsManagerClient.updateSecret(updateSecretRequest);
     }
 }

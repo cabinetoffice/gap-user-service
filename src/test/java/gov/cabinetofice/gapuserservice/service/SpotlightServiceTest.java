@@ -1,0 +1,124 @@
+package gov.cabinetofice.gapuserservice.service;
+
+import gov.cabinetofice.gapuserservice.config.SpotlightConfig;
+import gov.cabinetofice.gapuserservice.exceptions.SpotlightInvalidStateException;
+import gov.cabinetofice.gapuserservice.repository.SpotlightOAuthAuditRepository;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
+import software.amazon.awssdk.services.secretsmanager.model.UpdateSecretRequest;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class SpotlightServiceTest {
+
+    @InjectMocks
+    private SpotlightService spotlightService;
+    @Mock
+    private SpotlightConfig spotlightConfig;
+
+    @Mock
+    private SpotlightOAuthAuditRepository spotlightOAuthAuditRepository;
+
+    @Mock
+    private SecretsManagerClient secretsManagerClient;
+
+    @Mock
+    private GetSecretValueResponse getSecretValueResponse;
+
+    private static MockedStatic<HttpClients> httpClientsMockedStatic;
+
+    @Captor
+    private ArgumentCaptor<UpdateSecretRequest> argumentCaptor;
+
+    @BeforeEach
+    public void before() {
+        httpClientsMockedStatic = mockStatic(HttpClients.class);
+
+        MockitoAnnotations.openMocks(this);
+        spotlightConfig = SpotlightConfig.builder()
+                .spotlightUrl("https://spotlight.com")
+                .clientId("clientId")
+                .clientSecret("clientSecret")
+                .redirectUri("redirectUrl")
+                .build();
+        spotlightService = new SpotlightService(spotlightConfig, spotlightOAuthAuditRepository, secretsManagerClient);
+        spotlightService.setState("stateValue");
+    }
+
+    @AfterEach
+    public void close() {
+        httpClientsMockedStatic.close();
+    }
+
+    @Test
+    void getAuthorizeUrlTest() throws Exception {
+
+        String result = spotlightService.getAuthorizeUrl();
+
+        String expectedUrlPattern = "^https://spotlight\\.com/services/oauth2/authorize\\?" +
+                "response_type=code&client_id=clientId&redirect_uri=redirectUrl&scope=refresh_token\\sapi&" +
+                "state=[A-Za-z0-9_\\-]+&code_challenge=[A-Za-z0-9_\\-]+&code_challenge_method=S256$";
+
+
+        assertTrue(result.matches(expectedUrlPattern));
+    }
+
+    @Test
+    void shouldExchangeAuthorizationTokenTest() throws Exception {
+        CloseableHttpClient httpClient = mock(CloseableHttpClient.class);
+        CloseableHttpResponse httpResponse = mock(CloseableHttpResponse.class);
+
+        String secretJson = "{\"secret_string\":\"1234\"}";
+        String expectedAccessTokenSecret = "{\"secret_string\":\"1234\",\"access_token\":\"1234\"}";
+        String expectedRefreshTokenSecret = "{\"secret_string\":\"1234\",\"refresh_token\":\"5678\"}";
+        String expectedResponse = "{\"access_token\":\"1234\", \"refresh_token\":\"5678\"}";
+        HttpEntity httpEntity = new StringEntity(expectedResponse, ContentType.TEXT_PLAIN);
+
+        when(HttpClients.createDefault()).thenReturn(httpClient);
+        when(httpResponse.getEntity()).thenReturn(httpEntity);
+
+        when(httpClient.execute(any(HttpPost.class), any(ResponseHandler.class)))
+                .thenAnswer(invocation -> {
+                    ResponseHandler<String> responseHandler = invocation.getArgument(1);
+                    return responseHandler.handleResponse(httpResponse);
+                });
+
+        when(secretsManagerClient.getSecretValue(any(GetSecretValueRequest.class))).thenReturn(getSecretValueResponse);
+        when(getSecretValueResponse.secretString()).thenReturn(secretJson);
+
+
+        spotlightService.exchangeAuthorizationToken("1234", "stateValue");
+
+        verify(secretsManagerClient, times(2)).updateSecret(argumentCaptor.capture());
+
+        assertEquals(expectedAccessTokenSecret, argumentCaptor.getAllValues().get(0).secretString());
+        assertEquals(expectedRefreshTokenSecret, argumentCaptor.getAllValues().get(1).secretString());
+
+
+    }
+
+    @Test
+    void shouldThrowExceptionWhenSateValueDoesNotMatchTest() {
+        assertThrows(SpotlightInvalidStateException.class,
+                () -> spotlightService.exchangeAuthorizationToken("1234", "stateValueInvalid"));
+
+    }
+
+}
