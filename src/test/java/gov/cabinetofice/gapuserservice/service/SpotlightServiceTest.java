@@ -1,6 +1,7 @@
 package gov.cabinetofice.gapuserservice.service;
 
 import gov.cabinetofice.gapuserservice.config.SpotlightConfig;
+import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetofice.gapuserservice.exceptions.SpotlightInvalidStateException;
 import gov.cabinetofice.gapuserservice.repository.SpotlightOAuthAuditRepository;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
@@ -17,6 +18,7 @@ import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueReques
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 import software.amazon.awssdk.services.secretsmanager.model.UpdateSecretRequest;
 
+import java.io.IOException;
 import java.security.SecureRandom;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -105,6 +107,22 @@ class SpotlightServiceTest {
         assertEquals(expectedAccessTokenSecret, argumentCaptor.getAllValues().get(0).secretString());
         assertEquals(expectedRefreshTokenSecret, argumentCaptor.getAllValues().get(1).secretString());
 
+    }
+
+    @Test
+    void shouldThrowInvalidRequestExceptionWhenIOExceptionIsThrown() throws Exception {
+
+        String secretJson = "{\"secret_string\":\"1234\"}";
+
+        when(RestUtils.postRequestWithBody(anyString(), anyString(), anyString()))
+                .thenThrow(new IOException());
+
+        when(secretsManagerClient.getSecretValue(any(GetSecretValueRequest.class))).thenReturn(getSecretValueResponse);
+        when(getSecretValueResponse.secretString()).thenReturn(secretJson);
+
+
+        assertThrows(InvalidRequestException.class,
+                () -> spotlightService.exchangeAuthorizationToken("1234", "stateValue"));
     }
 
     @Test
