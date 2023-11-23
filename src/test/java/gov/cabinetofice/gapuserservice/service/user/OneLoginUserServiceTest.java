@@ -64,7 +64,9 @@ class OneLoginUserServiceTest {
 
     @BeforeEach
     void setUp() {
+
         ReflectionTestUtils.setField(oneLoginUserService, "adminBackend", "adminBackend");
+        ReflectionTestUtils.setField(oneLoginUserService, "findFrontend", "findfrontend");
     }
 
     @Test
@@ -403,7 +405,8 @@ class OneLoginUserServiceTest {
     @Test
     void testDeleteUser_DeletesUser(){
         Integer userId = 1;
-        User user = User.builder().gapUserId(userId).build();
+        User user = User.builder().gapUserId(userId)
+                .sub("123445").emailAddress("test.user@email.com").build();
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         final WebClient webClient = mock(WebClient.class);
@@ -420,6 +423,7 @@ class OneLoginUserServiceTest {
         oneLoginUserService.deleteUser(userId, "jwt");
 
         verify(userRepository).deleteById(userId);
+        verify(webClientBuilder, times(2)).build();
     }
 
     @Test
