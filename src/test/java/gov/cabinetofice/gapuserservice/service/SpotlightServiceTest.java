@@ -3,14 +3,9 @@ package gov.cabinetofice.gapuserservice.service;
 import gov.cabinetofice.gapuserservice.config.SpotlightConfig;
 import gov.cabinetofice.gapuserservice.exceptions.SpotlightInvalidStateException;
 import gov.cabinetofice.gapuserservice.repository.SpotlightOAuthAuditRepository;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.ResponseHandler;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
+import gov.cabinetofice.gapuserservice.util.RestUtils;
 import org.apache.http.impl.client.HttpClients;
+import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +16,8 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 import software.amazon.awssdk.services.secretsmanager.model.UpdateSecretRequest;
+
+import java.security.SecureRandom;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -42,7 +39,11 @@ class SpotlightServiceTest {
     @Mock
     private GetSecretValueResponse getSecretValueResponse;
 
+    @Mock
+    private SecureRandom secureRandom;
+
     private static MockedStatic<HttpClients> httpClientsMockedStatic;
+    private static MockedStatic<RestUtils> restUtilsMockedStatic;
 
     @Captor
     private ArgumentCaptor<UpdateSecretRequest> argumentCaptor;
@@ -50,6 +51,7 @@ class SpotlightServiceTest {
     @BeforeEach
     public void before() {
         httpClientsMockedStatic = mockStatic(HttpClients.class);
+        restUtilsMockedStatic = mockStatic(RestUtils.class);
 
         MockitoAnnotations.openMocks(this);
         spotlightConfig = SpotlightConfig.builder()
@@ -58,13 +60,14 @@ class SpotlightServiceTest {
                 .clientSecret("clientSecret")
                 .redirectUri("redirectUrl")
                 .build();
-        spotlightService = new SpotlightService(spotlightConfig, spotlightOAuthAuditRepository, secretsManagerClient);
+        spotlightService = new SpotlightService(spotlightConfig, spotlightOAuthAuditRepository, secureRandom, secretsManagerClient);
         spotlightService.setState("stateValue");
     }
 
     @AfterEach
     public void close() {
         httpClientsMockedStatic.close();
+        restUtilsMockedStatic.close();
     }
 
     @Test
@@ -82,23 +85,14 @@ class SpotlightServiceTest {
 
     @Test
     void shouldExchangeAuthorizationTokenTest() throws Exception {
-        CloseableHttpClient httpClient = mock(CloseableHttpClient.class);
-        CloseableHttpResponse httpResponse = mock(CloseableHttpResponse.class);
 
         String secretJson = "{\"secret_string\":\"1234\"}";
         String expectedAccessTokenSecret = "{\"secret_string\":\"1234\",\"access_token\":\"1234\"}";
         String expectedRefreshTokenSecret = "{\"secret_string\":\"1234\",\"refresh_token\":\"5678\"}";
         String expectedResponse = "{\"access_token\":\"1234\", \"refresh_token\":\"5678\"}";
-        HttpEntity httpEntity = new StringEntity(expectedResponse, ContentType.TEXT_PLAIN);
 
-        when(HttpClients.createDefault()).thenReturn(httpClient);
-        when(httpResponse.getEntity()).thenReturn(httpEntity);
-
-        when(httpClient.execute(any(HttpPost.class), any(ResponseHandler.class)))
-                .thenAnswer(invocation -> {
-                    ResponseHandler<String> responseHandler = invocation.getArgument(1);
-                    return responseHandler.handleResponse(httpResponse);
-                });
+        when(RestUtils.postRequestWithBody(anyString(), anyString(), anyString()))
+                .thenReturn(new JSONObject(expectedResponse));
 
         when(secretsManagerClient.getSecretValue(any(GetSecretValueRequest.class))).thenReturn(getSecretValueResponse);
         when(getSecretValueResponse.secretString()).thenReturn(secretJson);
@@ -110,7 +104,6 @@ class SpotlightServiceTest {
 
         assertEquals(expectedAccessTokenSecret, argumentCaptor.getAllValues().get(0).secretString());
         assertEquals(expectedRefreshTokenSecret, argumentCaptor.getAllValues().get(1).secretString());
-
 
     }
 

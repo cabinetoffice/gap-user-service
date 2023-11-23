@@ -20,6 +20,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.Clock;
 
 @RequiredArgsConstructor
@@ -71,5 +72,10 @@ public class BeanConfig {
                 .region(Region.EU_WEST_2)
                 .credentialsProvider(ProfileCredentialsProvider.create())
                 .build();
+    }
+
+    @Bean
+    public SecureRandom secureRandom() {
+        return new SecureRandom();
     }
 }

@@ -3,19 +3,14 @@ package gov.cabinetofice.gapuserservice.service;
 import com.nimbusds.jose.shaded.gson.JsonObject;
 import com.nimbusds.jose.shaded.gson.JsonParser;
 import gov.cabinetofice.gapuserservice.config.SpotlightConfig;
+import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetofice.gapuserservice.exceptions.SpotlightInvalidStateException;
 import gov.cabinetofice.gapuserservice.model.SpotlightOAuthAudit;
 import gov.cabinetofice.gapuserservice.repository.SpotlightOAuthAuditRepository;
+import gov.cabinetofice.gapuserservice.util.RestUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -29,9 +24,7 @@ import java.net.URI;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.ArrayList;
 import java.util.Base64;
-import java.util.List;
 
 @RequiredArgsConstructor
 @Service
@@ -41,6 +34,7 @@ public class SpotlightService {
 
     private final SpotlightConfig spotlightConfig;
     private final SpotlightOAuthAuditRepository spotlightOAuthAuditRepository;
+    private final SecureRandom secureRandom;
 
     private final SecretsManagerClient secretsManagerClient;
 
@@ -90,39 +84,30 @@ public class SpotlightService {
             throw new SpotlightInvalidStateException("State does not match");
         }
 
-        URI uri = UriComponentsBuilder
+        String tokenEndpoint = UriComponentsBuilder
                 .fromUriString(spotlightConfig.getSpotlightUrl())
                 .path("/services")
                 .path("/oauth2")
                 .path("/token")
                 .build()
-                .toUri();
-
-        String tokenEndpoint = uri.toString();
+                .toUriString();
 
         log.debug("SpotlightController callback");
         log.debug("authorizationCode: {}", authorizationCode);
         log.debug("state: {}", state);
 
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-            HttpPost httpPost = new HttpPost(tokenEndpoint);
+        final String requestBody = "code=" + authorizationCode +
+                "&client_id=" + spotlightConfig.getClientId() +
+                "&client_secret=" + spotlightConfig.getClientSecret() +
+                "&redirect_uri=" + spotlightConfig.getRedirectUri() +
+                "&code_verifier=" + codeVerifier +
+                "&code_challenge=" + codeChallenge +
+                "&grant_type=" + grantType;
 
-            List<NameValuePair> params = new ArrayList<>();
-            params.add(new BasicNameValuePair("code", authorizationCode));
-            params.add(new BasicNameValuePair("client_id", spotlightConfig.getClientId()));
-            params.add(new BasicNameValuePair("client_secret", spotlightConfig.getClientSecret()));
-            params.add(new BasicNameValuePair("redirect_uri", spotlightConfig.getRedirectUri()));
-            params.add(new BasicNameValuePair("code_verifier", codeVerifier));
-            params.add(new BasicNameValuePair("code_challenge", codeChallenge));
-            params.add(new BasicNameValuePair("grant_type", grantType));
-            httpPost.setEntity(new UrlEncodedFormEntity(params));
-
-            String responseString = httpClient.execute(httpPost, httpResponse ->
-                    EntityUtils.toString(httpResponse.getEntity()));
-
-            log.debug("Spotlight token exchange response: " + responseString);
-
-            JSONObject responseJSON = new JSONObject(responseString);
+        JSONObject responseJSON;
+        try {
+            responseJSON = RestUtils.postRequestWithBody(tokenEndpoint, requestBody,
+                    "application/x-www-form-urlencoded");
             String accessToken = responseJSON
                     .get("access_token")
                     .toString();
@@ -134,21 +119,20 @@ public class SpotlightService {
             this.updateSecret("access_token", accessToken);
             this.updateSecret("refresh_token", refreshToken);
 
-        } catch (Exception e) {
+        } catch (IOException e) {
             this.updateSecret("access_token", null);
             this.updateSecret("refresh_token", null);
-            throw e;
+            throw new InvalidRequestException("invalid request");
         }
     }
 
-    private static String generateRandomString(int length) {
-        SecureRandom random = new SecureRandom();
+    private String generateRandomString(int length) {
         byte[] bytes = new byte[length];
-        random.nextBytes(bytes);
+        this.secureRandom.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
-    private static String generateCodeChallenge(String codeVerifier) throws NoSuchAlgorithmException {
+    private String generateCodeChallenge(String codeVerifier) throws NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("SHA-256");
         byte[] digest = md.digest(codeVerifier.getBytes());
         return Base64.getUrlEncoder().withoutPadding().encodeToString(digest);
