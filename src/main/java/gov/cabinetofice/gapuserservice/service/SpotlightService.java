@@ -142,17 +142,17 @@ public class SpotlightService {
     }
 
     private void updateSecret(String name, String value) {
-        log.info("Updating secret {}...", spotlightConfig.getSecretName());
+        log.debug("Updating secret {}...", spotlightConfig.getSecretName());
 
         // Get the current value of the secret
-        log.info("Getting secret {}...", spotlightConfig.getSecretName());
+        log.debug("Getting secret {}...", spotlightConfig.getSecretName());
         GetSecretValueRequest valueRequest = GetSecretValueRequest.builder()
                 .secretId(spotlightConfig.getSecretName())
                 .build();
         GetSecretValueResponse valueResponse = secretsManagerClient.getSecretValue(valueRequest);
         String secretString = valueResponse.secretString();
 
-        log.info("Secret: {}", secretString);
+        log.debug("Secret: {}", secretString);
 
         // Parse the secret string into a JSON object
         JsonObject secretJson = JsonParser.parseString(secretString).getAsJsonObject();
