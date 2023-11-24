@@ -11,12 +11,16 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.Clock;
 
 @RequiredArgsConstructor
@@ -60,5 +64,18 @@ public class BeanConfig {
                 .withCredentials(new AWSStaticCredentialsProvider(awsCredentials))
                 .withRegion(thirdPartyAuthProviderProperties.getRegion())
                 .build();
+    }
+
+    @Bean
+    public static SecretsManagerClient getSecretsManagerClient() {
+        return SecretsManagerClient.builder()
+                .region(Region.EU_WEST_2)
+                .credentialsProvider(ProfileCredentialsProvider.create())
+                .build();
+    }
+
+    @Bean
+    public SecureRandom secureRandom() {
+        return new SecureRandom();
     }
 }
