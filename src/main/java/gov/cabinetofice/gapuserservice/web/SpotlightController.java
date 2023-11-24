@@ -1,6 +1,7 @@
 package gov.cabinetofice.gapuserservice.web;
 
-import gov.cabinetofice.gapuserservice.enums.SpotlightOAuthAuditType;
+import gov.cabinetofice.gapuserservice.enums.SpotlightOAuthAuditEvent;
+import gov.cabinetofice.gapuserservice.enums.SpotlightOAuthAuditStatus;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetofice.gapuserservice.model.SpotlightOAuthAudit;
@@ -11,7 +12,8 @@ import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,6 +23,7 @@ import org.springframework.web.servlet.view.RedirectView;
 @RequiredArgsConstructor
 @Controller
 @RequestMapping("spotlight")
+@ConditionalOnProperty(value = "feature.spotlight.enabled", havingValue = "true")
 @Slf4j
 public class SpotlightController {
 
@@ -29,6 +32,9 @@ public class SpotlightController {
     private final CustomJwtServiceImpl jwtService;
 
     private static final String NO_USER = "Could not get user from jwt";
+
+    @Value("${admin-base-url}")
+    private String adminBaseUrl;
 
     @GetMapping("/oauth/authorize")
     public RedirectView authorize(final HttpServletRequest httpRequest) throws Exception {
@@ -42,7 +48,8 @@ public class SpotlightController {
 
         SpotlightOAuthAudit spotlightOAuthAudit = SpotlightOAuthAudit.builder()
                 .user(user)
-                .type(SpotlightOAuthAuditType.AUTHORISE)
+                .event(SpotlightOAuthAuditEvent.AUTHORISE)
+                .status(SpotlightOAuthAuditStatus.REQUEST)
                 .build();
 
         spotlightService.saveAudit(spotlightOAuthAudit);
@@ -52,7 +59,7 @@ public class SpotlightController {
     }
 
     @GetMapping("/oauth/callback")
-    public ResponseEntity callback(@RequestParam String code, @RequestParam String state, final HttpServletRequest httpRequest) {
+    public RedirectView callback(@RequestParam String code, @RequestParam String state, final HttpServletRequest httpRequest) throws Exception {
         log.info("SpotlightController /oauth/callback");
 
         if (!roleService.isSuperAdmin(httpRequest)) {
@@ -63,27 +70,30 @@ public class SpotlightController {
                 .orElseThrow(() -> new InvalidRequestException(NO_USER));
 
         try {
-            log.info("Spotlight authorization token successfully exchanged");
             spotlightService.exchangeAuthorizationToken(code, state);
+
+            log.info("Spotlight authorization token successfully exchanged");
             SpotlightOAuthAudit spotlightOAuthAudit = SpotlightOAuthAudit.builder()
                     .user(user)
-                    .type(SpotlightOAuthAuditType.SUCCESS)
+                    .event(SpotlightOAuthAuditEvent.AUTHORISE)
+                    .status(SpotlightOAuthAuditStatus.SUCCESS)
                     .build();
 
             spotlightService.saveAudit(spotlightOAuthAudit);
 
-            return ResponseEntity.ok().build();
+            return new RedirectView(adminBaseUrl + "?redirectUrl=/super-admin-dashboard");
         } catch (Exception e) {
             log.error("Error exchanging Spotlight authorization token", e);
 
             SpotlightOAuthAudit spotlightOAuthAudit = SpotlightOAuthAudit.builder()
                     .user(user)
-                    .type(SpotlightOAuthAuditType.FAILURE)
+                    .event(SpotlightOAuthAuditEvent.AUTHORISE)
+                    .status(SpotlightOAuthAuditStatus.FAILURE)
                     .build();
 
             spotlightService.saveAudit(spotlightOAuthAudit);
 
-            return ResponseEntity.badRequest().body("Error exchanging Spotlight authorization token");
+            throw new Exception("Error exchanging Spotlight authorization token");
         }
     }
 

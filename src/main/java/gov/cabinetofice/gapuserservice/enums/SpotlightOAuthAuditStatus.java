@@ -1,7 +1,7 @@
 package gov.cabinetofice.gapuserservice.enums;
 
-public enum SpotlightOAuthAuditType {
-    AUTHORISE,
+public enum SpotlightOAuthAuditStatus {
+    REQUEST,
     SUCCESS,
     FAILURE
 }

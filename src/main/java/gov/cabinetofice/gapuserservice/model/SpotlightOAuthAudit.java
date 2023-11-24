@@ -1,11 +1,10 @@
 package gov.cabinetofice.gapuserservice.model;
 
-import gov.cabinetofice.gapuserservice.enums.SpotlightOAuthAuditType;
+import gov.cabinetofice.gapuserservice.enums.SpotlightOAuthAuditEvent;
+import gov.cabinetofice.gapuserservice.enums.SpotlightOAuthAuditStatus;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.CreatedDate;
 
-import java.time.Instant;
 import java.util.Date;
 
 @Getter
@@ -23,9 +22,13 @@ public class SpotlightOAuthAudit {
     @Column(name = "id")
     private Integer id;
 
-    @Column(name = "type")
+    @Column(name = "event")
     @Enumerated(EnumType.STRING)
-    private SpotlightOAuthAuditType type;
+    private SpotlightOAuthAuditEvent event;
+
+    @Column(name = "status")
+    @Enumerated(EnumType.STRING)
+    private SpotlightOAuthAuditStatus status;
 
     @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "gap_user_id")

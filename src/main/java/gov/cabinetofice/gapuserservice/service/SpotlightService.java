@@ -116,6 +116,9 @@ public class SpotlightService {
                     .get("refresh_token")
                     .toString();
 
+            log.debug("new Access token: {}", accessToken);
+            log.debug("new Refresh token: {}", refreshToken);
+
             this.updateSecret("access_token", accessToken);
             this.updateSecret("refresh_token", refreshToken);
 
