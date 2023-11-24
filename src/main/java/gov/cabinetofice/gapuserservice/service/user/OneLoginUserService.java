@@ -18,6 +18,7 @@ import gov.cabinetofice.gapuserservice.service.JwtBlacklistService;
 import gov.cabinetofice.gapuserservice.service.encryption.AwsEncryptionServiceImpl;
 import gov.cabinetofice.gapuserservice.util.UserQueryCondition;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
+import io.micrometer.common.util.StringUtils;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
@@ -49,6 +50,8 @@ public class OneLoginUserService {
     private final WebClient.Builder webClientBuilder;
     private final RoleMapper roleMapper;
     private static final String NOT_FOUND = "not found";
+    private static final String AUTHORIZATION_HEADER_NAME = "Authorization";
+    private static final String BEARER_HEADER_PREFIX = "Bearer ";
 
     private final AwsEncryptionServiceImpl awsEncryptionService;
 
@@ -219,15 +222,37 @@ public class OneLoginUserService {
 
     @Transactional
     public void deleteUser(Integer id, String jwt) {
-        final User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("user with id: " + id + NOT_FOUND));
+        final User user = userRepository.findById(id).orElseThrow(() ->
+                new UserNotFoundException("user with id: " + id + NOT_FOUND));
+        deleteUserFromFind(jwt, user);
+        deleteUserFromApply(jwt, user);
+        userRepository.deleteById(id);
+    }
+
+    private void deleteUserFromApply(String jwt, User user) {
+
+        String id = user.hasSub() ? user.getSub() : "";
+        String query = user.hasColaSub() ? "?colaSub=" + user.getColaSub() : "";
         webClientBuilder.build()
                 .delete()
-                .uri(adminBackend + "/users/delete/" + (user.hasSub() ? user.getSub() : "") + (user.hasColaSub() ? "?colaSub=" + user.getColaSub() : ""))
-                .header("Authorization", "Bearer " + jwt)
+                .uri(adminBackend + "/users/delete/" + id + query)
+                .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
                 .retrieve()
                 .bodyToMono(Void.class)
                 .block();
-        userRepository.deleteById(id);
+    }
+
+    private void deleteUserFromFind(String jwt, User user) {
+        String query = !StringUtils.isEmpty(user.getSub())
+                ? "?sub=".concat(user.getSub()) : "?email=".concat(user.getEmailAddress());
+
+        webClientBuilder.build()
+                .delete()
+                .uri(findFrontend.concat("/api/user/delete").concat(query))
+                .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
+                .retrieve()
+                .bodyToMono(Void.class)
+                .block();
     }
 
     public void invalidateUserJwt(final Cookie customJWTCookie, final HttpServletResponse response) {
@@ -309,7 +334,7 @@ public class OneLoginUserService {
             webClientBuilder.build()
                     .patch()
                     .uri(adminBackend + "/users/migrate")
-                    .header("Authorization", "Bearer " + jwt)
+                    .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(requestBody)
                     .retrieve()
