@@ -194,16 +194,11 @@ public class SpotlightControllerTest {
         }
 
         @Test
-        void shouldThrowInvalidRequestWhenNoIntegrationAuditFound() {
+        void shouldThrowInvalidRequestWhenNoIntegrationAuditFound()  {
             HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-            Date date = new Date();
-            SpotlightOAuthAudit audit = SpotlightOAuthAudit.builder().event(SpotlightOAuthAuditEvent.AUTHORISE)
-                    .status(SpotlightOAuthAuditStatus.FAILURE).id(1).timestamp(date).build();
-            SpotlightIntegrationAuditDto auditDto = new SpotlightIntegrationAuditDto("Spotlight", 1,
-                    SpotlightOAuthAuditEvent.AUTHORISE, SpotlightOAuthAuditStatus.FAILURE, date);
-
             when(roleService.isSuperAdmin(any(HttpServletRequest.class))).thenReturn(true);
-            doThrow(InvalidRequestException.class).when(spotlightService).getLatestAudit();
+            when(spotlightService.getLatestAudit()).thenReturn(null);
+
             assertThrows(InvalidRequestException.class, () -> SpotlightController.getIntegrations(httpRequest));
         }
     }
