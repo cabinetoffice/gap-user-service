@@ -78,6 +78,10 @@ public class SpotlightService {
     }
 
     public void exchangeAuthorizationToken(String authorizationCode, String state) throws IOException {
+        log.debug("SpotlightService exchangeAuthorizationToken");
+        log.debug("authorizationCode: {}", authorizationCode);
+        log.debug("state: {}", state);
+
         String grantType = "authorization_code";
 
         if (!state.equals(this.state)) {
@@ -92,10 +96,6 @@ public class SpotlightService {
                 .build()
                 .toUriString();
 
-        log.debug("SpotlightController callback");
-        log.debug("authorizationCode: {}", authorizationCode);
-        log.debug("state: {}", state);
-
         final String requestBody = "code=" + authorizationCode +
                 "&client_id=" + spotlightConfig.getClientId() +
                 "&client_secret=" + spotlightConfig.getClientSecret() +
@@ -108,6 +108,8 @@ public class SpotlightService {
         try {
             responseJSON = RestUtils.postRequestWithBody(tokenEndpoint, requestBody,
                     "application/x-www-form-urlencoded");
+            log.debug("responseJSON: {}", responseJSON);
+
             String accessToken = responseJSON
                     .get("access_token")
                     .toString();

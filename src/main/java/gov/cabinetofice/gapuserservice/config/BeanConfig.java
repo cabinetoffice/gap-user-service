@@ -70,7 +70,6 @@ public class BeanConfig {
     public static SecretsManagerClient getSecretsManagerClient() {
         return SecretsManagerClient.builder()
                 .region(Region.EU_WEST_2)
-                .credentialsProvider(ProfileCredentialsProvider.create())
                 .build();
     }
 
