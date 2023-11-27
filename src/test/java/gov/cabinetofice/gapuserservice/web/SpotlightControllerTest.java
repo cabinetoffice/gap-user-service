@@ -1,5 +1,6 @@
 package gov.cabinetofice.gapuserservice.web;
 
+import gov.cabinetofice.gapuserservice.dto.SpotlightIntegrationAuditDto;
 import gov.cabinetofice.gapuserservice.enums.SpotlightOAuthAuditEvent;
 import gov.cabinetofice.gapuserservice.enums.SpotlightOAuthAuditStatus;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
@@ -17,10 +18,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.servlet.view.RedirectView;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -171,6 +174,37 @@ public class SpotlightControllerTest {
             assertEquals(mockUser, capturedAudit.getUser());
             assertEquals(SpotlightOAuthAuditEvent.AUTHORISE, capturedAudit.getEvent());
             assertEquals(SpotlightOAuthAuditStatus.FAILURE, capturedAudit.getStatus());
+        }
+    }
+
+    @Nested
+    class IntegrationTest {
+        @Test
+        void shouldReturnIntegrationAuditDto() throws Exception {
+            HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+            Date date = new Date();
+            SpotlightOAuthAudit audit = SpotlightOAuthAudit.builder().event(SpotlightOAuthAuditEvent.AUTHORISE)
+                    .status(SpotlightOAuthAuditStatus.FAILURE).id(1).timestamp(date).build();
+            SpotlightIntegrationAuditDto auditDto = new SpotlightIntegrationAuditDto("Spotlight", 1,
+                    SpotlightOAuthAuditEvent.AUTHORISE, SpotlightOAuthAuditStatus.FAILURE, date);
+
+            when(roleService.isSuperAdmin(any(HttpServletRequest.class))).thenReturn(true);
+            when(spotlightService.getLatestAudit()).thenReturn(audit);
+            assertEquals(SpotlightController.getIntegrations(httpRequest), ResponseEntity.ok(auditDto));
+        }
+
+        @Test
+        void shouldThrowInvalidRequestWhenNoIntegrationAuditFound() {
+            HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+            Date date = new Date();
+            SpotlightOAuthAudit audit = SpotlightOAuthAudit.builder().event(SpotlightOAuthAuditEvent.AUTHORISE)
+                    .status(SpotlightOAuthAuditStatus.FAILURE).id(1).timestamp(date).build();
+            SpotlightIntegrationAuditDto auditDto = new SpotlightIntegrationAuditDto("Spotlight", 1,
+                    SpotlightOAuthAuditEvent.AUTHORISE, SpotlightOAuthAuditStatus.FAILURE, date);
+
+            when(roleService.isSuperAdmin(any(HttpServletRequest.class))).thenReturn(true);
+            doThrow(InvalidRequestException.class).when(spotlightService).getLatestAudit();
+            assertThrows(InvalidRequestException.class, () -> SpotlightController.getIntegrations(httpRequest));
         }
     }
 

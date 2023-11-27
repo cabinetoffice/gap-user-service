@@ -22,6 +22,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.view.RedirectView;
 
+import java.util.Objects;
+
 @RequiredArgsConstructor
 @Controller
 @RequestMapping("spotlight")
@@ -45,6 +47,9 @@ public class SpotlightController {
             throw new ForbiddenException();
         }
         SpotlightOAuthAudit audit = spotlightService.getLatestAudit();
+        if(Objects.equals(null, audit)) {
+            throw new InvalidRequestException("No audit found");
+        }
         SpotlightIntegrationAuditDto spotlightIntegrationAuditDto = new SpotlightIntegrationAuditDto(
                 "Spotlight", audit.getId(), audit.getEvent(),
                 audit.getStatus(), audit.getTimestamp());

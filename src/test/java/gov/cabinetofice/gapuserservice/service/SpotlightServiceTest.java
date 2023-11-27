@@ -1,8 +1,11 @@
 package gov.cabinetofice.gapuserservice.service;
 
 import gov.cabinetofice.gapuserservice.config.SpotlightConfig;
+import gov.cabinetofice.gapuserservice.enums.SpotlightOAuthAuditEvent;
+import gov.cabinetofice.gapuserservice.enums.SpotlightOAuthAuditStatus;
 import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetofice.gapuserservice.exceptions.SpotlightInvalidStateException;
+import gov.cabinetofice.gapuserservice.model.SpotlightOAuthAudit;
 import gov.cabinetofice.gapuserservice.repository.SpotlightOAuthAuditRepository;
 import gov.cabinetofice.gapuserservice.util.RestUtils;
 import org.apache.http.impl.client.HttpClients;
@@ -130,6 +133,15 @@ class SpotlightServiceTest {
         assertThrows(SpotlightInvalidStateException.class,
                 () -> spotlightService.exchangeAuthorizationToken("1234", "stateValueInvalid"));
 
+    }
+
+    @Test
+    void shouldGetLatestAudit() {
+        SpotlightOAuthAudit spotlightOAuthAudit = SpotlightOAuthAudit.builder().id(1).status(
+                SpotlightOAuthAuditStatus.FAILURE).event(SpotlightOAuthAuditEvent.AUTHORISE).build();
+        when(spotlightOAuthAuditRepository.findFirstByOrderByIdDesc()).thenReturn(spotlightOAuthAudit);
+
+        assertEquals(spotlightOAuthAudit, spotlightService.getLatestAudit());
     }
 
 }
