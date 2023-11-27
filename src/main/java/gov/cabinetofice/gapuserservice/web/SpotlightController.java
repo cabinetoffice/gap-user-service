@@ -1,5 +1,6 @@
 package gov.cabinetofice.gapuserservice.web;
 
+import gov.cabinetofice.gapuserservice.dto.SpotlightIntegrationAuditDto;
 import gov.cabinetofice.gapuserservice.enums.SpotlightOAuthAuditEvent;
 import gov.cabinetofice.gapuserservice.enums.SpotlightOAuthAuditStatus;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
@@ -14,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,6 +37,20 @@ public class SpotlightController {
 
     @Value("${admin-base-url}")
     private String adminBaseUrl;
+
+    @GetMapping("integration")
+    public ResponseEntity<SpotlightIntegrationAuditDto> getIntegrations(final HttpServletRequest httpRequest) throws Exception {
+        log.info("SpotlightController /integration/");
+        if (!roleService.isSuperAdmin(httpRequest)) {
+            throw new ForbiddenException();
+        }
+        SpotlightOAuthAudit audit = spotlightService.getLatestAudit();
+        SpotlightIntegrationAuditDto spotlightIntegrationAuditDto = new SpotlightIntegrationAuditDto(
+                "Spotlight", audit.getId(), audit.getEvent(),
+                audit.getStatus(), audit.getTimestamp());
+
+        return ResponseEntity.ok(spotlightIntegrationAuditDto);
+    }
 
     @GetMapping("/oauth/authorize")
     public RedirectView authorize(final HttpServletRequest httpRequest) throws Exception {
