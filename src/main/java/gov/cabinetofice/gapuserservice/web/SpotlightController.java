@@ -40,7 +40,7 @@ public class SpotlightController {
     @Value("${admin-base-url}")
     private String adminBaseUrl;
 
-    @GetMapping("integration")
+    @GetMapping("/integration")
     public ResponseEntity<SpotlightIntegrationAuditDto> getIntegrations(final HttpServletRequest httpRequest) throws Exception {
         log.info("SpotlightController /integration/");
         if (!roleService.isSuperAdmin(httpRequest)) {
