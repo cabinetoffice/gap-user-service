@@ -43,6 +43,10 @@ public class SpotlightService {
     private String codeVerifier;
     private String codeChallenge;
 
+    public SpotlightOAuthAudit getLatestAudit() {
+        return spotlightOAuthAuditRepository.findFirstByOrderByIdDesc();
+    }
+
     public void saveAudit(SpotlightOAuthAudit spotlightOAuthAudit) {
         spotlightOAuthAuditRepository.save(spotlightOAuthAudit);
     }

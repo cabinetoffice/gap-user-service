@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface SpotlightOAuthAuditRepository extends JpaRepository<SpotlightOAuthAudit, Integer> {
+    SpotlightOAuthAudit findFirstByOrderByIdDesc();
 }
