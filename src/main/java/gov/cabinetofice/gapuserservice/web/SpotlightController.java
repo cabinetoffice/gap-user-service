@@ -5,6 +5,7 @@ import gov.cabinetofice.gapuserservice.enums.SpotlightOAuthAuditEvent;
 import gov.cabinetofice.gapuserservice.enums.SpotlightOAuthAuditStatus;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
+import gov.cabinetofice.gapuserservice.exceptions.SpotlightTokenException;
 import gov.cabinetofice.gapuserservice.model.SpotlightOAuthAudit;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.RoleService;
@@ -114,7 +115,47 @@ public class SpotlightController {
 
             spotlightService.saveAudit(spotlightOAuthAudit);
 
-            throw new Exception("Error exchanging Spotlight authorization token");
+            throw new SpotlightTokenException("Error exchanging Spotlight authorization token");
+        }
+    }
+
+
+    @GetMapping("/oauth/refresh")
+    public ResponseEntity<Void> refresh(final HttpServletRequest httpRequest) throws Exception {
+        log.info("SpotlightController /oauth/refresh");
+
+        if (!roleService.isSuperAdmin(httpRequest)) {
+            throw new ForbiddenException();
+        }
+
+        User user = jwtService.getUserFromJwt(httpRequest)
+                .orElseThrow(() -> new InvalidRequestException(NO_USER));
+
+        try {
+            spotlightService.refreshToken();
+
+            log.info("Spotlight authorization token successfully refreshed");
+            SpotlightOAuthAudit spotlightOAuthAudit = SpotlightOAuthAudit.builder()
+                    .user(user)
+                    .event(SpotlightOAuthAuditEvent.REFRESH)
+                    .status(SpotlightOAuthAuditStatus.SUCCESS)
+                    .build();
+
+            spotlightService.saveAudit(spotlightOAuthAudit);
+
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("Error refreshing Spotlight authorization token", e);
+
+            SpotlightOAuthAudit spotlightOAuthAudit = SpotlightOAuthAudit.builder()
+                    .user(user)
+                    .event(SpotlightOAuthAuditEvent.REFRESH)
+                    .status(SpotlightOAuthAuditStatus.FAILURE)
+                    .build();
+
+            spotlightService.saveAudit(spotlightOAuthAudit);
+
+            throw new SpotlightTokenException("Error refreshing Spotlight authorization token");
         }
     }
 

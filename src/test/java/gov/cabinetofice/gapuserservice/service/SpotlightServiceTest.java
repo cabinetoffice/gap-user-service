@@ -144,4 +144,45 @@ class SpotlightServiceTest {
         assertEquals(spotlightOAuthAudit, spotlightService.getLatestAudit());
     }
 
+
+    @Test
+    void shouldRefreshTokenTest() throws Exception {
+
+        String secretJson = "{\"refresh_token\":\"5678\"}";
+        String expectedAccessTokenSecret = "{\"refresh_token\":\"5678\",\"access_token\":\"1234\"}";
+        String expectedResponse = "{\"access_token\":\"1234\"}";
+
+        GetSecretValueRequest valueRequest = GetSecretValueRequest.builder()
+                .secretId(spotlightConfig.getSecretName())
+                .build();
+        when(RestUtils.postRequestWithBody(anyString(), anyString(), anyString()))
+                .thenReturn(new JSONObject(expectedResponse));
+
+        when(secretsManagerClient.getSecretValue(any(GetSecretValueRequest.class))).thenReturn(getSecretValueResponse);
+        when(getSecretValueResponse.secretString()).thenReturn(secretJson);
+
+
+        spotlightService.refreshToken();
+
+        verify(secretsManagerClient, times(1)).updateSecret(argumentCaptor.capture());
+
+        assertEquals(expectedAccessTokenSecret, argumentCaptor.getAllValues().get(0).secretString());
+    }
+
+    @Test
+    void shouldThrowInvalidRequestExceptionWhenIOExceptionIsThrownForRefresh() throws Exception {
+
+        String secretJson = "{\"refresh_token\":\"5678\"}";
+
+        when(RestUtils.postRequestWithBody(anyString(), anyString(), anyString()))
+                .thenThrow(new IOException());
+
+        when(secretsManagerClient.getSecretValue(any(GetSecretValueRequest.class))).thenReturn(getSecretValueResponse);
+        when(getSecretValueResponse.secretString()).thenReturn(secretJson);
+
+
+        assertThrows(InvalidRequestException.class,
+                () -> spotlightService.refreshToken());
+    }
 }
+

@@ -11,6 +11,7 @@ import gov.cabinetofice.gapuserservice.util.RestUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -42,6 +43,9 @@ public class SpotlightService {
     private String state;
     private String codeVerifier;
     private String codeChallenge;
+
+    private final static String ACCESS_TOKEN_NAME = "access_token";
+    private final static String REFRESH_TOKEN_NAME = "refresh_token";
 
     public SpotlightOAuthAudit getLatestAudit() {
         return spotlightOAuthAuditRepository.findFirstByOrderByIdDesc();
@@ -125,15 +129,54 @@ public class SpotlightService {
             log.debug("new Access token: {}", accessToken);
             log.debug("new Refresh token: {}", refreshToken);
 
-            this.updateSecret("access_token", accessToken);
-            this.updateSecret("refresh_token", refreshToken);
+            this.updateSecret(ACCESS_TOKEN_NAME, accessToken);
+            this.updateSecret(REFRESH_TOKEN_NAME, refreshToken);
 
-        } catch (IOException e) {
-            this.updateSecret("access_token", null);
-            this.updateSecret("refresh_token", null);
+        } catch(IOException | JSONException e) {
+            this.updateSecret(ACCESS_TOKEN_NAME, null);
+            this.updateSecret(REFRESH_TOKEN_NAME, null);
             throw new InvalidRequestException("invalid request");
         }
     }
+
+    public void refreshToken() {
+        log.debug("SpotlightService refreshToken");
+
+        String grantType = "refresh_token";
+        String refreshToken = getSecret(REFRESH_TOKEN_NAME);
+
+        String tokenEndpoint = UriComponentsBuilder
+                .fromUriString(spotlightConfig.getSpotlightUrl())
+                .path("/services")
+                .path("/oauth2")
+                .path("/token")
+                .build()
+                .toUriString();
+
+        final String requestBody = "refresh_token=" + refreshToken +
+                "&client_id=" + spotlightConfig.getClientId() +
+                "&client_secret=" + spotlightConfig.getClientSecret() +
+                "&grant_type=" + grantType;
+
+        JSONObject responseJSON;
+        try {
+            responseJSON = RestUtils.postRequestWithBody(tokenEndpoint, requestBody,
+                    "application/x-www-form-urlencoded");
+            log.debug("responseJSON: {}", responseJSON);
+
+            String accessToken = responseJSON
+                    .get("access_token")
+                    .toString();
+
+            log.debug("new Access token: {}", accessToken);
+
+            this.updateSecret(ACCESS_TOKEN_NAME, accessToken);
+        } catch(IOException | JSONException e) {
+            this.updateSecret(ACCESS_TOKEN_NAME, null);
+            throw new InvalidRequestException("invalid request");
+        }
+    }
+
 
     private String generateRandomString(int length) {
         byte[] bytes = new byte[length];
@@ -145,6 +188,22 @@ public class SpotlightService {
         MessageDigest md = MessageDigest.getInstance("SHA-256");
         byte[] digest = md.digest(codeVerifier.getBytes());
         return Base64.getUrlEncoder().withoutPadding().encodeToString(digest);
+    }
+
+    private String getSecret(String name) {
+        log.debug("Getting secret {}...", spotlightConfig.getSecretName());
+        GetSecretValueRequest valueRequest = GetSecretValueRequest.builder()
+                .secretId(spotlightConfig.getSecretName())
+                .build();
+        GetSecretValueResponse valueResponse = secretsManagerClient.getSecretValue(valueRequest);
+        String secretString = valueResponse.secretString();
+
+        log.debug("Secret: {}", secretString);
+
+        // Parse the secret string into a JSON object
+        JsonObject secretJson = JsonParser.parseString(secretString).getAsJsonObject();
+
+        return secretJson.get(name).getAsString();
     }
 
     private void updateSecret(String name, String value) {
