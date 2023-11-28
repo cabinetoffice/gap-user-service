@@ -5,6 +5,7 @@ import gov.cabinetofice.gapuserservice.enums.SpotlightOAuthAuditEvent;
 import gov.cabinetofice.gapuserservice.enums.SpotlightOAuthAuditStatus;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
+import gov.cabinetofice.gapuserservice.exceptions.SpotlightTokenException;
 import gov.cabinetofice.gapuserservice.model.SpotlightOAuthAudit;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.RoleService;
@@ -114,13 +115,13 @@ public class SpotlightController {
 
             spotlightService.saveAudit(spotlightOAuthAudit);
 
-            throw new Exception("Error exchanging Spotlight authorization token");
+            throw new SpotlightTokenException("Error exchanging Spotlight authorization token");
         }
     }
 
 
     @GetMapping("/oauth/refresh")
-    public ResponseEntity refresh(final HttpServletRequest httpRequest) throws Exception {
+    public ResponseEntity<Void> refresh(final HttpServletRequest httpRequest) throws Exception {
         log.info("SpotlightController /oauth/refresh");
 
         if (!roleService.isSuperAdmin(httpRequest)) {
@@ -154,7 +155,7 @@ public class SpotlightController {
 
             spotlightService.saveAudit(spotlightOAuthAudit);
 
-            throw new Exception("Error refreshing Spotlight authorization token");
+            throw new SpotlightTokenException("Error refreshing Spotlight authorization token");
         }
     }
 

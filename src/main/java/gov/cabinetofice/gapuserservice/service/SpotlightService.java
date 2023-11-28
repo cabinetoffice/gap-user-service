@@ -44,8 +44,8 @@ public class SpotlightService {
     private String codeVerifier;
     private String codeChallenge;
 
-    private final String ACCESS_TOKEN_NAME = "access_token";
-    private final String REFRESH_TOKEN_NAME = "refresh_token";
+    private final static String ACCESS_TOKEN_NAME = "access_token";
+    private final static String REFRESH_TOKEN_NAME = "refresh_token";
 
     public SpotlightOAuthAudit getLatestAudit() {
         return spotlightOAuthAuditRepository.findFirstByOrderByIdDesc();
@@ -132,11 +132,7 @@ public class SpotlightService {
             this.updateSecret(ACCESS_TOKEN_NAME, accessToken);
             this.updateSecret(REFRESH_TOKEN_NAME, refreshToken);
 
-        } catch (IOException e) {
-            this.updateSecret(ACCESS_TOKEN_NAME, null);
-            this.updateSecret(REFRESH_TOKEN_NAME, null);
-            throw new InvalidRequestException("invalid request");
-        } catch (JSONException e) {
+        } catch(IOException | JSONException e) {
             this.updateSecret(ACCESS_TOKEN_NAME, null);
             this.updateSecret(REFRESH_TOKEN_NAME, null);
             throw new InvalidRequestException("invalid request");
@@ -175,10 +171,7 @@ public class SpotlightService {
             log.debug("new Access token: {}", accessToken);
 
             this.updateSecret(ACCESS_TOKEN_NAME, accessToken);
-        } catch (IOException e) {
-            this.updateSecret(ACCESS_TOKEN_NAME, null);
-            throw new InvalidRequestException("invalid request");
-        } catch (JSONException e) {
+        } catch(IOException | JSONException e) {
             this.updateSecret(ACCESS_TOKEN_NAME, null);
             throw new InvalidRequestException("invalid request");
         }

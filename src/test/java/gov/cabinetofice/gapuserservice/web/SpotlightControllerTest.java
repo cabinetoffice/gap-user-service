@@ -5,6 +5,7 @@ import gov.cabinetofice.gapuserservice.enums.SpotlightOAuthAuditEvent;
 import gov.cabinetofice.gapuserservice.enums.SpotlightOAuthAuditStatus;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
+import gov.cabinetofice.gapuserservice.exceptions.SpotlightTokenException;
 import gov.cabinetofice.gapuserservice.model.SpotlightOAuthAudit;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.RoleService;
@@ -165,7 +166,7 @@ public class SpotlightControllerTest {
             doThrow(new IOException("Test Exception")).when(spotlightService).exchangeAuthorizationToken(anyString(), anyString());
 
 
-            Exception exception = assertThrows(Exception.class, () -> {
+            Exception exception = assertThrows(SpotlightTokenException.class, () -> {
                 SpotlightController.callback(CODE, STATE, httpRequest);
             });
 
@@ -265,7 +266,7 @@ public class SpotlightControllerTest {
             doThrow(new InvalidRequestException("Test Exception")).when(spotlightService).refreshToken();
 
 
-            Exception exception = assertThrows(Exception.class, () -> {
+            Exception exception = assertThrows(SpotlightTokenException.class, () -> {
                 SpotlightController.refresh(httpRequest);
             });
 
