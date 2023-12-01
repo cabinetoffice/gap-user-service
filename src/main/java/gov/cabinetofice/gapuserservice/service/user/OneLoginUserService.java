@@ -154,7 +154,7 @@ public class OneLoginUserService {
         return user.get();
     }
 
-    public User updateDepartment(Integer id, Integer departmentId) {
+    public User updateDepartment(Integer id, Integer departmentId, String jwt) {
         Optional<User> optionalUser = userRepository.findById(id);
 
         if (optionalUser.isEmpty()) {
@@ -165,6 +165,19 @@ public class OneLoginUserService {
         if (optionalDepartment.isEmpty()) {
             throw new DepartmentNotFoundException("Department not found");
         }
+
+        webClientBuilder.build()
+                .patch()
+                .uri(adminBackend + "/users/funding-organisation")
+                .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
+                .bodyValue(UpdateFundingOrgDto.builder()
+                        .email(optionalUser.get().getEmailAddress())
+                        .sub(optionalUser.get().getSub())
+                        .departmentName(optionalDepartment.get().getName())
+                        .build())
+                .retrieve()
+                .bodyToMono(Void.class)
+                .block();
 
         User user = optionalUser.get();
         Department department = optionalDepartment.get();
