@@ -24,6 +24,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -244,11 +245,12 @@ public class OneLoginUserService {
 
     private void deleteUserFromApply(String jwt, User user) {
 
-        String id = user.hasSub() ? user.getSub() : "";
-        String query = user.hasColaSub() ? "?colaSub=" + user.getColaSub() : "";
+        String query = user.hasSub() ? "?colaSub=" + user.getSub() :"?colaSub=" + user.getColaSub();
+        String uri = adminBackend + "/users/delete" + query;
+
         webClientBuilder.build()
                 .delete()
-                .uri(adminBackend + "/users/delete/" + id + query)
+                .uri(uri)
                 .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
                 .retrieve()
                 .bodyToMono(Void.class)
