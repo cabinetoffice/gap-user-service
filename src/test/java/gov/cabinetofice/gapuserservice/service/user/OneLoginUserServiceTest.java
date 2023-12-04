@@ -435,6 +435,7 @@ class OneLoginUserServiceTest {
         when(requestHeadersSpec.header(anyString(), anyString())).thenReturn(requestHeadersSpec);
         final WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
         when(responseSpec.bodyToMono(Void.class)).thenReturn(Mono.when());
 
         oneLoginUserService.deleteUser(userId, "jwt");
