@@ -17,7 +17,7 @@ public class SpotlightOAuthRefreshScheduler {
 
     private final SpotlightService spotlightService;
 
-    @Scheduled(cron = "${spotlight.scheduler.cronExpression:0 0 20 * * *}", zone = "Europe/London")
+    @Scheduled(cron = "${spotlight.scheduler.cronExpression:0 20 0 * * *}", zone = "Europe/London")
     @SchedulerLock(name = "spotlight_oauth_refresh_scheduler",
             lockAtMostFor = "${spotlight.scheduler.lock.atMostFor:5m}",
             lockAtLeastFor = "${spotlight.scheduler.lock.atLeastFor:1m}")
