@@ -371,6 +371,7 @@ class OneLoginUserServiceTest {
         when(requestBodyUriSpec.header(anyString(), anyString())).thenReturn(requestBodyUriSpec);
         when(requestBodyUriSpec.bodyValue(any())).thenReturn(requestHeadersSpec);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
         when(responseSpec.bodyToMono(Void.class)).thenReturn(Mono.empty());
 
 

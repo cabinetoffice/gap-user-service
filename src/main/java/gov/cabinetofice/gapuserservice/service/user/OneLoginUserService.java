@@ -178,6 +178,11 @@ public class OneLoginUserService {
                         .departmentName(optionalDepartment.get().getName())
                         .build())
                 .retrieve()
+                .onStatus(httpStatus -> httpStatus.equals(HttpStatus.NOT_FOUND), clientResponse -> {
+                    log.error("User with sub".concat(optionalUser.get().getSub())
+                            .concat("does not exist as an admin in the Apply database"));
+                    return Mono.empty();
+                })
                 .bodyToMono(Void.class)
                 .block();
 
@@ -246,7 +251,7 @@ public class OneLoginUserService {
 
     private void deleteUserFromApply(String jwt, User user) {
 
-        String query = user.hasSub() ? "?colaSub=" + user.getSub() :"?colaSub=" + user.getColaSub();
+        String query = user.hasSub() ? "?oneLoginSub=" + user.getSub() :"?colaSub=" + user.getColaSub();
         String uri = adminBackend + "/users/delete" + query;
 
         webClientBuilder.build()
@@ -254,6 +259,11 @@ public class OneLoginUserService {
                 .uri(uri)
                 .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
                 .retrieve()
+                .onStatus(httpStatus -> httpStatus.equals(HttpStatus.NOT_FOUND), clientResponse -> {
+                    log.error("User with sub".concat(user.getSub())
+                            .concat("does not exist the Apply database"));
+                    return Mono.empty();
+                })
                 .bodyToMono(Void.class)
                 .block();
     }
