@@ -168,13 +168,16 @@ public class OneLoginUserService {
             throw new DepartmentNotFoundException("Department not found");
         }
 
+        String userSub = StringUtils.isEmpty(optionalUser.get().getSub()) ? optionalUser.get().getColaSub().toString()
+                : optionalUser.get().getSub();
+
         webClientBuilder.build()
                 .patch()
                 .uri(adminBackend + "/users/funding-organisation")
                 .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
                 .bodyValue(UpdateFundingOrgDto.builder()
                         .email(optionalUser.get().getEmailAddress())
-                        .sub(optionalUser.get().getSub())
+                        .sub(userSub)
                         .departmentName(optionalDepartment.get().getName())
                         .build())
                 .retrieve()
@@ -188,7 +191,7 @@ public class OneLoginUserService {
         return userRepository.save(user);
     }
 
-    public User updateRoles(Integer id, List<Integer> newRoles) {
+    public User updateRoles(Integer id, List<Integer> newRoles, String jwt) {
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         user.removeAllRoles();
 
@@ -205,9 +208,29 @@ public class OneLoginUserService {
         addRoleIfNotPresent(user, RoleEnum.FIND);
         addRoleIfNotPresent(user, RoleEnum.APPLICANT);
         deleteDepartmentIfPresentAndUserIsOnlyApplicantOrFind(user);
+
+        if (user.getRoles().stream().anyMatch(role -> role.getName().equals(RoleEnum.ADMIN)
+                        || role.getName().equals(RoleEnum.SUPER_ADMIN))) {
+            addGrantAdminUser(user, jwt);
+        }
         userRepository.save(user);
 
         return user;
+    }
+
+    private void addGrantAdminUser(User user, String jwt) {
+
+        String userSub = StringUtils.isEmpty(user.getSub()) ? user.getColaSub().toString() : user.getSub();
+
+        webClientBuilder.build()
+                .post()
+                .uri(adminBackend + "/users/admin/create")
+                .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
+                .bodyValue(CreateAdminUserDto.builder()
+                        .userSub(userSub).build())
+                .retrieve()
+                .bodyToMono(Void.class)
+                .block();
     }
 
     private void addRoleIfNotPresent(User user, RoleEnum roleName) {
