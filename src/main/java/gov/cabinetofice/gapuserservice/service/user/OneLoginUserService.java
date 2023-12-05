@@ -179,8 +179,8 @@ public class OneLoginUserService {
                         .build())
                 .retrieve()
                 .onStatus(httpStatus -> httpStatus.equals(HttpStatus.NOT_FOUND), clientResponse -> {
-                    log.error("User with sub".concat(optionalUser.get().getSub())
-                            .concat("does not exist as an admin in the Apply database"));
+                    log.error("User with sub {} does not exist as an admin in the Apply database",
+                            optionalUser.get().getSub());
                     return Mono.empty();
                 })
                 .bodyToMono(Void.class)
@@ -260,8 +260,7 @@ public class OneLoginUserService {
                 .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
                 .retrieve()
                 .onStatus(httpStatus -> httpStatus.equals(HttpStatus.NOT_FOUND), clientResponse -> {
-                    log.error("User with sub".concat(user.getSub())
-                            .concat("does not exist the Apply database"));
+                    log.error("User with sub {} does not exist the Apply database", user.getSub());
                     return Mono.empty();
                 })
                 .bodyToMono(Void.class)
