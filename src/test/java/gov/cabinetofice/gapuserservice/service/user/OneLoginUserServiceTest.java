@@ -64,7 +64,9 @@ class OneLoginUserServiceTest {
 
     @BeforeEach
     void setUp() {
+
         ReflectionTestUtils.setField(oneLoginUserService, "adminBackend", "adminBackend");
+        ReflectionTestUtils.setField(oneLoginUserService, "findFrontend", "findfrontend");
     }
 
     @Test
@@ -358,10 +360,26 @@ class OneLoginUserServiceTest {
         Integer userId = 1;
         Integer departmentId = 2;
 
+        final WebClient webClient = mock(WebClient.class);
+        final WebClient.RequestHeadersSpec requestHeadersSpec = mock(WebClient.RequestHeadersSpec.class);
+        final WebClient.RequestBodyUriSpec requestBodyUriSpec = mock(WebClient.RequestBodyUriSpec.class);
+        final WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
+
+        when(webClientBuilder.build()).thenReturn(webClient);
+        when(webClient.patch()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.header(anyString(), anyString())).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.bodyValue(any())).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(Void.class)).thenReturn(Mono.empty());
+
+
+
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(departmentRepository.findById(departmentId)).thenReturn(Optional.of(department));
         when(userRepository.save(user)).thenReturn(user);
-        User result = oneLoginUserService.updateDepartment(userId, departmentId);
+        User result = oneLoginUserService.updateDepartment(userId, departmentId, "jwt");
 
         assertEquals(department, user.getDepartment());
         verify(userRepository).save(user);
@@ -375,7 +393,8 @@ class OneLoginUserServiceTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        assertThrows(UserNotFoundException.class, () -> oneLoginUserService.updateDepartment(userId, departmentId));
+        assertThrows(UserNotFoundException.class, () -> oneLoginUserService.updateDepartment(userId,
+                departmentId, "jwt"));
     }
 
     @Test
@@ -388,7 +407,8 @@ class OneLoginUserServiceTest {
 
         when(departmentRepository.findById(departmentId)).thenReturn(Optional.empty());
 
-        assertThrows(DepartmentNotFoundException.class, () -> oneLoginUserService.updateDepartment(userId, departmentId));
+        assertThrows(DepartmentNotFoundException.class, () -> oneLoginUserService.updateDepartment(userId,
+                departmentId, "jwt"));
     }
 
     @Test
@@ -403,7 +423,8 @@ class OneLoginUserServiceTest {
     @Test
     void testDeleteUser_DeletesUser(){
         Integer userId = 1;
-        User user = User.builder().gapUserId(userId).build();
+        User user = User.builder().gapUserId(userId)
+                .sub("123445").emailAddress("test.user@email.com").build();
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         final WebClient webClient = mock(WebClient.class);
@@ -415,11 +436,13 @@ class OneLoginUserServiceTest {
         when(requestHeadersSpec.header(anyString(), anyString())).thenReturn(requestHeadersSpec);
         final WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
         when(responseSpec.bodyToMono(Void.class)).thenReturn(Mono.when());
 
         oneLoginUserService.deleteUser(userId, "jwt");
 
         verify(userRepository).deleteById(userId);
+        verify(webClientBuilder, times(2)).build();
     }
 
     @Test

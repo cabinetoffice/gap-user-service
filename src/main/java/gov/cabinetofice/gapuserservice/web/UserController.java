@@ -92,7 +92,8 @@ public class UserController {
         }
 
         if(departmentId == null) return ResponseEntity.ok().build();
-        User user = oneLoginUserService.updateDepartment(userId, departmentId);
+        final Cookie customJWTCookie = getCustomJwtCookieFromRequest(httpRequest, userServiceCookieName);
+        User user = oneLoginUserService.updateDepartment(userId, departmentId, customJWTCookie.getValue());
         return ResponseEntity.ok(user);
     }
 

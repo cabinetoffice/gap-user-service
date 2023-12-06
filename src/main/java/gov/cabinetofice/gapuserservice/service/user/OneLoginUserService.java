@@ -18,6 +18,7 @@ import gov.cabinetofice.gapuserservice.service.JwtBlacklistService;
 import gov.cabinetofice.gapuserservice.service.encryption.AwsEncryptionServiceImpl;
 import gov.cabinetofice.gapuserservice.util.UserQueryCondition;
 import gov.cabinetofice.gapuserservice.util.WebUtil;
+import io.micrometer.common.util.StringUtils;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
@@ -26,10 +27,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.util.*;
 import java.util.function.BiFunction;
@@ -49,6 +52,8 @@ public class OneLoginUserService {
     private final WebClient.Builder webClientBuilder;
     private final RoleMapper roleMapper;
     private static final String NOT_FOUND = "not found";
+    private static final String AUTHORIZATION_HEADER_NAME = "Authorization";
+    private static final String BEARER_HEADER_PREFIX = "Bearer ";
 
     private final AwsEncryptionServiceImpl awsEncryptionService;
 
@@ -151,7 +156,7 @@ public class OneLoginUserService {
         return user.get();
     }
 
-    public User updateDepartment(Integer id, Integer departmentId) {
+    public User updateDepartment(Integer id, Integer departmentId, String jwt) {
         Optional<User> optionalUser = userRepository.findById(id);
 
         if (optionalUser.isEmpty()) {
@@ -162,6 +167,24 @@ public class OneLoginUserService {
         if (optionalDepartment.isEmpty()) {
             throw new DepartmentNotFoundException("Department not found");
         }
+
+        webClientBuilder.build()
+                .patch()
+                .uri(adminBackend + "/users/funding-organisation")
+                .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
+                .bodyValue(UpdateFundingOrgDto.builder()
+                        .email(optionalUser.get().getEmailAddress())
+                        .sub(optionalUser.get().getSub())
+                        .departmentName(optionalDepartment.get().getName())
+                        .build())
+                .retrieve()
+                .onStatus(httpStatus -> httpStatus.equals(HttpStatus.NOT_FOUND), clientResponse -> {
+                    log.error("User with sub {} does not exist as an admin in the Apply database",
+                            optionalUser.get().getSub());
+                    return Mono.empty();
+                })
+                .bodyToMono(Void.class)
+                .block();
 
         User user = optionalUser.get();
         Department department = optionalDepartment.get();
@@ -219,15 +242,47 @@ public class OneLoginUserService {
 
     @Transactional
     public void deleteUser(Integer id, String jwt) {
-        final User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("user with id: " + id + NOT_FOUND));
+        final User user = userRepository.findById(id).orElseThrow(() ->
+                new UserNotFoundException("user with id: " + id + NOT_FOUND));
+        deleteUserFromFind(jwt, user);
+        deleteUserFromApply(jwt, user);
+        userRepository.deleteById(id);
+    }
+
+    private void deleteUserFromApply(String jwt, User user) {
+
+        String query = user.hasSub() ? "?oneLoginSub=" + user.getSub() :"?colaSub=" + user.getColaSub();
+        String uri = adminBackend + "/users/delete" + query;
+
         webClientBuilder.build()
                 .delete()
-                .uri(adminBackend + "/users/delete/" + (user.hasSub() ? user.getSub() : "") + (user.hasColaSub() ? "?colaSub=" + user.getColaSub() : ""))
-                .header("Authorization", "Bearer " + jwt)
+                .uri(uri)
+                .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
                 .retrieve()
+                .onStatus(httpStatus -> httpStatus.equals(HttpStatus.NOT_FOUND), clientResponse -> {
+                    log.error("User with sub {} does not exist the Apply database", user.getSub());
+                    return Mono.empty();
+                })
                 .bodyToMono(Void.class)
                 .block();
-        userRepository.deleteById(id);
+    }
+
+    private void deleteUserFromFind(String jwt, User user) {
+        String query = !StringUtils.isEmpty(user.getSub())
+                ? "?sub=".concat(user.getSub()) : "?email=".concat(user.getEmailAddress());
+
+        webClientBuilder.build()
+                .delete()
+                .uri(findFrontend.concat("/api/user/delete").concat(query))
+                .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
+                .retrieve()
+                .onStatus(httpStatus -> httpStatus.equals(HttpStatus.NOT_FOUND), clientResponse -> {
+                    log.error("User with ID".concat(user.getGapUserId().toString())
+                            .concat("cannot be found in the Find database"));
+                    return Mono.empty();
+                })
+                .bodyToMono(Void.class)
+                .block();
     }
 
     public void invalidateUserJwt(final Cookie customJWTCookie, final HttpServletResponse response) {
@@ -309,7 +364,7 @@ public class OneLoginUserService {
             webClientBuilder.build()
                     .patch()
                     .uri(adminBackend + "/users/migrate")
-                    .header("Authorization", "Bearer " + jwt)
+                    .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(requestBody)
                     .retrieve()
