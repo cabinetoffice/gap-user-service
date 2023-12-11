@@ -14,6 +14,8 @@ public class UserAndRelationsDto {
     private String gapUserId;
     private String emailAddress;
     private String sub;
+
+    private String colaSub;
     private List<Role> roles;
     private Role role;
     private Department department;
@@ -28,6 +30,7 @@ public class UserAndRelationsDto {
         this.roles = user.getRoles();
         this.role = user.getHighestRole();
         this.created = user.getCreated();
+        this.colaSub = String.valueOf(user.getColaSub());
     }
 
 }
