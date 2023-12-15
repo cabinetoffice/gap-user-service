@@ -3,11 +3,13 @@ package gov.cabinetofice.gapuserservice.util;
 import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 
+@Slf4j
 public class WebUtil {
 
     private WebUtil() {
@@ -60,6 +62,15 @@ public class WebUtil {
         } catch (MalformedURLException e) {
             throw new InvalidRequestException("Invalid redirect URL: ".concat(inputUrl)
                     .concat(" ").concat(e.getMessage()));
+        }
+    }
+
+    public static void validateRedirectUrl(final String inputUrl, final String host) throws MalformedURLException {
+        URL url = new URL(inputUrl);
+        String inputUrlHost = url.getProtocol() + "://" + url.getHost();
+        if (!host.startsWith(inputUrlHost)) {
+            log.error("Redirect url: " + inputUrl + " does not match host: ".concat(host));
+            throw new InvalidRequestException("Redirect url: " + inputUrl + " does not match host: ".concat(host));
         }
     }
 }
