@@ -66,11 +66,16 @@ class WebUtilTest {
 
     @Test
     void validateRedirectUrl__shouldThrowInvalidRequest(){
-        assertThrows(InvalidRequestException.class, () -> WebUtil.validateRedirectUrl("http://MALICIOUS-DOMAIN:3002/notifications/manage-notifications", "http://localhost:3002"));
+        assertThrows(InvalidRequestException.class,
+                () -> WebUtil.validateRedirectUrl(
+                        "http://MALICIOUS-DOMAIN:3002/notifications/manage-notifications",
+                        "http://localhost:3002"));
     }
 
     @Test
     void validateRedirectUrl__shouldValidate(){
-        assertDoesNotThrow(() -> WebUtil.validateRedirectUrl("http://localhost:3002/notifications/manage-notifications", "http://localhost:3002"));
+        assertDoesNotThrow(
+                () -> WebUtil.validateRedirectUrl("http://localhost:3002/notifications/manage-notifications",
+                        "http://localhost:3002"));
     }
 }

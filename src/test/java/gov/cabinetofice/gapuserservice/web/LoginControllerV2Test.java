@@ -94,7 +94,7 @@ class LoginControllerV2Test {
         ReflectionTestUtils.setField(loginController, "applicantBaseUrl", "http:localhost:3000/applicantBaseUrl");
         ReflectionTestUtils.setField(loginController, "techSupportAppBaseUrl", "http:localhost:3000/techSupportAppBaseUrl");
         ReflectionTestUtils.setField(loginController, "postLogoutRedirectUri", "http:localhost:3002/postLogoutRedirectUri");
-        ReflectionTestUtils.setField(loginController, "findAGrantUrl", "https://www.find-government-grants.service.gov.uk/");
+        ReflectionTestUtils.setField(loginController, "findAGrantBaseUrl", "https://www.find-government-grants.service.gov.uk/");
     }
 
     @AfterEach

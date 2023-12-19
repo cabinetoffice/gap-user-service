@@ -65,12 +65,12 @@ public class WebUtil {
         }
     }
 
-    public static void validateRedirectUrl(final String inputUrl, final String host) throws MalformedURLException {
+    public static void validateRedirectUrl(final String inputUrl, final String baseUrl) throws MalformedURLException {
         URL url = new URL(inputUrl);
         String inputUrlHost = url.getProtocol() + "://" + url.getHost();
-        if (!host.startsWith(inputUrlHost)) {
-            log.error("Redirect url: " + inputUrl + " does not match host: ".concat(host));
-            throw new InvalidRequestException("Redirect url: " + inputUrl + " does not match host: ".concat(host));
+        if (!baseUrl.startsWith(inputUrlHost)) {
+            log.error("Redirect url: " + inputUrl + " does not match host: ".concat(baseUrl));
+            throw new InvalidRequestException("Redirect url: " + inputUrl + " does not match host: ".concat(baseUrl));
         }
     }
 }

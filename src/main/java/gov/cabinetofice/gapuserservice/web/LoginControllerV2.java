@@ -63,7 +63,7 @@ public class LoginControllerV2 {
     private static final String STATE_COOKIE = "state";
 
     @Value("${find-a-grant.url}")
-    private String findAGrantUrl;
+    private String findAGrantBaseUrl;
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
@@ -100,7 +100,7 @@ public class LoginControllerV2 {
                 && customJWTCookie.getValue() != null
                 && customJwtService.isTokenValid(customJWTCookie.getValue());
         final String redirectUrl = redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl());
-        WebUtil.validateRedirectUrl(redirectUrl, findAGrantUrl);
+        WebUtil.validateRedirectUrl(redirectUrl, findAGrantBaseUrl);
 
         if (!isTokenValid) {
             final String nonce = oneLoginService.generateAndStoreNonce();
