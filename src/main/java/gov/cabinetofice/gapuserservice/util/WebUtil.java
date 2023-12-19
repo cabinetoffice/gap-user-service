@@ -69,8 +69,9 @@ public class WebUtil {
         URL url = new URL(inputUrl);
         String inputUrlHost = url.getProtocol() + "://" + url.getHost();
         if (!baseUrl.startsWith(inputUrlHost)) {
-            log.error("Redirect url: " + inputUrl + " does not match host: ".concat(baseUrl));
-            throw new InvalidRequestException("Redirect url: " + inputUrl + " does not match host: ".concat(baseUrl));
+            String errorMessage = "Redirect url: " + inputUrl + " does not match host: " + baseUrl;
+            log.error(errorMessage);
+            throw new InvalidRequestException(errorMessage);
         }
     }
 }
