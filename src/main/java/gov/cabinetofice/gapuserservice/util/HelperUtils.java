@@ -16,8 +16,8 @@ import java.security.SecureRandom;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class HelperUtils {
 
@@ -29,8 +29,9 @@ public class HelperUtils {
      * Used to generate a safely encoded URL, incl. any query params This method will
      * auto-remove any query params where the value is null, to prevent empty request
      * params being added to the URL
-     * @param hostUrl the host name
-     * @param path the path to the requested resource
+     *
+     * @param hostUrl     the host name
+     * @param path        the path to the requested resource
      * @param queryParams a map of query params
      * @return an encoded URL
      */
@@ -60,8 +61,7 @@ public class HelperUtils {
             mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
             mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
             return mapper.writeValueAsString(obj);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new ConvertJsonToStringException("Failed to convert Json to string: " + e);
         }
     }
@@ -73,13 +73,13 @@ public class HelperUtils {
     }
 
     public static String generateSecureRandomString(final Integer strLen) {
-        final String chrs = "0123456789abcdefghijklmnopqrstuvwxyz-_ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        final String chars = "0123456789abcdefghijklmnopqrstuvwxyz-_ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
         final SecureRandom secureRandom = new SecureRandom();
 
         return secureRandom
-                .ints(strLen, 0, chrs.length())
-                .mapToObj(chrs::charAt)
+                .ints(strLen, 0, chars.length())
+                .mapToObj(chars::charAt)
                 .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
                 .toString();
     }

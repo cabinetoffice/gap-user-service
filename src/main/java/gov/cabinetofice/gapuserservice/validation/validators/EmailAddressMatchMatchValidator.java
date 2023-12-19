@@ -26,15 +26,14 @@ public class EmailAddressMatchMatchValidator implements ConstraintValidator<Emai
                 .getPropertyValue(fieldMatch);
 
         // Suppressing null pointer warning, isEmpty() already checks for null value
-        @SuppressWarnings("Unchecked")
-        final boolean fieldValueIsEmpty = Strings.isEmpty((String) fieldValue);
+        @SuppressWarnings("Unchecked") final boolean fieldValueIsEmpty = Strings.isEmpty((String) fieldValue);
         final boolean fieldMatchValueIsEmpty = Strings.isEmpty((String) fieldMatchValue);
 
-        if (!fieldValueIsEmpty && !fieldMatchValueIsEmpty && !fieldValue.equals(fieldMatchValue)){
-                context.disableDefaultConstraintViolation();
-                context.buildConstraintViolationWithTemplate(context.getDefaultConstraintMessageTemplate()).addPropertyNode(field).addConstraintViolation();
-                context.buildConstraintViolationWithTemplate(context.getDefaultConstraintMessageTemplate()).addPropertyNode(fieldMatch).addConstraintViolation();
-                return false;
+        if (!fieldValueIsEmpty && !fieldMatchValueIsEmpty && !fieldValue.equals(fieldMatchValue)) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate(context.getDefaultConstraintMessageTemplate()).addPropertyNode(field).addConstraintViolation();
+            context.buildConstraintViolationWithTemplate(context.getDefaultConstraintMessageTemplate()).addPropertyNode(fieldMatch).addConstraintViolation();
+            return false;
         }
 
         return true;

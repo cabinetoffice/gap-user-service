@@ -14,8 +14,7 @@ import org.slf4j.Logger;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class LoginJourneyStateTest {
@@ -360,7 +359,7 @@ class LoginJourneyStateTest {
 
             final LoginJourneyState nextState = state.nextState(nextStateArgs);
 
-            assertEquals(oneLoginUserService.hasEmailChanged(user, oneLoginUserInfoDto), false);
+            assertFalse(oneLoginUserService.hasEmailChanged(user, oneLoginUserInfoDto));
             assertEquals(LoginJourneyState.USER_MIGRATED_AND_READY, nextState);
         }
 
@@ -381,7 +380,7 @@ class LoginJourneyStateTest {
 
             final LoginJourneyState nextState = state.nextState(nextStateArgs);
 
-            assertEquals(oneLoginUserService.hasEmailChanged(user, oneLoginUserInfoDto), true);
+            assertTrue(oneLoginUserService.hasEmailChanged(user, oneLoginUserInfoDto));
             assertEquals(LoginJourneyState.MIGRATING_FIND_EMAILS, nextState);
         }
 

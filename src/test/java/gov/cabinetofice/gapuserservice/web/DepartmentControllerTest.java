@@ -54,7 +54,7 @@ class DepartmentControllerTest {
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(mapper.departmentToDepartmentDto(any(Department.class))).thenReturn(department);
         final ResponseEntity<DepartmentDto> methodResponse = departmentController.getById( 1, httpRequest);
-        assertThat(methodResponse.getBody()).isEqualToComparingFieldByFieldRecursively(department);
+        assertThat(methodResponse.getBody()).usingRecursiveComparison().isEqualTo(department);
     }
 
     @Test
@@ -70,7 +70,7 @@ class DepartmentControllerTest {
 
         when(departmentService.updateDepartment(departmentArgumentCaptor.capture(), eq("Cabinet office") ,eq("initial ggis id"))).thenReturn(Department.builder().id(1).build());
 
-        final ResponseEntity methodResponse = departmentController.updateDepartment(httpRequest, body, 1);
+        final ResponseEntity<String> methodResponse = departmentController.updateDepartment(httpRequest, body, 1);
 
         assertThat(methodResponse.getBody()).isSameAs("Department updated");
     }
@@ -79,7 +79,7 @@ class DepartmentControllerTest {
     void deleteDepartmentDeletesPassedInId() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
-        final ResponseEntity methodResponse = departmentController.deleteDepartment(httpRequest, 1);
+        final ResponseEntity<String> methodResponse = departmentController.deleteDepartment(httpRequest, 1);
         verify(departmentService).deleteDepartment(1);
         assertThat(methodResponse.getBody()).isSameAs("Department deleted");
     }
@@ -91,7 +91,7 @@ class DepartmentControllerTest {
         final DepartmentReqDto body = new DepartmentReqDto();
         body.setName("Cabinet office");
         body.setGgisID("initial ggis id");
-        final ResponseEntity methodResponse = departmentController.createDepartment(httpRequest, body);
+        final ResponseEntity<String> methodResponse = departmentController.createDepartment(httpRequest, body);
         verify(departmentService).createDepartment("Cabinet office", "initial ggis id");
         assertThat(methodResponse.getBody()).isSameAs("Department created");
     }

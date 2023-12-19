@@ -61,9 +61,6 @@ public class CustomJwtServiceImplTest {
     private JwtBlacklistRepository jwtBlacklistRepository;
 
     @Mock
-    private JwtProperties jwtProperties;
-
-    @Mock
     private UserRepository userRepository;
 
     private final String CHRISTMAS_2022_MIDDAY = "2022-12-25T12:00:00.00z";

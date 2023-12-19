@@ -42,6 +42,7 @@ public class ColaUserServiceImpl implements UserService {
             return false;
         }
     }
+
     private String createCognitoFormattedPhoneNumberFromString(final String unformattedNumber) {
         final String telephoneCountryCode = "+44";
 

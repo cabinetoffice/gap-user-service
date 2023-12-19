@@ -63,7 +63,7 @@ class DepartmentServiceTest {
         when(departmentRepository.save(any(Department.class))).thenReturn(expected);
         Department result = departmentService.updateDepartment(initialDepartment, newDepartmentName, newGgisId);
 
-        assertThat(result).isEqualToComparingFieldByFieldRecursively(expected);
+        assertThat(result).usingRecursiveComparison().isEqualTo(expected);
     }
 
     @Test

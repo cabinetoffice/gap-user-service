@@ -2,9 +2,7 @@ package gov.cabinetofice.gapuserservice.web.controlleradvice;
 
 import gov.cabinetofice.gapuserservice.exceptions.NonceExpiredException;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
-import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.util.LoggingUtils;
-
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
@@ -20,7 +18,8 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.ModelAndView;
 
-import static net.logstash.logback.argument.StructuredArguments.*;
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
+import static net.logstash.logback.argument.StructuredArguments.value;
 
 @RestControllerAdvice
 @RequiredArgsConstructor
@@ -71,7 +70,7 @@ public class ControllerExceptionHandler {
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler(value = { ConstraintViolationException.class })
+    @ExceptionHandler(value = {ConstraintViolationException.class})
     protected ErrorResponseBody handleConflict(ConstraintViolationException ex) {
         return ErrorResponseBody.builder()
                 .responseAccepted(Boolean.FALSE)
@@ -90,7 +89,7 @@ public class ControllerExceptionHandler {
                 .build();
     }
 
-    @ExceptionHandler(value = { UnauthorizedException.class })
+    @ExceptionHandler(value = {UnauthorizedException.class})
     @ResponseStatus(value = HttpStatus.UNAUTHORIZED)
     public ErrorResponseBody handleUnauthorizedException(RuntimeException ex) {
         return ErrorResponseBody.builder()

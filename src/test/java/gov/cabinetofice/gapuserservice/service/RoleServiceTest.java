@@ -39,7 +39,7 @@ class RoleServiceTest {
 
         List<RoleDto> actualRoleDtos = roleService.getAllRoles();
 
-        assertThat(expectedRoleDtos).isEqualTo(actualRoleDtos);;
+        assertThat(expectedRoleDtos).isEqualTo(actualRoleDtos);
     }
 
 }

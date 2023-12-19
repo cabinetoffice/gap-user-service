@@ -9,7 +9,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Constraint(validatedBy = EmailAddressMatchMatchValidator.class)
-@Target({ ElementType.TYPE })
+@Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface EmailAddressesMatch {
 
@@ -20,9 +20,10 @@ public @interface EmailAddressesMatch {
     String fieldMatch();
 
     Class<?>[] groups() default {};
+
     Class<?>[] payload() default {};
 
-    @Target({ ElementType.TYPE })
+    @Target({ElementType.TYPE})
     @Retention(RetentionPolicy.RUNTIME)
     @interface List {
         EmailAddressesMatch[] value();

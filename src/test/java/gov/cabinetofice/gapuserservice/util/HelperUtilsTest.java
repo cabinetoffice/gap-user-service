@@ -42,9 +42,7 @@ class HelperUtilsTest {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         when(httpRequest.getCookies()).thenReturn(null);
 
-        assertThrows(UnauthorizedException.class, () -> {
-            HelperUtils.getCustomJwtCookieFromRequest(httpRequest, "cookieName");
-        });
+        assertThrows(UnauthorizedException.class, () -> HelperUtils.getCustomJwtCookieFromRequest(httpRequest, "cookieName"));
     }
 
 }

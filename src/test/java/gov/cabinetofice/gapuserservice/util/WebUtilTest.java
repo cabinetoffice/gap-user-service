@@ -4,8 +4,6 @@ import jakarta.servlet.http.Cookie;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
-import jakarta.validation.constraints.AssertTrue;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Constructor;

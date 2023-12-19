@@ -35,7 +35,6 @@ import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -373,8 +372,6 @@ class OneLoginUserServiceTest {
         when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
         when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
         when(responseSpec.bodyToMono(Void.class)).thenReturn(Mono.empty());
-
-
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(departmentRepository.findById(departmentId)).thenReturn(Optional.of(department));

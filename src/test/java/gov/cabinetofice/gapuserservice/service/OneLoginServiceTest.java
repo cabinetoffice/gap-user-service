@@ -7,8 +7,6 @@ import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.exceptions.*;
 import gov.cabinetofice.gapuserservice.model.*;
-import gov.cabinetofice.gapuserservice.repository.RoleRepository;
-import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import gov.cabinetofice.gapuserservice.util.LoggingUtils;
@@ -28,7 +26,6 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.IOException;
 import java.security.*;
@@ -68,17 +65,10 @@ class OneLoginServiceTest {
     private Map<String, String> testKeyPair;
 
     private static final String DUMMY_CLIENT_ID = "asdhjlsadfbfds";
+
     private static final String DUMMY_BASE_URL = "https://test.url.gov";
+
     private static final String GRANT_TYPE = "authorization_code";
-
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private RoleRepository roleRepository;
-
-    @Mock
-    private WebClient.Builder webClientBuilder;
 
     @BeforeEach
     void setUp() {
@@ -141,6 +131,7 @@ class OneLoginServiceTest {
         Assertions.assertEquals( result, expected);
     }
 
+    // TEST THIS ONE!
     @Test
     void shouldReturnUserInfo() throws IOException, JSONException {
         String jsonResponse = "{\"sub\":\"urn:fdc:gov.uk:2022:jhkdasy7dal7dadhadasdas\"" +

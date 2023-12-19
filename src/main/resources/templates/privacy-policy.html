@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <link rel="stylesheet" th:href="@{/webjars/govuk-frontend/4.5.0/govuk-frontend.min.css}"/>
+    <title>Privacy policy</title>
 </head>
 
 <body class="govuk-template__body">
@@ -34,13 +35,15 @@
 
                             <div class="govuk-checkboxes" data-module="govuk-checkboxes">
                                 <div class="govuk-checkboxes__item">
-                                    <input type="checkbox"
-                                           th:id="acceptPrivacyPolicy"
-                                           th:name="acceptPrivacyPolicy"
-                                           th:checked="*{acceptPrivacyPolicy == 'yes'}"
-                                           th:value="yes"
-                                           class="govuk-checkboxes__input"
-                                    />
+                                    <label>
+                                        <input type="checkbox"
+                                               th:id="acceptPrivacyPolicy"
+                                               th:name="acceptPrivacyPolicy"
+                                               th:checked="*{acceptPrivacyPolicy == 'yes'}"
+                                               th:value="yes"
+                                               class="govuk-checkboxes__input"
+                                        />
+                                    </label>
 
                                     <label class="govuk-label govuk-checkboxes__label" th:for="acceptPrivacyPolicy">
                                         Yes, I have read and agree to the Find a grant privacy policy

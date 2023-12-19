@@ -53,7 +53,7 @@
                                    data-testid="error-message-test-id"
                                    th:errors="*{firstName}"
                                 >
-                                    <span className="govuk-visually-hidden">Error: </span>
+                                    <span class="govuk-visually-hidden">Error: </span>
                                 </p>
 
                                 <input th:field="*{firstName}"
@@ -77,7 +77,7 @@
                                    data-testid="error-message-test-id"
                                    th:errors="*{lastName}"
                                 >
-                                    <span className="govuk-visually-hidden">Error: </span>
+                                    <span class="govuk-visually-hidden">Error: </span>
                                 </p>
 
                                 <input th:field="*{lastName}"
@@ -104,7 +104,7 @@
                                    data-testid="error-message-test-id"
                                    th:errors="*{email}"
                                 >
-                                    <span className="govuk-visually-hidden">Error: </span>
+                                    <span class="govuk-visually-hidden">Error: </span>
                                 </p>
 
                                 <input th:field="*{email}"
@@ -131,7 +131,7 @@
                                    data-testid="error-message-test-id"
                                    th:errors="*{emailConfirmed}"
                                 >
-                                    <span className="govuk-visually-hidden">Error: </span>
+                                    <span class="govuk-visually-hidden">Error: </span>
                                 </p>
 
                                 <input th:field="*{emailConfirmed}"
@@ -161,7 +161,7 @@
                                    data-testid="error-message-test-id"
                                    th:errors="*{telephone}"
                                 >
-                                    <span className="govuk-visually-hidden">Error: </span>
+                                    <span class="govuk-visually-hidden">Error: </span>
                                 </p>
 
                                 <input th:field="*{telephone}"
@@ -182,18 +182,20 @@
                                    data-testid="error-message-test-id"
                                    th:errors="*{privacyPolicy}"
                                 >
-                                    <span className="govuk-visually-hidden">Error: </span>
+                                    <span class="govuk-visually-hidden">Error: </span>
                                 </p>
 
                                 <div class="govuk-checkboxes" data-module="govuk-checkboxes">
                                     <div class="govuk-checkboxes__item">
-                                        <input type="checkbox"
-                                               th:id="privacyPolicy"
-                                               th:name="privacyPolicy"
-                                               th:checked="*{privacyPolicy == 'yes'}"
-                                               th:value="yes"
-                                               class="govuk-checkboxes__input"
-                                        />
+                                        <label>
+                                            <input type="checkbox"
+                                                   th:id="privacyPolicy"
+                                                   th:name="privacyPolicy"
+                                                   th:checked="*{privacyPolicy == 'yes'}"
+                                                   th:value="yes"
+                                                   class="govuk-checkboxes__input"
+                                            />
+                                        </label>
 
                                         <label class="govuk-label govuk-checkboxes__label" th:for="privacyPolicy">
                                             I have read and agree to the Privacy policy

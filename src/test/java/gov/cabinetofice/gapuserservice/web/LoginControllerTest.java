@@ -2,7 +2,6 @@ package gov.cabinetofice.gapuserservice.web;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.nimbusds.jose.JOSEException;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
@@ -18,20 +17,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.servlet.view.RedirectView;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -82,7 +77,7 @@ class LoginControllerTest {
     }
 
     @Test
-    void loginShouldReturnRedirectUrl_IfOneIsProvided_AndTokenIsValid() throws JOSEException {
+    void loginShouldReturnRedirectUrl_IfOneIsProvided_AndTokenIsValid() {
         final String customToken = "a-custom-valid-token";
         final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/");
         final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());

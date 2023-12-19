@@ -39,7 +39,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                                     final @NonNull HttpServletResponse response,
                                     final @NonNull FilterChain chain)
             throws ServletException, IOException {
-        if(Objects.equals(profile, "LOCAL") && debugProperties.isIgnoreJwt()) {
+        if (Objects.equals(profile, "LOCAL") && debugProperties.isIgnoreJwt()) {
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     "Placeholder",
                     null,
@@ -70,7 +70,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 .split(","));
 
 
-        if(!customJwtServiceImpl.isTokenValid(userServiceJwt.get().getValue())) {
+        if (!customJwtServiceImpl.isTokenValid(userServiceJwt.get().getValue())) {
             throw new UnauthorizedException("Token not valid");
         }
 

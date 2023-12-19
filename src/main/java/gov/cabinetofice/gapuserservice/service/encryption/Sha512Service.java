@@ -4,6 +4,7 @@ import gov.cabinetofice.gapuserservice.exceptions.NonceExpiredException;
 import gov.cabinetofice.gapuserservice.model.Salt;
 import gov.cabinetofice.gapuserservice.repository.SaltRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -15,6 +16,7 @@ import static gov.cabinetofice.gapuserservice.util.HelperUtils.generateUUID;
 
 @RequiredArgsConstructor
 @Service
+@Slf4j
 public class Sha512Service {
     private final SaltRepository saltRepository;
     private static final int SALT_LENGTH = 255;
@@ -62,12 +64,12 @@ public class Sha512Service {
             }
             generatedPassword = sb.toString();
         } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
+            log.error("A no such algorithm exception was thrown: ", e);
         }
         return generatedPassword;
     }
 
     private String getUserPepper(String saltedPassword) {
-        return saltedPassword.substring(0, saltedPassword.length()/2);
+        return saltedPassword.substring(0, saltedPassword.length() / 2);
     }
 }
