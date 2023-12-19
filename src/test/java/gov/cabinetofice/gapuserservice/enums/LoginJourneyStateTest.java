@@ -107,6 +107,7 @@ class LoginJourneyStateTest {
         void setup() {
             reset(user);
         }
+
         @Test
         void flagOn_HasColaSub_NotUserReady() {
             final NextStateArgs nextStateArgs = NextStateArgs.builder()
@@ -450,7 +451,7 @@ class LoginJourneyStateTest {
             final LoginJourneyState nextState = state.nextState(nextStateArgs);
 
             when(user.getLoginJourneyState()).thenReturn(LoginJourneyState.MIGRATING_FIND_EMAILS);
-            verify (oneLoginUserService, times(1)).setUsersEmail(user, nextStateArgs.userInfo().getEmailAddress());
+            verify(oneLoginUserService, times(1)).setUsersEmail(user, nextStateArgs.userInfo().getEmailAddress());
             assertEquals(LoginJourneyState.MIGRATING_FIND_EMAILS, nextState);
         }
 
@@ -483,6 +484,7 @@ class LoginJourneyStateTest {
             reset(user);
             reset(oneLoginUserInfoDto);
         }
+
         @Test
         void flagOn_HasColaSub() {
             final NextStateArgs nextStateArgs = NextStateArgs.builder()

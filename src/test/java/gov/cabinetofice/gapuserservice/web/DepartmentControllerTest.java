@@ -53,7 +53,7 @@ class DepartmentControllerTest {
                 .thenReturn(Optional.of(Department.builder().ggisID("ggis").name("Cabinet office").id(1).build()));
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(mapper.departmentToDepartmentDto(any(Department.class))).thenReturn(department);
-        final ResponseEntity<DepartmentDto> methodResponse = departmentController.getById( 1, httpRequest);
+        final ResponseEntity<DepartmentDto> methodResponse = departmentController.getById(1, httpRequest);
         assertThat(methodResponse.getBody()).usingRecursiveComparison().isEqualTo(department);
     }
 
@@ -68,7 +68,7 @@ class DepartmentControllerTest {
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(departmentService.getDepartmentById(1)).thenReturn(Optional.of(Department.builder().id(1).build()));
 
-        when(departmentService.updateDepartment(departmentArgumentCaptor.capture(), eq("Cabinet office") ,eq("initial ggis id"))).thenReturn(Department.builder().id(1).build());
+        when(departmentService.updateDepartment(departmentArgumentCaptor.capture(), eq("Cabinet office"), eq("initial ggis id"))).thenReturn(Department.builder().id(1).build());
 
         final ResponseEntity<String> methodResponse = departmentController.updateDepartment(httpRequest, body, 1);
 

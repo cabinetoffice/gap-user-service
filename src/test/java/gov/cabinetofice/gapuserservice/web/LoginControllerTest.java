@@ -198,7 +198,7 @@ class LoginControllerTest {
         final String customToken = "a-custom-valid-token";
         final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
 
-        controllerUnderTest.logout(customToken,response);
+        controllerUnderTest.logout(customToken, response);
 
         final Cookie userServiceCookie = WebUtil.buildCookie(
                 new Cookie(LoginController.USER_SERVICE_COOKIE_NAME, null),
@@ -226,7 +226,7 @@ class LoginControllerTest {
         final String customToken = "a-custom-valid-token";
         final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
 
-        final RedirectView methodeResponse = controllerUnderTest.logout(customToken,response);
+        final RedirectView methodeResponse = controllerUnderTest.logout(customToken, response);
 
         assertThat(methodeResponse.getUrl()).isEqualTo(authenticationProvider.getLogoutUrl());
     }

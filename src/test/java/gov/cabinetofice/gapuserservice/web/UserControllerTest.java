@@ -61,7 +61,7 @@ class UserControllerTest {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(2).build()));
-        final ResponseEntity<String> methodResponse = controller.updateRoles(httpRequest, List.of(1,2), 1);
+        final ResponseEntity<String> methodResponse = controller.updateRoles(httpRequest, List.of(1, 2), 1);
 
         assertThat(methodResponse).isEqualTo(ResponseEntity.ok("success"));
     }
@@ -124,7 +124,7 @@ class UserControllerTest {
     @Test
     void shouldDeleteUserWhenValidIdIsGiven() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        when(httpRequest.getCookies()).thenReturn(new Cookie[] {new Cookie("userServiceCookieName", "1")});
+        when(httpRequest.getCookies()).thenReturn(new Cookie[]{new Cookie("userServiceCookieName", "1")});
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(2).build()));
         final ResponseEntity<String> methodResponse = controller.deleteUser(httpRequest, 1);
@@ -135,7 +135,7 @@ class UserControllerTest {
     @Test
     void shouldThrowErrorWhenAdminTriesToDeleteThemselves() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        when(httpRequest.getCookies()).thenReturn(new Cookie[] {new Cookie("userServiceCookieName", "1")});
+        when(httpRequest.getCookies()).thenReturn(new Cookie[]{new Cookie("userServiceCookieName", "1")});
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(1).build()));
 
@@ -145,7 +145,7 @@ class UserControllerTest {
     @Test
     void shouldThrowErrorWhenUserIsEmpty() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        when(httpRequest.getCookies()).thenReturn(new Cookie[] {new Cookie("userServiceCookieName", "1")});
+        when(httpRequest.getCookies()).thenReturn(new Cookie[]{new Cookie("userServiceCookieName", "1")});
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.empty());
 
@@ -172,7 +172,7 @@ class UserControllerTest {
     }
 
     @Test
-    void testGetUserFromJwtThrowsInvalidRequestWhenUserIsEmpty()  {
+    void testGetUserFromJwtThrowsInvalidRequestWhenUserIsEmpty() {
         when(roleService.isSuperAdmin(any(HttpServletRequest.class)))
                 .thenReturn(true);
         when(customJwtService.getUserFromJwt(any(HttpServletRequest.class)))
@@ -185,11 +185,11 @@ class UserControllerTest {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         User mockUser = User.builder().sub("1").gapUserId(1)
                 .roles(List.of(Role.builder()
-                        .name(RoleEnum.FIND)
-                        .description("desc").build(),
-                Role.builder()
-                        .name(RoleEnum.APPLICANT)
-                        .description("desc").build()))
+                                .name(RoleEnum.FIND)
+                                .description("desc").build(),
+                        Role.builder()
+                                .name(RoleEnum.APPLICANT)
+                                .description("desc").build()))
                 .emailAddress("test@test.com").build();
         when(oneLoginUserService.getUserById(1)).thenReturn(mockUser);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);

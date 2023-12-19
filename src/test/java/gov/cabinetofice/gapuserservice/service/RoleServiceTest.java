@@ -24,13 +24,14 @@ class RoleServiceTest {
     private RoleRepository roleRepository;
     @Mock
     RoleMapper roleMapper;
+
     @Test
     void getAllRoles() {
         Role role1 = Role.builder().id(1).name(RoleEnum.FIND).description("a desc").build();
         Role role2 = Role.builder().id(2).name(RoleEnum.APPLICANT).description("a desc2").build();
         List<Role> mockRoles = List.of(role1, role2);
-        RoleDto roleDto1 =  RoleDto.builder().id(1).name("FIND").description("a desc").build();
-        RoleDto roleDto2 =  RoleDto.builder().id(2).name("APPLICANT").description("a desc2").build();
+        RoleDto roleDto1 = RoleDto.builder().id(1).name("FIND").description("a desc").build();
+        RoleDto roleDto2 = RoleDto.builder().id(2).name("APPLICANT").description("a desc2").build();
         List<RoleDto> expectedRoleDtos = List.of(roleDto1, roleDto2);
 
         when(roleRepository.findAll()).thenReturn(mockRoles);

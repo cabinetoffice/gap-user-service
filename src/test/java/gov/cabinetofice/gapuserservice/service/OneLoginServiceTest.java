@@ -128,7 +128,7 @@ class OneLoginServiceTest {
 
         JSONObject result = oneLoginService.getTokenResponse("dummyJwt", "dummyCode");
 
-        Assertions.assertEquals( result, expected);
+        Assertions.assertEquals(result, expected);
     }
 
     // TEST THIS ONE!
@@ -141,7 +141,7 @@ class OneLoginServiceTest {
                 .emailAddress("test.user@email.com")
                 .build();
 
-       Map<String, String> headers = new HashMap<>();
+        Map<String, String> headers = new HashMap<>();
         headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + "accessToken");
 
         when(RestUtils.getRequestWithHeaders(DUMMY_BASE_URL + "/userinfo", headers))
@@ -416,7 +416,7 @@ class OneLoginServiceTest {
     class getOneLoginAuthorizeUrl {
 
         @Test
-        void testStateSetCorrectly(){
+        void testStateSetCorrectly() {
             String state = "state";
             String nonce = "nonce";
             String actualUrl = oneLoginService.getOneLoginAuthorizeUrl(state, nonce);
@@ -425,7 +425,7 @@ class OneLoginServiceTest {
         }
 
         @Test
-        void testNonceSetCorrectly(){
+        void testNonceSetCorrectly() {
             String state = "state";
             String nonce = "nonce";
             String actualUrl = oneLoginService.getOneLoginAuthorizeUrl(state, nonce);
@@ -434,7 +434,7 @@ class OneLoginServiceTest {
         }
 
         @Test
-        void testMfaEnabled(){
+        void testMfaEnabled() {
             String nonce = "nonce";
             String state = "state";
             String actualUrl = oneLoginService.getOneLoginAuthorizeUrl(state, nonce);
@@ -443,7 +443,7 @@ class OneLoginServiceTest {
         }
 
         @Test
-        void testMfaDisabled(){
+        void testMfaDisabled() {
             ReflectionTestUtils.setField(oneLoginService, "mfaEnabled", false);
             String nonce = "nonce";
             String state = "state";
@@ -455,12 +455,13 @@ class OneLoginServiceTest {
 
     private Claims getClaims(String jwtToken) throws NoSuchAlgorithmException, InvalidKeySpecException {
 
-            byte[] publicKeyBytes = Base64.getDecoder().decode(testKeyPair.get("public"));
-            PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(publicKeyBytes));
+        byte[] publicKeyBytes = Base64.getDecoder().decode(testKeyPair.get("public"));
+        PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(publicKeyBytes));
 
-            return Jwts.parserBuilder().setSigningKey(publicKey).build().parseClaimsJws(jwtToken).getBody();
+        return Jwts.parserBuilder().setSigningKey(publicKey).build().parseClaimsJws(jwtToken).getBody();
 
     }
+
     private Map<String, String> generateTestKeys() {
         KeyPair keyPair = generateKeyPair();
 

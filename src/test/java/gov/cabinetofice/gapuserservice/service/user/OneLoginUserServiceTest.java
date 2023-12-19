@@ -102,20 +102,20 @@ class OneLoginUserServiceTest {
         User result = oneLoginUserService.getUserById(1);
 
         assertThat(result)
-            .isNotNull()
-            .isEqualTo(mockedUser);
+                .isNotNull()
+                .isEqualTo(mockedUser);
         verify(userRepository, times(1)).findById(1);
     }
 
     @Test
     void shouldReturnUserWhenValidSubIsGiven() {
-            User mockedUser = User.builder().gapUserId(1).build();
-            when(userRepository.findBySub("1234")).thenReturn(Optional.of(mockedUser));
-            User result = oneLoginUserService.getUserByUserSub("1234");
+        User mockedUser = User.builder().gapUserId(1).build();
+        when(userRepository.findBySub("1234")).thenReturn(Optional.of(mockedUser));
+        User result = oneLoginUserService.getUserByUserSub("1234");
 
-            assertThat(result)
+        assertThat(result)
                 .isEqualTo(mockedUser);
-            verify(userRepository, times(1)).findBySub("1234");
+        verify(userRepository, times(1)).findBySub("1234");
     }
 
     @Test
@@ -129,7 +129,7 @@ class OneLoginUserServiceTest {
         User result = oneLoginUserService.getUserByUserSub("f1da81d1-375f-4693-b52e-60f38a253fc9");
 
         assertThat(result)
-            .isEqualTo(mockedUser);
+                .isEqualTo(mockedUser);
         verify(userRepository, times(1)).findBySub("f1da81d1-375f-4693-b52e-60f38a253fc9");
         verify(userRepository, times(1)).findByColaSub(uuid);
     }
@@ -339,7 +339,7 @@ class OneLoginUserServiceTest {
             Page<User> userPage = new PageImpl<>(users, pageable, users.size());
             UserQueryDto userQueryDto = new UserQueryDto(departmentIds, roleIds, emailAddress);
 
-            when(userRepository.findUsersByDepartmentAndRolesAndFuzzyEmail(roleIds, departmentIds ,emailAddress, pageable))
+            when(userRepository.findUsersByDepartmentAndRolesAndFuzzyEmail(roleIds, departmentIds, emailAddress, pageable))
                     .thenReturn(userPage);
 
             Page<User> pageResult = oneLoginUserService.getPaginatedUsers(pageable, userQueryDto);
@@ -409,7 +409,7 @@ class OneLoginUserServiceTest {
     }
 
     @Test
-    void testDeleteUser_UserNotFound(){
+    void testDeleteUser_UserNotFound() {
         Integer userId = 1;
 
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
@@ -418,7 +418,7 @@ class OneLoginUserServiceTest {
     }
 
     @Test
-    void testDeleteUser_DeletesUser(){
+    void testDeleteUser_DeletesUser() {
         Integer userId = 1;
         User user = User.builder().gapUserId(userId)
                 .sub("123445").emailAddress("test.user@email.com").build();
@@ -452,7 +452,7 @@ class OneLoginUserServiceTest {
         when(roleRepository.findById(4)).thenReturn(Optional.of(Role.builder().name(RoleEnum.SUPER_ADMIN).build()));
         when(roleRepository.findByName(RoleEnum.APPLICANT)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
         when(roleRepository.findByName(RoleEnum.FIND)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).build()));
-        User updatedUser = oneLoginUserService.updateRoles(userId , newRoles);
+        User updatedUser = oneLoginUserService.updateRoles(userId, newRoles);
 
         assertThat(updatedUser.getRoles()).hasSize(4);
         assertThat(updatedUser.getRoles().stream().anyMatch(role -> role.getName().equals(RoleEnum.APPLICANT))).isTrue();
@@ -464,7 +464,7 @@ class OneLoginUserServiceTest {
         Role find = Role.builder().name(RoleEnum.FIND).id(1).build();
         Role applicant = Role.builder().name(RoleEnum.APPLICANT).id(2).build();
         String testPayloadRoles = "[FIND, APPLICANT]";
-        List<Role> testUserRoles = List.of(find,applicant);
+        List<Role> testUserRoles = List.of(find, applicant);
         when(roleMapper.roleToRoleDto(find)).thenReturn(RoleDto.builder().name("FIND").build());
         when(roleMapper.roleToRoleDto(applicant)).thenReturn(RoleDto.builder().name("APPLICANT").build());
 
@@ -476,7 +476,7 @@ class OneLoginUserServiceTest {
         Role find = Role.builder().name(RoleEnum.FIND).id(1).build();
         Role applicant = Role.builder().name(RoleEnum.APPLICANT).id(2).build();
         String testPayloadRoles = "[]";
-        List<Role> testUserRoles = List.of(find,applicant);
+        List<Role> testUserRoles = List.of(find, applicant);
         when(roleMapper.roleToRoleDto(find)).thenReturn(RoleDto.builder().name("FIND").build());
         when(roleMapper.roleToRoleDto(applicant)).thenReturn(RoleDto.builder().name("APPLICANT").build());
 
@@ -488,7 +488,7 @@ class OneLoginUserServiceTest {
         Role find = Role.builder().name(RoleEnum.FIND).id(1).build();
         Role applicant = Role.builder().name(RoleEnum.APPLICANT).id(2).build();
         String testPayloadRoles = "[FIND]";
-        List<Role> testUserRoles = List.of(find,applicant);
+        List<Role> testUserRoles = List.of(find, applicant);
         when(roleMapper.roleToRoleDto(find)).thenReturn(RoleDto.builder().name("FIND").build());
         when(roleMapper.roleToRoleDto(applicant)).thenReturn(RoleDto.builder().name("APPLICANT").build());
 
@@ -505,7 +505,7 @@ class OneLoginUserServiceTest {
 
     @Test
     void testValidateSessionsRolesThrowsInvalidExceptionWithEmptyUser() {
-        String  email = "email";
+        String email = "email";
         String roles = "APPLICANT";
         when(userRepository.findByEmailAddress(email)).thenReturn(Optional.empty());
         assertThrows(InvalidRequestException.class, () -> oneLoginUserService.validateSessionsRoles(email, roles));
@@ -519,7 +519,7 @@ class OneLoginUserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(roleRepository.findById(1)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
         when(roleRepository.findById(2)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).build()));
-        User updatedUser = oneLoginUserService.updateRoles(1 , newRoles);
+        User updatedUser = oneLoginUserService.updateRoles(1, newRoles);
 
         assertThat(updatedUser.getDepartment()).isNull();
     }
@@ -533,7 +533,7 @@ class OneLoginUserServiceTest {
         when(roleRepository.findById(1)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
         when(roleRepository.findById(2)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).build()));
         when(roleRepository.findById(3)).thenReturn(Optional.of(Role.builder().name(RoleEnum.ADMIN).build()));
-        User updatedUser = oneLoginUserService.updateRoles(1 , newRoles);
+        User updatedUser = oneLoginUserService.updateRoles(1, newRoles);
 
         assertThat(updatedUser.getDepartment()).isNotNull();
     }
@@ -541,14 +541,14 @@ class OneLoginUserServiceTest {
     @Test
     void updateRolesShouldNotSetDepartmentToNullIfUserIsAdminOrSuperAdmin() {
         Integer userId = 1;
-        List<Integer> newRoles = List.of( 3, 4);
+        List<Integer> newRoles = List.of(3, 4);
         User user = User.builder().gapUserId(userId).department(Department.builder().name("test").build()).build();
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(roleRepository.findById(3)).thenReturn(Optional.of(Role.builder().name(RoleEnum.ADMIN).build()));
         when(roleRepository.findById(4)).thenReturn(Optional.of(Role.builder().name(RoleEnum.SUPER_ADMIN).build()));
         when(roleRepository.findByName(RoleEnum.FIND)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).id(1).build()));
         when(roleRepository.findByName(RoleEnum.APPLICANT)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).id(2).build()));
-        User updatedUser = oneLoginUserService.updateRoles(1 , newRoles);
+        User updatedUser = oneLoginUserService.updateRoles(1, newRoles);
 
         assertThat(updatedUser.getDepartment()).isNotNull();
     }
@@ -665,7 +665,6 @@ class OneLoginUserServiceTest {
         }
 
     }
-
 
 
     @Nested

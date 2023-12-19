@@ -1,2 +1,2 @@
 ALTER TABLE gap_users
-ADD COLUMN cola_sub UUID;
+    ADD COLUMN cola_sub UUID;

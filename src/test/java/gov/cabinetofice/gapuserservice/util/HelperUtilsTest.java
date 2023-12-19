@@ -29,7 +29,7 @@ class HelperUtilsTest {
     @Test
     void getCustomJwtCookieFromRequestShouldReturnCookie() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        when(httpRequest.getCookies()).thenReturn(new Cookie[] { new Cookie("cookieName", "cookieValue") });
+        when(httpRequest.getCookies()).thenReturn(new Cookie[]{new Cookie("cookieName", "cookieValue")});
 
         final Cookie cookie = HelperUtils.getCustomJwtCookieFromRequest(httpRequest, "cookieName");
 
