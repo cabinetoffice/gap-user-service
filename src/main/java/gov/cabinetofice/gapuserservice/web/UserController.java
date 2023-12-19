@@ -128,7 +128,8 @@ public class UserController {
             throw new UnsupportedOperationException("You can't block yourself");
         }
 
-        oneLoginUserService.updateRoles(id, roleIds);
+        final Cookie customJWTCookie = getCustomJwtCookieFromRequest(httpRequest, userServiceCookieName);
+        oneLoginUserService.updateRoles(id, roleIds, customJWTCookie.getValue());
         return ResponseEntity.ok("success");
     }
 
