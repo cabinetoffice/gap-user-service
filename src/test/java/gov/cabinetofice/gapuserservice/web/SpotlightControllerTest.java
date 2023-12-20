@@ -228,7 +228,7 @@ public class SpotlightControllerTest {
             when(jwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(mockUser));
 
 
-            ResponseEntity responseEntity = SpotlightController.refresh(httpRequest);
+            ResponseEntity<Void> responseEntity = SpotlightController.refresh(httpRequest);
 
             verify(spotlightService).refreshToken();
             verify(spotlightService).saveAudit(auditCaptor.capture());
