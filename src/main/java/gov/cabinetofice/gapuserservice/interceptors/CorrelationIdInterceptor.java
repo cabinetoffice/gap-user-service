@@ -4,8 +4,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.MDC;
+import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -22,9 +22,9 @@ public class CorrelationIdInterceptor implements HandlerInterceptor {
     public static final String CORRELATION_ID = "CorrelationId";
 
     @Override
-    public boolean preHandle(@NotNull HttpServletRequest request,
-                             @NotNull HttpServletResponse response,
-                             @NotNull Object handler) {
+    public boolean preHandle(@NonNull HttpServletRequest request,
+                             @NonNull HttpServletResponse response,
+                             @NonNull Object handler) {
         String correlationId =
                 request.getHeader(TCO_CORRELATION_ID) != null ?
                         request.getHeader(TCO_CORRELATION_ID) :
@@ -34,17 +34,17 @@ public class CorrelationIdInterceptor implements HandlerInterceptor {
     }
 
     @Override
-    public void postHandle(@NotNull HttpServletRequest request,
-                           @NotNull HttpServletResponse response,
-                           @NotNull Object handler,
+    public void postHandle(@NonNull HttpServletRequest request,
+                           @NonNull HttpServletResponse response,
+                           @NonNull Object handler,
                            @Nullable ModelAndView modelAndView) {
         response.addHeader(TCO_CORRELATION_ID, MDC.get(CORRELATION_ID));
     }
 
     @Override
-    public void afterCompletion(@NotNull HttpServletRequest request,
-                                @NotNull HttpServletResponse response,
-                                @NotNull Object handler,
+    public void afterCompletion(@NonNull HttpServletRequest request,
+                                @NonNull HttpServletResponse response,
+                                @NonNull Object handler,
                                 Exception ex) {
         MDC.remove(CORRELATION_ID);
     }

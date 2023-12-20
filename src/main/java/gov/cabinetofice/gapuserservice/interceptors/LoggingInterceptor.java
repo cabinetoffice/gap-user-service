@@ -5,8 +5,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.MDC;
+import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -24,8 +24,8 @@ public class LoggingInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request,
-                             @NotNull HttpServletResponse response,
-                             @NotNull Object handler) {
+                             @NonNull HttpServletResponse response,
+                             @NonNull Object handler) {
         if (request.getRequestURL().toString().endsWith("/health")) return true;
         String event = "Incoming request";
         log.info(
@@ -43,8 +43,8 @@ public class LoggingInterceptor implements HandlerInterceptor {
 
     @Override
     public void postHandle(HttpServletRequest request,
-                           @NotNull HttpServletResponse response,
-                           @NotNull Object handler,
+                           @NonNull HttpServletResponse response,
+                           @NonNull Object handler,
                            @Nullable ModelAndView modelAndView) {
         if (request.getRequestURL().toString().endsWith("/health")) return;
         String event = "Outgoing response";
