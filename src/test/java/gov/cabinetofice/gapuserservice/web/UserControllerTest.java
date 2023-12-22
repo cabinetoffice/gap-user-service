@@ -183,6 +183,7 @@ class UserControllerTest {
     @Test
     void updateDepartmentCantBeCalledOnApplicantAndFindUser() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        ChangeDepartmentDto changeDepartmentDto = new ChangeDepartmentDto(1);
         User mockUser = User.builder().sub("1").gapUserId(1)
                 .roles(List.of(Role.builder()
                         .name(RoleEnum.FIND)
@@ -195,7 +196,7 @@ class UserControllerTest {
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(oneLoginUserService.isUserApplicantAndFindOnly(mockUser)).thenReturn(true);
 
-        assertThrows(InvalidRequestException.class, () -> controller.updateDepartment(httpRequest, 1, 1));
+        assertThrows(InvalidRequestException.class, () -> controller.updateDepartment(httpRequest, 1, changeDepartmentDto));
 
     }
 
