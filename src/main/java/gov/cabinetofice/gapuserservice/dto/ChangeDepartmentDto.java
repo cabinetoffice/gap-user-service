@@ -10,9 +10,6 @@ public class ChangeDepartmentDto {
     @FieldNotNull(message = "Select a department")
     private Integer departmentId;
 
-    public ChangeDepartmentDto() {
-    }
-
     public ChangeDepartmentDto(Integer departmentId) {
         this.departmentId = departmentId;
     }
