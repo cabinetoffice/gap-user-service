@@ -1,5 +1,6 @@
 package gov.cabinetofice.gapuserservice.util;
 
+import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 
@@ -61,5 +62,20 @@ class WebUtilTest {
 
         assertEquals(MANAGE_NOTIFICATIONS_URL +
                 "?action=subscribe&applyMigrationStatus=ALREADY_MIGRATED&findMigrationStatus=SUCCEEDED", result);
+    }
+
+    @Test
+    void validateRedirectUrl__shouldThrowInvalidRequest(){
+        assertThrows(InvalidRequestException.class,
+                () -> WebUtil.validateRedirectUrl(
+                        "http://MALICIOUS-DOMAIN:3002/notifications/manage-notifications",
+                        "http://localhost:3002"));
+    }
+
+    @Test
+    void validateRedirectUrl__shouldValidate(){
+        assertDoesNotThrow(
+                () -> WebUtil.validateRedirectUrl("http://localhost:3002/notifications/manage-notifications",
+                        "http://localhost:3002"));
     }
 }

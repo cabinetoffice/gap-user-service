@@ -18,6 +18,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -81,7 +82,7 @@ public class UserController {
 
     @PatchMapping("/user/{userId}/department")
     public ResponseEntity<User> updateDepartment(HttpServletRequest httpRequest, @PathVariable("userId") Integer userId,
-                                                 @RequestParam(value = "departmentId", required = false) Integer departmentId) {
+                                                   @Validated @RequestBody ChangeDepartmentDto changeDepartmentDto) {
 
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
@@ -91,9 +92,9 @@ public class UserController {
             throw new InvalidRequestException("Users with find and applicant roles cannot be assigned a department");
         }
 
-        if (departmentId == null) return ResponseEntity.ok().build();
+        if(changeDepartmentDto == null) return ResponseEntity.ok().build();
         final Cookie customJWTCookie = getCustomJwtCookieFromRequest(httpRequest, userServiceCookieName);
-        User user = oneLoginUserService.updateDepartment(userId, departmentId, customJWTCookie.getValue());
+        User user = oneLoginUserService.updateDepartment(userId, changeDepartmentDto.getDepartmentId(), customJWTCookie.getValue());
         return ResponseEntity.ok(user);
     }
 

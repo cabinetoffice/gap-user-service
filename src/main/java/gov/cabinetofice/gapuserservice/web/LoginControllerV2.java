@@ -32,6 +32,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
 
+import java.net.MalformedURLException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -60,6 +61,9 @@ public class LoginControllerV2 {
     private static final String REDIRECT_URL_NAME = "redirectUrl";
 
     private static final String STATE_COOKIE = "state";
+
+    @Value("${find-a-grant.url}")
+    private String findAGrantBaseUrl;
 
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
@@ -90,12 +94,14 @@ public class LoginControllerV2 {
     public RedirectView login(
             final @RequestParam(name = REDIRECT_URL_NAME) Optional<String> redirectUrlParam,
             final HttpServletRequest request,
-            final HttpServletResponse response) {
+            final HttpServletResponse response) throws MalformedURLException {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
         final boolean isTokenValid = customJWTCookie != null
                 && customJWTCookie.getValue() != null
                 && customJwtService.isTokenValid(customJWTCookie.getValue());
         final String redirectUrl = redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl());
+        WebUtil.validateRedirectUrl(redirectUrl, findAGrantBaseUrl);
+
         if (!isTokenValid) {
             final String nonce = oneLoginService.generateAndStoreNonce();
             String saltId = encryptionService.generateAndStoreSalt();
