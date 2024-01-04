@@ -131,7 +131,6 @@ class OneLoginServiceTest {
         Assertions.assertEquals(result, expected);
     }
 
-    // TEST THIS ONE!
     @Test
     void shouldReturnUserInfo() throws IOException, JSONException {
         String jsonResponse = "{\"sub\":\"urn:fdc:gov.uk:2022:jhkdasy7dal7dadhadasdas\"" +

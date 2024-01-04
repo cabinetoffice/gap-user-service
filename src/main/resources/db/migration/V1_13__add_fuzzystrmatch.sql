@@ -1,2 +1,1 @@
-CREATE
-EXTENSION IF NOT EXISTS fuzzystrmatch SCHEMA public;
+CREATE EXTENSION IF NOT EXISTS fuzzystrmatch SCHEMA public;

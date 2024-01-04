@@ -1,2 +1,2 @@
 ALTER TABLE Roles
-    ADD description varchar(255) NULL;
+ADD description varchar(255) NULL;
