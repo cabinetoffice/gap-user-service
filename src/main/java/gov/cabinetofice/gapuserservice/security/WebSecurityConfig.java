@@ -58,7 +58,7 @@ public class WebSecurityConfig {
                 "/v2/validateSessionsRoles",
                 "/user",
                 "/users/emails"
-                );
+        );
     }
 
     @Bean

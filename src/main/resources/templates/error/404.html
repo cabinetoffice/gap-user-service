@@ -1,29 +1,29 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-    <head>
-        <meta charset="UTF-8">
-        <title>Page not found</title>
+<head>
+    <meta charset="UTF-8">
+    <title>Page not found</title>
 
-        <link rel="stylesheet" th:href="@{/webjars/govuk-frontend/4.5.0/govuk-frontend.min.css}" />
-    </head>
+    <link rel="stylesheet" th:href="@{/webjars/govuk-frontend/4.5.0/govuk-frontend.min.css}"/>
+</head>
 
-    <body class="govuk-template__body">
-        <div th:replace="~{fragments/header :: header}"></div>
+<body class="govuk-template__body">
+<div th:replace="~{fragments/header :: header}"></div>
 
-        <div class="govuk-width-container">
-            <main class="govuk-main-wrapper govuk-main-wrapper--l" id="main-content" role="main">
-                <div class="govuk-grid-row">
-                    <div class="govuk-grid-column-two-thirds">
-                        <h1 class="govuk-heading-l">Page not found</h1>
-                        <p class="govuk-body">If you typed the web address, check it is correct.</p>
-                        <p class="govuk-body">If you pasted the web address, check you copied the entire address.</p>
-                        <p class="govuk-body">To return to the <a href="/login" class="govuk-link">login page</a>.</p>
+<div class="govuk-width-container">
+    <main class="govuk-main-wrapper govuk-main-wrapper--l" id="main-content" role="main">
+        <div class="govuk-grid-row">
+            <div class="govuk-grid-column-two-thirds">
+                <h1 class="govuk-heading-l">Page not found</h1>
+                <p class="govuk-body">If you typed the web address, check it is correct.</p>
+                <p class="govuk-body">If you pasted the web address, check you copied the entire address.</p>
+                <p class="govuk-body">To return to the <a href="/login" class="govuk-link">login page</a>.</p>
 
-                    </div>
-                </div>
-            </main>
+            </div>
         </div>
+    </main>
+</div>
 
-        <div th:replace="~{fragments/footer :: footer}"></div>
-    </body>
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
 </html>

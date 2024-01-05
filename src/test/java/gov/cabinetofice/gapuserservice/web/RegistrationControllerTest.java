@@ -4,17 +4,17 @@ import gov.cabinetofice.gapuserservice.config.FindAGrantConfigProperties;
 import gov.cabinetofice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetofice.gapuserservice.dto.CreateUserDto;
 import gov.cabinetofice.gapuserservice.service.user.impl.ColaUserServiceImpl;
-import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.servlet.ModelAndView;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class RegistrationControllerTest {
@@ -42,7 +42,7 @@ class RegistrationControllerTest {
     }
 
     @Test
-    void registerNewUser_ShouldRedirectToRegisterView_IfUsernameAlreadyExxists() {
+    void registerNewUser_ShouldRedirectToRegisterView_IfUsernameAlreadyExists() {
 
         final CreateUserDto user = CreateUserDto.builder()
                 .email("email@test.com")

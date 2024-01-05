@@ -28,7 +28,8 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -63,19 +64,15 @@ public class SpotlightControllerTest {
             HttpServletRequest httpRequest = mock(HttpServletRequest.class);
             when(roleService.isSuperAdmin(httpRequest)).thenReturn(false);
 
-            Exception exception = assertThrows(ForbiddenException.class, () -> {
-                SpotlightController.authorize(httpRequest);
-            });
+            Exception exception = assertThrows(ForbiddenException.class, () -> SpotlightController.authorize(httpRequest));
         }
 
         @Test
         void shouldThrowExceptionIfNoUser() throws Exception {
             HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-            when(roleService.isSuperAdmin(httpRequest)).thenReturn(true );
+            when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
             when(jwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.empty());
-            Exception exception = assertThrows(InvalidRequestException.class, () -> {
-                SpotlightController.authorize(httpRequest);
-            });
+            Exception exception = assertThrows(InvalidRequestException.class, () -> SpotlightController.authorize(httpRequest));
 
             assertEquals("Could not get user from jwt", exception.getMessage());
         }
@@ -88,7 +85,7 @@ public class SpotlightControllerTest {
             // Create an ArgumentCaptor for SpotlightOAuthAudit
             ArgumentCaptor<SpotlightOAuthAudit> auditCaptor = ArgumentCaptor.forClass(SpotlightOAuthAudit.class);
 
-            when(roleService.isSuperAdmin(httpRequest)).thenReturn(true );
+            when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
             when(jwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(mockUser));
             when(spotlightService.getAuthorizeUrl()).thenReturn(AUTHORIZE_URL);
 
@@ -114,19 +111,15 @@ public class SpotlightControllerTest {
             HttpServletRequest httpRequest = mock(HttpServletRequest.class);
             when(roleService.isSuperAdmin(httpRequest)).thenReturn(false);
 
-            Exception exception = assertThrows(ForbiddenException.class, () -> {
-                SpotlightController.callback(CODE, STATE, httpRequest);
-            });
+            Exception exception = assertThrows(ForbiddenException.class, () -> SpotlightController.callback(CODE, STATE, httpRequest));
         }
 
         @Test
         void shouldThrowExceptionIfNoUser() throws Exception {
             HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-            when(roleService.isSuperAdmin(httpRequest)).thenReturn(true );
+            when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
             when(jwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.empty());
-            Exception exception = assertThrows(InvalidRequestException.class, () -> {
-                SpotlightController.callback(CODE, STATE, httpRequest);
-            });
+            Exception exception = assertThrows(InvalidRequestException.class, () -> SpotlightController.callback(CODE, STATE, httpRequest));
 
             assertEquals("Could not get user from jwt", exception.getMessage());
         }
@@ -139,7 +132,7 @@ public class SpotlightControllerTest {
             // Create an ArgumentCaptor for SpotlightOAuthAudit
             ArgumentCaptor<SpotlightOAuthAudit> auditCaptor = ArgumentCaptor.forClass(SpotlightOAuthAudit.class);
 
-            when(roleService.isSuperAdmin(httpRequest)).thenReturn(true );
+            when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
             when(jwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(mockUser));
 
 
@@ -159,16 +152,13 @@ public class SpotlightControllerTest {
             User mockUser = User.builder().build();
             ArgumentCaptor<SpotlightOAuthAudit> auditCaptor = ArgumentCaptor.forClass(SpotlightOAuthAudit.class);
 
-            when(roleService.isSuperAdmin(httpRequest)).thenReturn(true );
+            when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
             when(jwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(mockUser));
 
             // Configure spotlightService to throw an exception when exchangeAuthorizationToken is called
             doThrow(new IOException("Test Exception")).when(spotlightService).exchangeAuthorizationToken(anyString(), anyString());
 
-
-            Exception exception = assertThrows(SpotlightTokenException.class, () -> {
-                SpotlightController.callback(CODE, STATE, httpRequest);
-            });
+            Exception exception = assertThrows(SpotlightTokenException.class, () -> SpotlightController.callback(CODE, STATE, httpRequest));
 
             assertEquals("Error exchanging Spotlight authorization token", exception.getMessage());
             verify(spotlightService).saveAudit(auditCaptor.capture());
@@ -196,7 +186,7 @@ public class SpotlightControllerTest {
         }
 
         @Test
-        void shouldThrowInvalidRequestWhenNoIntegrationAuditFound()  {
+        void shouldThrowInvalidRequestWhenNoIntegrationAuditFound() {
             HttpServletRequest httpRequest = mock(HttpServletRequest.class);
             when(roleService.isSuperAdmin(any(HttpServletRequest.class))).thenReturn(true);
             when(spotlightService.getLatestAudit()).thenReturn(null);
@@ -213,19 +203,15 @@ public class SpotlightControllerTest {
             HttpServletRequest httpRequest = mock(HttpServletRequest.class);
             when(roleService.isSuperAdmin(httpRequest)).thenReturn(false);
 
-            Exception exception = assertThrows(ForbiddenException.class, () -> {
-                SpotlightController.refresh(httpRequest);
-            });
+            Exception exception = assertThrows(ForbiddenException.class, () -> SpotlightController.refresh(httpRequest));
         }
 
         @Test
         void shouldThrowExceptionIfNoUser() throws Exception {
             HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-            when(roleService.isSuperAdmin(httpRequest)).thenReturn(true );
+            when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
             when(jwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.empty());
-            Exception exception = assertThrows(InvalidRequestException.class, () -> {
-                SpotlightController.refresh(httpRequest);
-            });
+            Exception exception = assertThrows(InvalidRequestException.class, () -> SpotlightController.refresh(httpRequest));
 
             assertEquals("Could not get user from jwt", exception.getMessage());
         }
@@ -238,11 +224,11 @@ public class SpotlightControllerTest {
             // Create an ArgumentCaptor for SpotlightOAuthAudit
             ArgumentCaptor<SpotlightOAuthAudit> auditCaptor = ArgumentCaptor.forClass(SpotlightOAuthAudit.class);
 
-            when(roleService.isSuperAdmin(httpRequest)).thenReturn(true );
+            when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
             when(jwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(mockUser));
 
 
-            ResponseEntity responseEntity = SpotlightController.refresh(httpRequest);
+            ResponseEntity<Void> responseEntity = SpotlightController.refresh(httpRequest);
 
             verify(spotlightService).refreshToken();
             verify(spotlightService).saveAudit(auditCaptor.capture());
@@ -259,16 +245,14 @@ public class SpotlightControllerTest {
             User mockUser = User.builder().build();
             ArgumentCaptor<SpotlightOAuthAudit> auditCaptor = ArgumentCaptor.forClass(SpotlightOAuthAudit.class);
 
-            when(roleService.isSuperAdmin(httpRequest)).thenReturn(true );
+            when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
             when(jwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(mockUser));
 
             // Configure spotlightService to throw an exception when exchangeAuthorizationToken is called
             doThrow(new InvalidRequestException("Test Exception")).when(spotlightService).refreshToken();
 
 
-            Exception exception = assertThrows(SpotlightTokenException.class, () -> {
-                SpotlightController.refresh(httpRequest);
-            });
+            Exception exception = assertThrows(SpotlightTokenException.class, () -> SpotlightController.refresh(httpRequest));
 
             assertEquals("Error refreshing Spotlight authorization token", exception.getMessage());
             verify(spotlightService).saveAudit(auditCaptor.capture());

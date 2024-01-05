@@ -4,7 +4,7 @@ import gov.cabinetofice.gapuserservice.util.UserQueryCondition;
 
 import java.util.List;
 
-public record UserQueryDto (List<Integer> departmentIds, List<Integer> roleIds, String email) {
+public record UserQueryDto(List<Integer> departmentIds, List<Integer> roleIds, String email) {
     public UserQueryCondition getCondition() {
         final boolean hasDepartment = !departmentIds.isEmpty();
         final boolean hasRole = !roleIds.isEmpty();

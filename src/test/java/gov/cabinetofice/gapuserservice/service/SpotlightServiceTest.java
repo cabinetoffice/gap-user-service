@@ -152,9 +152,6 @@ class SpotlightServiceTest {
         String expectedAccessTokenSecret = "{\"refresh_token\":\"5678\",\"access_token\":\"1234\"}";
         String expectedResponse = "{\"access_token\":\"1234\"}";
 
-        GetSecretValueRequest valueRequest = GetSecretValueRequest.builder()
-                .secretId(spotlightConfig.getSecretName())
-                .build();
         when(RestUtils.postRequestWithBody(anyString(), anyString(), anyString()))
                 .thenReturn(new JSONObject(expectedResponse));
 

@@ -61,6 +61,6 @@ public class RegistrationController {
 
         userService.createNewUser(user);
 
-        return new ModelAndView( "redirect:/register/success");
+        return new ModelAndView("redirect:/register/success");
     }
 }

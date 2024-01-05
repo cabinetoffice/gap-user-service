@@ -46,6 +46,7 @@ class DepartmentServiceTest {
 
         assertEquals(expectedDepartments, result);
     }
+
     @Test
     void testGetDepartmentById() {
         Optional<Department> department = Optional.of(Department.builder().id(1).build());
@@ -53,6 +54,7 @@ class DepartmentServiceTest {
         Optional<Department> result = departmentService.getDepartmentById(1);
         assertEquals(department, result);
     }
+
     @Test
     void testUpdateDepartment() {
         String newDepartmentName = "new department";
@@ -63,7 +65,7 @@ class DepartmentServiceTest {
         when(departmentRepository.save(any(Department.class))).thenReturn(expected);
         Department result = departmentService.updateDepartment(initialDepartment, newDepartmentName, newGgisId);
 
-        assertThat(result).isEqualToComparingFieldByFieldRecursively(expected);
+        assertThat(result).usingRecursiveComparison().isEqualTo(expected);
     }
 
     @Test

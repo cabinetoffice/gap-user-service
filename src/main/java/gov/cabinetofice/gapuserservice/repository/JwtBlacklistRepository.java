@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 
 @Repository
-public interface JwtBlacklistRepository extends JpaRepository <BlacklistedToken, String> {
+public interface JwtBlacklistRepository extends JpaRepository<BlacklistedToken, String> {
 
     long deleteByExpiryDateLessThan(LocalDateTime expiryDate);
 

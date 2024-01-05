@@ -11,7 +11,10 @@ import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jwt.SignedJWT;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
-import gov.cabinetofice.gapuserservice.dto.*;
+import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
+import gov.cabinetofice.gapuserservice.dto.JwtPayload;
+import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
+import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.exceptions.*;
 import gov.cabinetofice.gapuserservice.model.Nonce;
 import gov.cabinetofice.gapuserservice.model.Role;
@@ -124,7 +127,7 @@ public class OneLoginService {
         try {
             stateCookieDto = mapper.readValue(decodedStateString, StateCookieDto.class);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            log.error("An JSON processing error occurred: ", e);
         }
         return stateCookieDto;
     }
@@ -161,14 +164,14 @@ public class OneLoginService {
 
     public String getOneLoginAuthorizeUrl(final String state, final String nonce) {
         return oneLoginBaseUrl +
-                        "/authorize?response_type=code" +
-                        "&scope=" + SCOPE +
-                        "&client_id=" + clientId +
-                        "&state=" + state +
-                        "&redirect_uri=" + serviceRedirectUrl +
-                        "&nonce=" + nonce +
-                        "&vtr=" + (mfaEnabled.equals(Boolean.TRUE) ? VTR_MFA_ENABLED : VTR_MFA_DISABLED) +
-                        "&ui_locales=" + UI;
+                "/authorize?response_type=code" +
+                "&scope=" + SCOPE +
+                "&client_id=" + clientId +
+                "&state=" + state +
+                "&redirect_uri=" + serviceRedirectUrl +
+                "&nonce=" + nonce +
+                "&vtr=" + (mfaEnabled.equals(Boolean.TRUE) ? VTR_MFA_ENABLED : VTR_MFA_DISABLED) +
+                "&ui_locales=" + UI;
     }
 
     public Map<String, String> generateCustomJwtClaims(final OneLoginUserInfoDto userInfo, final String idToken) {
@@ -272,10 +275,10 @@ public class OneLoginService {
             );
             throw new UnauthorizedClientException(message);
         }
-        if (currentEpochSeconds > decodedIdToken.getExp())  {
+        if (currentEpochSeconds > decodedIdToken.getExp()) {
             String message = "One Login ID token expired";
             log.error(
-                    loggingUtils.getLogMessage(message +  ": ", 3),
+                    loggingUtils.getLogMessage(message + ": ", 3),
                     keyValue("currentTime", currentEpochSeconds),
                     keyValue("tokenExpiry", decodedIdToken.getExp()),
                     keyValue(ID_TOKEN, decodedIdToken)
@@ -347,7 +350,7 @@ public class OneLoginService {
         try {
             decodedIdToken = mapper.readValue(decodeJWT(idToken), IdTokenDto.class);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            log.error("A JSON processing error occurred: ", e);
         }
         return decodedIdToken;
     }

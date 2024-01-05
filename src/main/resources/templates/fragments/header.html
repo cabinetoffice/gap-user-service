@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-    <div th:fragment="header">
-        <a href="#main-content" class="govuk-skip-link" data-module="govuk-skip-link">Skip to main content</a>
+<div th:fragment="header">
+    <a href="#main-content" class="govuk-skip-link" data-module="govuk-skip-link">Skip to main content</a>
 
-        <header class="govuk-header " role="banner" data-module="govuk-header">
-            <div class="govuk-header__container govuk-width-container">
-                <div class="govuk-header__logo">
-                    <a href="/" class="govuk-header__link govuk-header__link--homepage">
+    <header class="govuk-header " role="banner" data-module="govuk-header">
+        <div class="govuk-header__container govuk-width-container">
+            <div class="govuk-header__logo">
+                <a href="/" class="govuk-header__link govuk-header__link--homepage">
                       <span class="govuk-header__logotype">
                         <!--[if gt IE 8]><!-->
                         <svg
@@ -30,27 +30,27 @@
                           GOV.UK
                         </span>
                       </span>
-                    </a>
-                </div>
-
-                <div class="govuk-header__content">
-                    <a th:href="${homePageUrl}" class="govuk-header__link govuk-header__service-name">
-                        Find a Grant
-                    </a>
-                </div>
+                </a>
             </div>
-        </header>
 
-        <nav>
-            <div class="govuk-width-container">
-                <div class="govuk-phase-banner">
-                    <div class="govuk-grid-row">
-                        <div class="govuk-grid-column-three-quarters">
-                            <p class="govuk-phase-banner__content">
-                                <strong class="govuk-tag govuk-phase-banner__content__tag">
-                                    BETA
-                                </strong>
-                                <span class="govuk-phase-banner__text">
+            <div class="govuk-header__content">
+                <a th:href="${homePageUrl}" class="govuk-header__link govuk-header__service-name">
+                    Find a Grant
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <div class="govuk-width-container">
+            <div class="govuk-phase-banner">
+                <div class="govuk-grid-row">
+                    <div class="govuk-grid-column-three-quarters">
+                        <p class="govuk-phase-banner__content">
+                            <strong class="govuk-tag govuk-phase-banner__content__tag">
+                                BETA
+                            </strong>
+                            <span class="govuk-phase-banner__text">
                                 This is a new service – your
                                 <a
                                         href="https://docs.google.com/forms/d/e/1FAIpQLSd2V0IqOMpb2_yQnz_Ges0WCYFnDOTxZpF299gePV1j8kMdLA/viewform"
@@ -62,11 +62,11 @@
                                 </a>
                                 will help us to improve it.
                             </span>
-                            </p>
-                        </div>
+                        </p>
                     </div>
                 </div>
             </div>
-        </nav>
-    </div>
+        </div>
+    </nav>
+</div>
 </html>

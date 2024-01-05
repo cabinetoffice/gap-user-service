@@ -26,12 +26,12 @@ public class DepartmentController {
     private final DepartmentMapper mapper;
 
     @GetMapping("/department")
-        public ResponseEntity<List<DepartmentDto>> getAll(final HttpServletRequest httpRequest) {
-            if (!roleService.isSuperAdmin(httpRequest)) {
-                throw new ForbiddenException();
-            }
-            return ResponseEntity.ok(departmentService.getAllDepartments());
+    public ResponseEntity<List<DepartmentDto>> getAll(final HttpServletRequest httpRequest) {
+        if (!roleService.isSuperAdmin(httpRequest)) {
+            throw new ForbiddenException();
         }
+        return ResponseEntity.ok(departmentService.getAllDepartments());
+    }
 
     @GetMapping("/department/{id}")
     public ResponseEntity<DepartmentDto> getById(@PathVariable int id, final HttpServletRequest httpRequest) {
@@ -40,27 +40,27 @@ public class DepartmentController {
         }
         Optional<Department> department = departmentService.getDepartmentById(id);
 
-        if(department.isEmpty()){
-            throw new DepartmentNotFoundException("Department with id" + id  + "not found");
+        if (department.isEmpty()) {
+            throw new DepartmentNotFoundException("Department with id" + id + "not found");
         }
         return ResponseEntity.ok(mapper.departmentToDepartmentDto(department.get()));
     }
 
     @PatchMapping("/department/{id}")
-        public ResponseEntity<String> updateDepartment(final HttpServletRequest httpRequest,
-                                                     @Validated @RequestBody final DepartmentReqDto body,
-                                                       @PathVariable int id) throws DepartmentNotFoundException, ForbiddenException {
-            if (!roleService.isSuperAdmin(httpRequest)) {
-                throw new ForbiddenException();
-            }
-            Optional<Department> department = departmentService.getDepartmentById(id);
-
-            if(department.isEmpty()){
-                throw new DepartmentNotFoundException("Could not update department with id: " + id + " department not found");
-            }
-            departmentService.updateDepartment(department.get(), body.getName(), body.getGgisID());
-            return ResponseEntity.ok("Department updated");
+    public ResponseEntity<String> updateDepartment(final HttpServletRequest httpRequest,
+                                                   @Validated @RequestBody final DepartmentReqDto body,
+                                                   @PathVariable int id) throws DepartmentNotFoundException, ForbiddenException {
+        if (!roleService.isSuperAdmin(httpRequest)) {
+            throw new ForbiddenException();
         }
+        Optional<Department> department = departmentService.getDepartmentById(id);
+
+        if (department.isEmpty()) {
+            throw new DepartmentNotFoundException("Could not update department with id: " + id + " department not found");
+        }
+        departmentService.updateDepartment(department.get(), body.getName(), body.getGgisID());
+        return ResponseEntity.ok("Department updated");
+    }
 
     @DeleteMapping("/department/{id}")
     public ResponseEntity<String> deleteDepartment(final HttpServletRequest httpRequest,
@@ -84,4 +84,4 @@ public class DepartmentController {
         departmentService.createDepartment(department.getName(), department.getGgisID());
         return ResponseEntity.ok("Department created");
     }
-    }
+}

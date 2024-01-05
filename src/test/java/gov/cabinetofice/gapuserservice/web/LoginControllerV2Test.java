@@ -108,6 +108,7 @@ class LoginControllerV2Test {
         final String nonce = "nonce";
         final String saltId = "saltId";
         final String loginUrl = "loginUrl";
+
         @Test
         void shouldRedirectToLoginPage_IfTokenIsNull_AndMigrationJourneyDisabled() throws MalformedURLException {
             final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/");
@@ -295,8 +296,8 @@ class LoginControllerV2Test {
             doThrow(new UnauthorizedClientException("User authorization failed")).when(oneLoginService).verifyStateAndNonce(any(), any(), any());
 
             Exception exception = assertThrows(
-                UnauthorizedClientException.class,
-                () -> loginController.redirectAfterLogin(stateCookie, response, code, state)
+                    UnauthorizedClientException.class,
+                    () -> loginController.redirectAfterLogin(stateCookie, response, code, state)
             );
             assertThat(exception.getMessage()).isEqualTo("User authorization failed");
         }
@@ -358,7 +359,7 @@ class LoginControllerV2Test {
 
                 final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, response, code, state);
 
-                if(migrateFindEnabled.equals("true") && initialState.equals(LoginJourneyState.USER_READY)) {
+                if (migrateFindEnabled.equals("true") && initialState.equals(LoginJourneyState.USER_READY)) {
                     assertThat(methodResponse.getUrl()).isEqualTo("http:localhost:3000/adminBaseUrl?redirectUrl=%2Fdashboard%3FapplyMigrationStatus%3DALREADY_MIGRATED%26findMigrationStatus%3DNOT_STARTED");
                 } else {
                     assertThat(methodResponse.getUrl()).isEqualTo("http:localhost:3000/adminBaseUrl?redirectUrl=/dashboard");
@@ -391,7 +392,7 @@ class LoginControllerV2Test {
 
                 final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, response, code, state);
 
-                if(migrateFindEnabled.equals("true") && initialState.equals(LoginJourneyState.USER_READY)) {
+                if (migrateFindEnabled.equals("true") && initialState.equals(LoginJourneyState.USER_READY)) {
                     assertThat(methodResponse.getUrl()).isEqualTo(redirectUrlCookie + "?applyMigrationStatus=ALREADY_MIGRATED&findMigrationStatus=NOT_STARTED");
                 } else {
                     assertThat(methodResponse.getUrl()).isEqualTo(redirectUrlCookie);
@@ -656,7 +657,7 @@ class LoginControllerV2Test {
 
             HttpServletRequest request = mock(HttpServletRequest.class);
             HttpServletResponse response = mock(HttpServletResponse.class);
-            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName")).thenReturn( new Cookie(userServiceCookieName, "") );
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName")).thenReturn(new Cookie(userServiceCookieName, ""));
             RedirectView methodResponse = loginController.logout(request, response);
 
             verify(oneLoginService, never()).logoutUser(any(Cookie.class), any(HttpServletResponse.class));
@@ -670,7 +671,7 @@ class LoginControllerV2Test {
 
             HttpServletRequest request = mock(HttpServletRequest.class);
             HttpServletResponse response = mock(HttpServletResponse.class);
-            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName")).thenReturn( new Cookie(userServiceCookieName, "ba") );
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName")).thenReturn(new Cookie(userServiceCookieName, "ba"));
             when(oneLoginService.logoutUser(any(), any())).thenReturn(new RedirectView(applicantBaseUrl));
 
             RedirectView methodResponse = loginController.logout(request, response);
@@ -688,6 +689,7 @@ class LoginControllerV2Test {
         ResponseEntity<Boolean> response = loginController.validateSessionsRoles(requestBodyDto);
         assertThat(response).isEqualTo(ResponseEntity.ok(Boolean.TRUE));
     }
+
     @Test
     void testValidateSessionsRolesWithInvalidSession() {
         String emailAddress = "test@email.com";

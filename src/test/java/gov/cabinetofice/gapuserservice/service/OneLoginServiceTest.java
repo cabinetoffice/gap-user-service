@@ -7,8 +7,6 @@ import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
 import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
 import gov.cabinetofice.gapuserservice.exceptions.*;
 import gov.cabinetofice.gapuserservice.model.*;
-import gov.cabinetofice.gapuserservice.repository.RoleRepository;
-import gov.cabinetofice.gapuserservice.repository.UserRepository;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import gov.cabinetofice.gapuserservice.util.LoggingUtils;
@@ -28,7 +26,6 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.IOException;
 import java.security.*;
@@ -68,17 +65,10 @@ class OneLoginServiceTest {
     private Map<String, String> testKeyPair;
 
     private static final String DUMMY_CLIENT_ID = "asdhjlsadfbfds";
+
     private static final String DUMMY_BASE_URL = "https://test.url.gov";
+
     private static final String GRANT_TYPE = "authorization_code";
-
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private RoleRepository roleRepository;
-
-    @Mock
-    private WebClient.Builder webClientBuilder;
 
     @BeforeEach
     void setUp() {
@@ -138,7 +128,7 @@ class OneLoginServiceTest {
 
         JSONObject result = oneLoginService.getTokenResponse("dummyJwt", "dummyCode");
 
-        Assertions.assertEquals( result, expected);
+        Assertions.assertEquals(result, expected);
     }
 
     @Test
@@ -150,7 +140,7 @@ class OneLoginServiceTest {
                 .emailAddress("test.user@email.com")
                 .build();
 
-       Map<String, String> headers = new HashMap<>();
+        Map<String, String> headers = new HashMap<>();
         headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + "accessToken");
 
         when(RestUtils.getRequestWithHeaders(DUMMY_BASE_URL + "/userinfo", headers))
@@ -425,7 +415,7 @@ class OneLoginServiceTest {
     class getOneLoginAuthorizeUrl {
 
         @Test
-        void testStateSetCorrectly(){
+        void testStateSetCorrectly() {
             String state = "state";
             String nonce = "nonce";
             String actualUrl = oneLoginService.getOneLoginAuthorizeUrl(state, nonce);
@@ -434,7 +424,7 @@ class OneLoginServiceTest {
         }
 
         @Test
-        void testNonceSetCorrectly(){
+        void testNonceSetCorrectly() {
             String state = "state";
             String nonce = "nonce";
             String actualUrl = oneLoginService.getOneLoginAuthorizeUrl(state, nonce);
@@ -443,7 +433,7 @@ class OneLoginServiceTest {
         }
 
         @Test
-        void testMfaEnabled(){
+        void testMfaEnabled() {
             String nonce = "nonce";
             String state = "state";
             String actualUrl = oneLoginService.getOneLoginAuthorizeUrl(state, nonce);
@@ -452,7 +442,7 @@ class OneLoginServiceTest {
         }
 
         @Test
-        void testMfaDisabled(){
+        void testMfaDisabled() {
             ReflectionTestUtils.setField(oneLoginService, "mfaEnabled", false);
             String nonce = "nonce";
             String state = "state";
@@ -464,12 +454,13 @@ class OneLoginServiceTest {
 
     private Claims getClaims(String jwtToken) throws NoSuchAlgorithmException, InvalidKeySpecException {
 
-            byte[] publicKeyBytes = Base64.getDecoder().decode(testKeyPair.get("public"));
-            PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(publicKeyBytes));
+        byte[] publicKeyBytes = Base64.getDecoder().decode(testKeyPair.get("public"));
+        PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(publicKeyBytes));
 
-            return Jwts.parserBuilder().setSigningKey(publicKey).build().parseClaimsJws(jwtToken).getBody();
+        return Jwts.parserBuilder().setSigningKey(publicKey).build().parseClaimsJws(jwtToken).getBody();
 
     }
+
     private Map<String, String> generateTestKeys() {
         KeyPair keyPair = generateKeyPair();
 

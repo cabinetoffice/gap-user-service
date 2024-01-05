@@ -1,5 +1,8 @@
 package gov.cabinetofice.gapuserservice.service.encryption;
 
+import gov.cabinetofice.gapuserservice.model.Salt;
+import gov.cabinetofice.gapuserservice.repository.SaltRepository;
+import gov.cabinetofice.gapuserservice.util.HelperUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -7,14 +10,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import java.util.Optional;
 
-import gov.cabinetofice.gapuserservice.model.Salt;
-import gov.cabinetofice.gapuserservice.util.HelperUtils;
-import gov.cabinetofice.gapuserservice.repository.SaltRepository;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class Sha512ServiceTest {
