@@ -35,15 +35,13 @@
 
                             <div class="govuk-checkboxes" data-module="govuk-checkboxes">
                                 <div class="govuk-checkboxes__item">
-                                    <label>
-                                        <input type="checkbox"
-                                               th:id="acceptPrivacyPolicy"
-                                               th:name="acceptPrivacyPolicy"
-                                               th:checked="*{acceptPrivacyPolicy == 'yes'}"
-                                               th:value="yes"
-                                               class="govuk-checkboxes__input"
-                                        />
-                                    </label>
+                                    <input type="checkbox"
+                                           th:id="acceptPrivacyPolicy"
+                                           th:name="acceptPrivacyPolicy"
+                                           th:checked="*{acceptPrivacyPolicy == 'yes'}"
+                                           th:value="yes"
+                                           class="govuk-checkboxes__input"
+                                    />
 
                                     <label class="govuk-label govuk-checkboxes__label" th:for="acceptPrivacyPolicy">
                                         Yes, I have read and agree to the Find a grant privacy policy
