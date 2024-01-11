@@ -172,7 +172,7 @@ public class SpotlightControllerTest {
     @Nested
     class IntegrationTest {
         @Test
-        void shouldReturnIntegrationAuditDto() throws Exception {
+        void shouldReturnIntegrationAuditDto() {
             HttpServletRequest httpRequest = mock(HttpServletRequest.class);
             Date date = new Date();
             SpotlightOAuthAudit audit = SpotlightOAuthAudit.builder().event(SpotlightOAuthAuditEvent.AUTHORISE)
@@ -181,7 +181,7 @@ public class SpotlightControllerTest {
                     SpotlightOAuthAuditEvent.AUTHORISE, SpotlightOAuthAuditStatus.FAILURE, date);
 
             when(roleService.isSuperAdmin(any(HttpServletRequest.class))).thenReturn(true);
-            when(spotlightService.getLatestAudit()).thenReturn(audit);
+            when(spotlightService.getLatestSuccessOrFailureAudit()).thenReturn(audit);
             assertEquals(SpotlightController.getIntegrations(httpRequest), ResponseEntity.ok(auditDto));
         }
 
@@ -189,9 +189,17 @@ public class SpotlightControllerTest {
         void shouldThrowInvalidRequestWhenNoIntegrationAuditFound() {
             HttpServletRequest httpRequest = mock(HttpServletRequest.class);
             when(roleService.isSuperAdmin(any(HttpServletRequest.class))).thenReturn(true);
-            when(spotlightService.getLatestAudit()).thenReturn(null);
+            when(spotlightService.getLatestSuccessOrFailureAudit()).thenReturn(null);
 
             assertThrows(InvalidRequestException.class, () -> SpotlightController.getIntegrations(httpRequest));
+        }
+
+        @Test
+        void shouldThrowForbiddenExceptionWhenUserIsNotSuperAdmin()  {
+            HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+            when(roleService.isSuperAdmin(any(HttpServletRequest.class))).thenReturn(false);
+
+            assertThrows(ForbiddenException.class, () -> SpotlightController.getIntegrations(httpRequest));
         }
     }
 
