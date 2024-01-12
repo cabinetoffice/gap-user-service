@@ -16,7 +16,6 @@ import java.security.NoSuchAlgorithmException;
 import static javax.crypto.Mac.getInstance;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)

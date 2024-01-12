@@ -30,9 +30,9 @@ public class Department {
     private String ggisID;
 
     @Column(name = "users")
-    @OneToMany(mappedBy="gapUserId", cascade = { CascadeType.MERGE, CascadeType.PERSIST }, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "gapUserId", cascade = {CascadeType.MERGE, CascadeType.PERSIST}, fetch = FetchType.LAZY)
     @ToString.Exclude
-    @JsonIgnoreProperties({ "hibernateLazyInitializer" })
+    @JsonIgnoreProperties({"hibernateLazyInitializer"})
     @JsonBackReference
     @Builder.Default
     private List<User> users = new ArrayList<>();

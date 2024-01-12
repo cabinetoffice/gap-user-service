@@ -12,7 +12,7 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Map;
 
 public class RestUtils {
 

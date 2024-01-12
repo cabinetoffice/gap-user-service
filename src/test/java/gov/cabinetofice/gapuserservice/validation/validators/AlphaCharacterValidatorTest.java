@@ -1,8 +1,6 @@
 package gov.cabinetofice.gapuserservice.validation.validators;
 
-import gov.cabinetofice.gapuserservice.validation.validators.AlphaCharacterValidator;
 import jakarta.validation.ConstraintValidatorContext;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -12,6 +10,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.stream.Stream;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @ExtendWith(MockitoExtension.class)
 class AlphaCharacterValidatorTest {

@@ -143,8 +143,8 @@ public class LoginController {
 
     @GetMapping("/refresh-token")
     public RedirectView refreshToken(@CookieValue(USER_SERVICE_COOKIE_NAME) final String currentToken,
-                                   final HttpServletResponse response,
-                                   final @RequestParam String redirectUrl) {
+                                     final HttpServletResponse response,
+                                     final @RequestParam String redirectUrl) {
         jwtBlacklistService.addJwtToBlacklist(currentToken);
 
         final DecodedJWT decodedJWT = JWT.decode(currentToken);

@@ -4,25 +4,25 @@
         <meta charset="UTF-8">
         <title>Service error</title>
 
-        <link rel="stylesheet" th:href="@{/webjars/govuk-frontend/4.5.0/govuk-frontend.min.css}" />
-    </head>
+    <link rel="stylesheet" th:href="@{/webjars/govuk-frontend/4.5.0/govuk-frontend.min.css}"/>
+</head>
 
-    <body class="govuk-template__body">
-        <div th:replace="~{fragments/header :: header}"></div>
+<body class="govuk-template__body">
+<div th:replace="~{fragments/header :: header}"></div>
 
-        <div class="govuk-width-container">
-            <main class="govuk-main-wrapper govuk-main-wrapper--l" id="main-content" role="main">
-                <div class="govuk-grid-row">
-                    <div class="govuk-grid-column-two-thirds">
-                        <h1 class="govuk-heading-l">Sorry, there is a problem with the service</h1>
-                        <p class="govuk-body">
-                            Try again later or return to the <a class="govuk-link" href="/login">login page</a>.
-                        </p>
-                    </div>
-                </div>
-            </main>
+<div class="govuk-width-container">
+    <main class="govuk-main-wrapper govuk-main-wrapper--l" id="main-content" role="main">
+        <div class="govuk-grid-row">
+            <div class="govuk-grid-column-two-thirds">
+                <h1 class="govuk-heading-l">Sorry, there is a problem with the service</h1>
+                <p class="govuk-body">
+                    Try again later or return to the <a class="govuk-link" href="/login">login page</a>.
+                </p>
+            </div>
         </div>
+    </main>
+</div>
 
-        <div th:replace="~{fragments/footer :: footer}"></div>
-    </body>
+<div th:replace="~{fragments/footer :: footer}"></div>
+</body>
 </html>

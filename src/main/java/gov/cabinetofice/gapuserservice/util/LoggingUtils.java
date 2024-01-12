@@ -21,11 +21,11 @@ public class LoggingUtils {
 
     private final ApplicationConfigProperties configProperties;
 
-    private String getInterpolationString (int noOfArguments) {
+    private String getInterpolationString(int noOfArguments) {
         return "\n\t{}".repeat(noOfArguments);
     }
 
-    private String getInterpolationString (int noOfArguments, String prefix) {
+    private String getInterpolationString(int noOfArguments, String prefix) {
         String pattern = prefix + "{}";
         return pattern.repeat(noOfArguments);
     }
@@ -33,15 +33,15 @@ public class LoggingUtils {
     /**
      * Produces a log message formatted correctly for either prod or local dev, depending on the value of spring.profiles.active
      * in application.properties.
-     *
+     * <p>
      * Interpolated console output (using StructuredArguments) will take the form:
-     *
+     * <p>
      * message:
-     *  firstKey=firstValue
-     *  secondKey=secondValue
-     *  etc
+     * firstKey=firstValue
+     * secondKey=secondValue
+     * etc
      *
-     * @param message - message to prepend before interpolated arguments in console and add to "message" property in JSON
+     * @param message       - message to prepend before interpolated arguments in console and add to "message" property in JSON
      * @param noOfArguments - number of interpolated arguments to expect
      * @return Locally: message followed by template. In prod: message.
      */
@@ -55,17 +55,17 @@ public class LoggingUtils {
     /**
      * Produces a log message formatted correctly for either prod or local dev, depending on the value of spring.profiles.active
      * in application.properties. This will output a "JSON-style" log message in local dev, useful for logging things like requests.
-     *
+     * <p>
      * Interpolated console output (using StructuredArguments) will take the form:
-     *
+     * <p>
      * message:
-     *  {
-     *      firstKey=firstValue
-     *      secondKey=secondValue
-     *      etc
-     *  }
+     * {
+     * firstKey=firstValue
+     * secondKey=secondValue
+     * etc
+     * }
      *
-     * @param message - message to prepend before interpolated arguments in console and add to "message" property in JSON
+     * @param message       - message to prepend before interpolated arguments in console and add to "message" property in JSON
      * @param noOfArguments - number of interpolated arguments to expect
      * @return Locally: message followed by JSON-formatted template. In prod: message.
      */

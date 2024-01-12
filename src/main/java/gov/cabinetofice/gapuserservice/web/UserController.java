@@ -18,6 +18,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -47,7 +48,7 @@ public class UserController {
             throw new ForbiddenException();
         }
         Optional<User> user = jwtService.getUserFromJwt(httpRequest);
-        if(user.isEmpty()){
+        if (user.isEmpty()) {
             throw new InvalidRequestException(NO_USER);
         }
 
@@ -81,19 +82,19 @@ public class UserController {
 
     @PatchMapping("/user/{userId}/department")
     public ResponseEntity<User> updateDepartment(HttpServletRequest httpRequest, @PathVariable("userId") Integer userId,
-                                                   @RequestParam(value = "departmentId", required = false) Integer departmentId) {
+                                                   @Validated @RequestBody ChangeDepartmentDto changeDepartmentDto) {
 
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
 
-        if(oneLoginUserService.isUserApplicantAndFindOnly(oneLoginUserService.getUserById(userId))) {
+        if (oneLoginUserService.isUserApplicantAndFindOnly(oneLoginUserService.getUserById(userId))) {
             throw new InvalidRequestException("Users with find and applicant roles cannot be assigned a department");
         }
 
-        if(departmentId == null) return ResponseEntity.ok().build();
+        if(changeDepartmentDto == null) return ResponseEntity.ok().build();
         final Cookie customJWTCookie = getCustomJwtCookieFromRequest(httpRequest, userServiceCookieName);
-        User user = oneLoginUserService.updateDepartment(userId, departmentId, customJWTCookie.getValue());
+        User user = oneLoginUserService.updateDepartment(userId, changeDepartmentDto.getDepartmentId(), customJWTCookie.getValue());
         return ResponseEntity.ok(user);
     }
 
@@ -121,10 +122,10 @@ public class UserController {
         boolean isARequestToBlockUser = roleIds.isEmpty();
         Optional<User> user = jwtService.getUserFromJwt(httpRequest);
 
-        if(user.isEmpty()){
+        if (user.isEmpty()) {
             throw new InvalidRequestException(NO_USER);
         }
-        if (isARequestToBlockUser && id.equals(user.get().getGapUserId())){
+        if (isARequestToBlockUser && id.equals(user.get().getGapUserId())) {
             throw new UnsupportedOperationException("You can't block yourself");
         }
 
@@ -139,10 +140,10 @@ public class UserController {
         }
         final Cookie customJWTCookie = getCustomJwtCookieFromRequest(httpRequest, userServiceCookieName);
         Optional<User> user = jwtService.getUserFromJwt(httpRequest);
-        if(user.isEmpty()){
+        if (user.isEmpty()) {
             throw new InvalidRequestException(NO_USER);
         }
-        if(user.get().getGapUserId().equals(id)) {
+        if (user.get().getGapUserId().equals(id)) {
             throw new UnsupportedOperationException("You can't delete yourself");
         }
 

@@ -75,14 +75,14 @@ public class OneLoginUserService {
 
     private Map<UserQueryCondition, BiFunction<UserQueryDto, Pageable, Page<User>>> createUserQueryConditionMap() {
         return Map.of(
-            new UserQueryCondition(false, false, false), (dto, pageable) -> userRepository.findByOrderByEmail(pageable),
-            new UserQueryCondition(true,  false, false), (dto, pageable) -> userRepository.findUsersByDepartment(dto.departmentIds(), pageable),
-            new UserQueryCondition(false, true,  false), (dto, pageable) -> userRepository.findUsersByRoles(dto.roleIds(), pageable),
-            new UserQueryCondition(false, false, true),  (dto, pageable) -> userRepository.findUsersByFuzzyEmail(dto.email(), pageable),
-            new UserQueryCondition(true,  true,  false), (dto, pageable) -> userRepository.findUsersByDepartmentAndRoles(dto.roleIds(), dto.departmentIds(), pageable),
-            new UserQueryCondition(true,  false, true),  (dto, pageable) -> userRepository.findUsersByDepartmentAndFuzzyEmail(dto.departmentIds(), dto.email(), pageable),
-            new UserQueryCondition(false, true,  true),  (dto, pageable) -> userRepository.findUsersByRolesAndFuzzyEmail(dto.roleIds(), dto.email(), pageable),
-            new UserQueryCondition(true,  true,  true),  (dto, pageable) -> userRepository.findUsersByDepartmentAndRolesAndFuzzyEmail(dto.roleIds(), dto.departmentIds(), dto.email(), pageable)
+                new UserQueryCondition(false, false, false), (dto, pageable) -> userRepository.findByOrderByEmail(pageable),
+                new UserQueryCondition(true, false, false), (dto, pageable) -> userRepository.findUsersByDepartment(dto.departmentIds(), pageable),
+                new UserQueryCondition(false, true, false), (dto, pageable) -> userRepository.findUsersByRoles(dto.roleIds(), pageable),
+                new UserQueryCondition(false, false, true), (dto, pageable) -> userRepository.findUsersByFuzzyEmail(dto.email(), pageable),
+                new UserQueryCondition(true, true, false), (dto, pageable) -> userRepository.findUsersByDepartmentAndRoles(dto.roleIds(), dto.departmentIds(), pageable),
+                new UserQueryCondition(true, false, true), (dto, pageable) -> userRepository.findUsersByDepartmentAndFuzzyEmail(dto.departmentIds(), dto.email(), pageable),
+                new UserQueryCondition(false, true, true), (dto, pageable) -> userRepository.findUsersByRolesAndFuzzyEmail(dto.roleIds(), dto.email(), pageable),
+                new UserQueryCondition(true, true, true), (dto, pageable) -> userRepository.findUsersByDepartmentAndRolesAndFuzzyEmail(dto.roleIds(), dto.departmentIds(), dto.email(), pageable)
         );
     }
 
@@ -90,6 +90,7 @@ public class OneLoginUserService {
         return userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("user with id: " + id + NOT_FOUND));
     }
+
     public User getUserBySub(String sub) {
         return userRepository.findBySub(sub)
                 .orElseThrow(() -> new UserNotFoundException("user with sub: " + sub + NOT_FOUND));
@@ -178,6 +179,11 @@ public class OneLoginUserService {
                         .departmentName(optionalDepartment.get().getName())
                         .build())
                 .retrieve()
+                .onStatus(httpStatus -> httpStatus.equals(HttpStatus.NOT_FOUND), clientResponse -> {
+                    log.error("User with sub {} does not exist as an admin in the Apply database",
+                            optionalUser.get().getSub());
+                    return Mono.empty();
+                })
                 .bodyToMono(Void.class)
                 .block();
 
@@ -219,9 +225,9 @@ public class OneLoginUserService {
     }
 
     private void deleteDepartmentIfPresentAndUserIsOnlyApplicantOrFind(User user) {
-           if (isUserApplicantAndFindOnly(user) && doesUserHaveDepartment(user)) {
-               user.setDepartment(null);
-            }
+        if (isUserApplicantAndFindOnly(user) && doesUserHaveDepartment(user)) {
+            user.setDepartment(null);
+        }
     }
 
     public boolean isUserApplicantAndFindOnly(User user) {
@@ -246,7 +252,7 @@ public class OneLoginUserService {
 
     private void deleteUserFromApply(String jwt, User user) {
 
-        String query = user.hasSub() ? "?colaSub=" + user.getSub() :"?colaSub=" + user.getColaSub();
+        String query = user.hasSub() ? "?oneLoginSub=" + user.getSub() : "?colaSub=" + user.getColaSub();
         String uri = adminBackend + "/users/delete" + query;
 
         webClientBuilder.build()
@@ -254,6 +260,10 @@ public class OneLoginUserService {
                 .uri(uri)
                 .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
                 .retrieve()
+                .onStatus(httpStatus -> httpStatus.equals(HttpStatus.NOT_FOUND), clientResponse -> {
+                    log.error("User with sub {} does not exist the Apply database", user.getSub());
+                    return Mono.empty();
+                })
                 .bodyToMono(Void.class)
                 .block();
     }

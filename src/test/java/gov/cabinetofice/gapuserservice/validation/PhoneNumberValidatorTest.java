@@ -3,12 +3,13 @@ package gov.cabinetofice.gapuserservice.validation;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import gov.cabinetofice.gapuserservice.validation.validators.PhoneNumberValidator;
 import jakarta.validation.ConstraintValidatorContext;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 @ExtendWith(MockitoExtension.class)

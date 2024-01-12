@@ -1,12 +1,9 @@
 package gov.cabinetofice.gapuserservice.service.jwt;
 
 import com.auth0.jwt.JWT;
-import static com.auth0.jwt.JWT.decode;
 import gov.cabinetofice.gapuserservice.model.BlacklistedToken;
 import gov.cabinetofice.gapuserservice.repository.JwtBlacklistRepository;
 import gov.cabinetofice.gapuserservice.service.JwtBlacklistService;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,12 +11,16 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.*;
 import java.util.Date;
+
+import static com.auth0.jwt.JWT.decode;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class JwtBlacklistServiceTest {
@@ -71,7 +72,7 @@ class JwtBlacklistServiceTest {
         when(serviceUnderTest.deleteExpiredJwts())
                 .thenReturn(Long.valueOf(1));
 
-        final Long numberOfDeletedJwts =  serviceUnderTest.deleteExpiredJwts();
+        final Long numberOfDeletedJwts = serviceUnderTest.deleteExpiredJwts();
 
         verify(jwtBlacklistRepository).deleteByExpiryDateLessThan(date);
         assertThat(numberOfDeletedJwts).isEqualTo(Long.valueOf(1));

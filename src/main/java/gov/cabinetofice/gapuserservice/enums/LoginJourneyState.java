@@ -44,7 +44,7 @@ public enum LoginJourneyState {
         public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
             return switch (role) {
                 case SUPER_ADMIN -> LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD;
-                case TECHNICAL_SUPPORT ->  LoginJourneyRedirect.TECHNICAL_SUPPORT_DASHBOARD;
+                case TECHNICAL_SUPPORT -> LoginJourneyRedirect.TECHNICAL_SUPPORT_DASHBOARD;
                 case ADMIN -> LoginJourneyRedirect.ADMIN_MIGRATED;
                 case APPLICANT, FIND -> LoginJourneyRedirect.APPLICANT_MIGRATED;
             };
@@ -64,7 +64,7 @@ public enum LoginJourneyState {
         public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
             return switch (role) {
                 case SUPER_ADMIN -> LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD;
-                case TECHNICAL_SUPPORT ->  LoginJourneyRedirect.TECHNICAL_SUPPORT_DASHBOARD;
+                case TECHNICAL_SUPPORT -> LoginJourneyRedirect.TECHNICAL_SUPPORT_DASHBOARD;
                 case ADMIN -> LoginJourneyRedirect.ADMIN_DASHBOARD;
                 case APPLICANT, FIND -> LoginJourneyRedirect.REDIRECT_URL_COOKIE;
             };
@@ -99,11 +99,12 @@ public enum LoginJourneyState {
                 return this;
             }
         }
+
         @Override
         public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
             return switch (role) {
                 case SUPER_ADMIN -> LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD;
-                case TECHNICAL_SUPPORT ->  LoginJourneyRedirect.TECHNICAL_SUPPORT_DASHBOARD;
+                case TECHNICAL_SUPPORT -> LoginJourneyRedirect.TECHNICAL_SUPPORT_DASHBOARD;
                 case ADMIN -> LoginJourneyRedirect.ADMIN_DASHBOARD;
                 case APPLICANT, FIND -> LoginJourneyRedirect.REDIRECT_URL_COOKIE;
             };

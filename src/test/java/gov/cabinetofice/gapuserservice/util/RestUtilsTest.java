@@ -78,7 +78,6 @@ class RestUtilsTest {
 
         HttpEntity httpEntity = new StringEntity(expectedResponse, ContentType.TEXT_PLAIN);
 
-
         when(HttpClients.createDefault()).thenReturn(httpClient);
         when(httpClient.execute(Mockito.any(HttpGet.class))).thenReturn(httpResponse);
 
