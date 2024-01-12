@@ -252,7 +252,7 @@ public class OneLoginUserService {
 
     private void deleteUserFromApply(String jwt, User user) {
 
-        String query = user.hasSub() ? "?oneLoginSub=" + user.getSub() : "?colaSub=" + user.getColaSub();
+        String query = user.hasSub() ? "?colaSub=" + user.getSub() :"?colaSub=" + user.getColaSub();
         String uri = adminBackend + "/users/delete" + query;
 
         webClientBuilder.build()
