@@ -80,6 +80,11 @@ public class UserController {
         return ResponseEntity.ok(new UserAndRelationsDto(oneLoginUserService.getUserByUserSub(userSub)));
     }
 
+    @GetMapping("/user/{userSub}/email")
+    public ResponseEntity<String> getEmailFromSub(HttpServletRequest httpRequest, @PathVariable("userSub") String userSub) {
+        return ResponseEntity.ok(oneLoginUserService.getUserBySub(userSub).getEmailAddress());
+    }
+
     @PatchMapping("/user/{userId}/department")
     public ResponseEntity<User> updateDepartment(HttpServletRequest httpRequest, @PathVariable("userId") Integer userId,
                                                    @Validated @RequestBody ChangeDepartmentDto changeDepartmentDto) {
@@ -166,7 +171,5 @@ public class UserController {
                         .orElseGet(() -> new UserDto(oneLoginUserService.getUserByEmail(email)))
         );
     }
-
-
 }
 
