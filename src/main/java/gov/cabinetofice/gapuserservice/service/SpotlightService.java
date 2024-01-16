@@ -3,6 +3,7 @@ package gov.cabinetofice.gapuserservice.service;
 import com.nimbusds.jose.shaded.gson.JsonObject;
 import com.nimbusds.jose.shaded.gson.JsonParser;
 import gov.cabinetofice.gapuserservice.config.SpotlightConfig;
+import gov.cabinetofice.gapuserservice.enums.SpotlightOAuthAuditStatus;
 import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetofice.gapuserservice.exceptions.SpotlightInvalidStateException;
 import gov.cabinetofice.gapuserservice.model.SpotlightOAuthAudit;
@@ -26,6 +27,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.List;
 
 @RequiredArgsConstructor
 @Service
@@ -47,8 +49,8 @@ public class SpotlightService {
     private final static String ACCESS_TOKEN_NAME = "access_token";
     private final static String REFRESH_TOKEN_NAME = "refresh_token";
 
-    public SpotlightOAuthAudit getLatestAudit() {
-        return spotlightOAuthAuditRepository.findFirstByOrderByIdDesc();
+    public SpotlightOAuthAudit getLatestSuccessOrFailureAudit() {
+        return spotlightOAuthAuditRepository.findFirstByStatusInOrderByIdDesc(List.of(SpotlightOAuthAuditStatus.SUCCESS, SpotlightOAuthAuditStatus.FAILURE));
     }
 
     public void saveAudit(SpotlightOAuthAudit spotlightOAuthAudit) {

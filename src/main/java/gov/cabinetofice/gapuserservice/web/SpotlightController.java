@@ -47,7 +47,7 @@ public class SpotlightController {
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
-        SpotlightOAuthAudit audit = spotlightService.getLatestAudit();
+        SpotlightOAuthAudit audit = spotlightService.getLatestSuccessOrFailureAudit();
         if (Objects.equals(null, audit)) {
             throw new InvalidRequestException("No audit found");
         }
