@@ -27,6 +27,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.List;
 
 @RequiredArgsConstructor
 @Service
@@ -49,7 +50,7 @@ public class SpotlightService {
     private final static String REFRESH_TOKEN_NAME = "refresh_token";
 
     public SpotlightOAuthAudit getLatestSuccessOrFailureAudit() {
-        return spotlightOAuthAuditRepository.findFirstByStatusOrStatusOrderByIdDesc(SpotlightOAuthAuditStatus.SUCCESS, SpotlightOAuthAuditStatus.FAILURE);
+        return spotlightOAuthAuditRepository.findFirstByStatusInOrderByIdDesc(List.of(SpotlightOAuthAuditStatus.SUCCESS, SpotlightOAuthAuditStatus.FAILURE));
     }
 
     public void saveAudit(SpotlightOAuthAudit spotlightOAuthAudit) {
