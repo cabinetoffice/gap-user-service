@@ -48,7 +48,7 @@ public class SpotlightController {
             throw new ForbiddenException();
         }
         SpotlightOAuthAudit audit = spotlightService.getLatestSuccessOrFailureAudit();
-        if(Objects.equals(null, audit)) {
+        if (Objects.equals(null, audit)) {
             throw new InvalidRequestException("No audit found");
         }
         SpotlightIntegrationAuditDto spotlightIntegrationAuditDto = new SpotlightIntegrationAuditDto(
