@@ -4,12 +4,8 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetofice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetofice.gapuserservice.config.FindAGrantConfigProperties;
-import gov.cabinetofice.gapuserservice.dto.IdTokenDto;
-import gov.cabinetofice.gapuserservice.dto.OneLoginUserInfoDto;
-import gov.cabinetofice.gapuserservice.dto.PrivacyPolicyDto;
-import gov.cabinetofice.gapuserservice.dto.StateCookieDto;
-import gov.cabinetofice.gapuserservice.enums.GetRedirectUrlArgs;
 import gov.cabinetofice.gapuserservice.dto.*;
+import gov.cabinetofice.gapuserservice.enums.GetRedirectUrlArgs;
 import gov.cabinetofice.gapuserservice.enums.NextStateArgs;
 import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -36,6 +32,7 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
 
+import java.net.MalformedURLException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -65,6 +62,9 @@ public class LoginControllerV2 {
 
     private static final String STATE_COOKIE = "state";
 
+    @Value("${find-a-grant.url}")
+    private String findAGrantBaseUrl;
+
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
 
@@ -84,7 +84,7 @@ public class LoginControllerV2 {
     private String postLogoutRedirectUri;
 
     @PostMapping("/validateSessionsRoles")
-    public ResponseEntity<Boolean> validateSessionsRoles(@RequestBody final ValidateSessionsRolesRequestBodyDto requestBody){
+    public ResponseEntity<Boolean> validateSessionsRoles(@RequestBody final ValidateSessionsRolesRequestBodyDto requestBody) {
         oneLoginUserService.validateSessionsRoles(requestBody.emailAddress(), requestBody.roles());
         return ResponseEntity.ok(Boolean.TRUE);
     }
@@ -94,12 +94,14 @@ public class LoginControllerV2 {
     public RedirectView login(
             final @RequestParam(name = REDIRECT_URL_NAME) Optional<String> redirectUrlParam,
             final HttpServletRequest request,
-            final HttpServletResponse response) {
+            final HttpServletResponse response) throws MalformedURLException {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
         final boolean isTokenValid = customJWTCookie != null
                 && customJWTCookie.getValue() != null
                 && customJwtService.isTokenValid(customJWTCookie.getValue());
         final String redirectUrl = redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl());
+        WebUtil.validateRedirectUrl(redirectUrl, findAGrantBaseUrl);
+
         if (!isTokenValid) {
             final String nonce = oneLoginService.generateAndStoreNonce();
             String saltId = encryptionService.generateAndStoreSalt();
@@ -165,7 +167,7 @@ public class LoginControllerV2 {
                 customJWTCookie.getValue(), true, null);
 
         return new ModelAndView(UPDATED_EMAIL_PAGE_VIEW).addObject("email", user.getEmailAddress())
-                .addObject(REDIRECT_URL_NAME, redirectUrl). addObject("homePageUrl", findProperties.getUrl());
+                .addObject(REDIRECT_URL_NAME, redirectUrl).addObject("homePageUrl", findProperties.getUrl());
     }
 
     @GetMapping("/privacy-policy")
@@ -205,7 +207,7 @@ public class LoginControllerV2 {
     }
 
     private Cookie addCustomJwtCookie(final HttpServletResponse response, final OneLoginUserInfoDto userInfo,
-            final String idToken) {
+                                      final String idToken) {
         final Map<String, String> customJwtClaims = oneLoginService.generateCustomJwtClaims(userInfo, idToken);
         final String customServiceJwt = customJwtService.generateToken(customJwtClaims);
         final Cookie customJwt = WebUtil.buildSecureCookie(userServiceCookieName, customServiceJwt);
@@ -215,7 +217,7 @@ public class LoginControllerV2 {
 
     private String getRedirectUrlFromStateCookie(Optional<String> stateCookie) {
         return stateCookie.isPresent() ?
-                oneLoginService.decodeStateCookie(stateCookie.get()).getRedirectUrl():
+                oneLoginService.decodeStateCookie(stateCookie.get()).getRedirectUrl() :
                 configProperties.getDefaultRedirectUrl();
     }
 
@@ -225,7 +227,7 @@ public class LoginControllerV2 {
     }
 
     private String runStateMachine(final String redirectUrlCookie, final User user, final String jwt,
-            final boolean hasAcceptedPrivacyPolicy, final OneLoginUserInfoDto userInfo) {
+                                   final boolean hasAcceptedPrivacyPolicy, final OneLoginUserInfoDto userInfo) {
         log.info(loggingUtils.getLogMessage("Running state machine", 5), redirectUrlCookie, user, jwt,
                 hasAcceptedPrivacyPolicy, userInfo);
 

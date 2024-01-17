@@ -1,21 +1,24 @@
 package gov.cabinetofice.gapuserservice.validation.annotations;
 
-import gov.cabinetofice.gapuserservice.validation.validators.AlphaCharacterValidator;
+import gov.cabinetofice.gapuserservice.validation.validators.NullFieldValidator;
 import jakarta.validation.Constraint;
+import jakarta.validation.Payload;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Constraint(validatedBy = AlphaCharacterValidator.class)
-@Target({ElementType.METHOD, ElementType.FIELD})
-@Retention(RetentionPolicy.RUNTIME)
-public @interface ContainsOnlyAlphaChars {
 
-    String message() default "Must only contain letters";
+@Constraint(validatedBy = NullFieldValidator.class)
+@Target({ElementType.FIELD})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface FieldNotNull {
+
+    String message() default "This field cannot be null";
 
     Class<?>[] groups() default {};
 
-    Class<?>[] payload() default {};
+    Class<? extends Payload>[] payload() default {};
+
 }

@@ -3,15 +3,17 @@ package gov.cabinetofice.gapuserservice.interceptors;
 import gov.cabinetofice.gapuserservice.util.LoggingUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import static net.logstash.logback.argument.StructuredArguments.*;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
+
+import static net.logstash.logback.argument.StructuredArguments.keyValue;
+import static net.logstash.logback.argument.StructuredArguments.value;
 
 @Component
 @Slf4j
@@ -21,7 +23,9 @@ public class LoggingInterceptor implements HandlerInterceptor {
     private final LoggingUtils loggingUtils;
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+    public boolean preHandle(HttpServletRequest request,
+                             @NonNull HttpServletResponse response,
+                             @NonNull Object handler) {
         if (request.getRequestURL().toString().endsWith("/health")) return true;
         String event = "Incoming request";
         log.info(
@@ -38,7 +42,9 @@ public class LoggingInterceptor implements HandlerInterceptor {
     }
 
     @Override
-    public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler,
+    public void postHandle(HttpServletRequest request,
+                           @NonNull HttpServletResponse response,
+                           @NonNull Object handler,
                            @Nullable ModelAndView modelAndView) {
         if (request.getRequestURL().toString().endsWith("/health")) return;
         String event = "Outgoing response";

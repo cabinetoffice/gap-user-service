@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" class="govuk-template">
 <head>
     <meta charset="UTF-8">
     <title>Register</title>
 
-    <link rel="stylesheet" th:href="@{/webjars/govuk-frontend/4.5.0/govuk-frontend.min.css}" />
+    <link rel="stylesheet" th:href="@{/webjars/govuk-frontend/4.5.0/govuk-frontend.min.css}"/>
 </head>
 
 <body class="govuk-template__body">
@@ -24,7 +24,8 @@
                 <p class="govuk-body">
                     You can sign in to search and apply for government grants.
                 </p>
-                <a th:href="${loginUrl}" role="button" draggable="false" class="govuk-button" data-module="govuk-button">
+                <a th:href="${loginUrl}" role="button" draggable="false" class="govuk-button"
+                   data-module="govuk-button">
                     Sign in
                 </a>
             </div>

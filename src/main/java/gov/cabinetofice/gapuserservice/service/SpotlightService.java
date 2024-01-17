@@ -132,7 +132,7 @@ public class SpotlightService {
             this.updateSecret(ACCESS_TOKEN_NAME, accessToken);
             this.updateSecret(REFRESH_TOKEN_NAME, refreshToken);
 
-        } catch(IOException | JSONException e) {
+        } catch (IOException | JSONException e) {
             this.updateSecret(ACCESS_TOKEN_NAME, null);
             this.updateSecret(REFRESH_TOKEN_NAME, null);
             throw new InvalidRequestException("invalid request");
@@ -171,7 +171,7 @@ public class SpotlightService {
             log.debug("new Access token: {}", accessToken);
 
             this.updateSecret(ACCESS_TOKEN_NAME, accessToken);
-        } catch(IOException | JSONException e) {
+        } catch (IOException | JSONException e) {
             this.updateSecret(ACCESS_TOKEN_NAME, null);
             throw new InvalidRequestException("invalid request");
         }

@@ -17,6 +17,7 @@ import java.util.Optional;
 public class DepartmentService {
     private final DepartmentRepository departmentRepository;
     private final DepartmentMapper departmentMapper;
+
     public List<DepartmentDto> getAllDepartments() {
         return departmentRepository.findAll().stream()
                 .map(departmentMapper::departmentToDepartmentDto)
@@ -28,8 +29,8 @@ public class DepartmentService {
     }
 
     public Department updateDepartment(Department department, String departmentName, String ggisId) throws DepartmentNotFoundException {
-         department.setName(departmentName);
-         department.setGgisID(ggisId);
+        department.setName(departmentName);
+        department.setGgisID(ggisId);
         return departmentRepository.save(department);
     }
 

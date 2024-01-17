@@ -42,13 +42,13 @@ public class SpotlightController {
     private String adminBaseUrl;
 
     @GetMapping("/integration")
-    public ResponseEntity<SpotlightIntegrationAuditDto> getIntegrations(final HttpServletRequest httpRequest) throws Exception {
+    public ResponseEntity<SpotlightIntegrationAuditDto> getIntegrations(final HttpServletRequest httpRequest) {
         log.info("SpotlightController /integration/");
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
         SpotlightOAuthAudit audit = spotlightService.getLatestAudit();
-        if(Objects.equals(null, audit)) {
+        if (Objects.equals(null, audit)) {
             throw new InvalidRequestException("No audit found");
         }
         SpotlightIntegrationAuditDto spotlightIntegrationAuditDto = new SpotlightIntegrationAuditDto(
@@ -81,7 +81,7 @@ public class SpotlightController {
     }
 
     @GetMapping("/oauth/callback")
-    public RedirectView callback(@RequestParam String code, @RequestParam String state, final HttpServletRequest httpRequest) throws Exception {
+    public RedirectView callback(@RequestParam String code, @RequestParam String state, final HttpServletRequest httpRequest) {
         log.info("SpotlightController /oauth/callback");
 
         if (!roleService.isSuperAdmin(httpRequest)) {
@@ -121,7 +121,7 @@ public class SpotlightController {
 
 
     @GetMapping("/oauth/refresh")
-    public ResponseEntity<Void> refresh(final HttpServletRequest httpRequest) throws Exception {
+    public ResponseEntity<Void> refresh(final HttpServletRequest httpRequest) {
         log.info("SpotlightController /oauth/refresh");
 
         if (!roleService.isSuperAdmin(httpRequest)) {

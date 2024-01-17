@@ -94,7 +94,7 @@ public class CustomJwtServiceImpl implements JwtService {
                 Optional<User> user = userRepository.findBySub(jwtPayload.getSub());
                 if (user.isEmpty()) user = userRepository.findByEmailAddress(jwtPayload.getEmail());
                 if (user.isEmpty()) return false;
-                if(validateUserRolesInMiddleware){
+                if (validateUserRolesInMiddleware) {
                     validateRolesInThePayload(jwtPayload);
                 }
                 if (user.get().getLoginJourneyState().equals(LoginJourneyState.PRIVACY_POLICY_PENDING)) return false;

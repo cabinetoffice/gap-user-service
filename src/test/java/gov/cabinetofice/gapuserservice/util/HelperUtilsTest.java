@@ -29,7 +29,7 @@ class HelperUtilsTest {
     @Test
     void getCustomJwtCookieFromRequestShouldReturnCookie() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        when(httpRequest.getCookies()).thenReturn(new Cookie[] { new Cookie("cookieName", "cookieValue") });
+        when(httpRequest.getCookies()).thenReturn(new Cookie[]{new Cookie("cookieName", "cookieValue")});
 
         final Cookie cookie = HelperUtils.getCustomJwtCookieFromRequest(httpRequest, "cookieName");
 
@@ -42,9 +42,7 @@ class HelperUtilsTest {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         when(httpRequest.getCookies()).thenReturn(null);
 
-        assertThrows(UnauthorizedException.class, () -> {
-            HelperUtils.getCustomJwtCookieFromRequest(httpRequest, "cookieName");
-        });
+        assertThrows(UnauthorizedException.class, () -> HelperUtils.getCustomJwtCookieFromRequest(httpRequest, "cookieName"));
     }
 
 }
