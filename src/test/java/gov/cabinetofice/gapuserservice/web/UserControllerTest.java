@@ -3,6 +3,7 @@ package gov.cabinetofice.gapuserservice.web;
 import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
+import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -252,4 +253,29 @@ class UserControllerTest {
         assertThat(methodResponse.getBody()).isEqualTo(mockUserDto);
     }
 
+    @Test
+    void testGetEmailFromSub() {
+        String userSub = "1";
+        String userEmail = "test@test.com";
+        User mockUser = User.builder().sub(userSub).gapUserId(1)
+                .emailAddress(userEmail).build();
+        when(oneLoginUserService.getUserBySub(userSub)).thenReturn(mockUser);
+        HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+        final ResponseEntity<String> methodResponse = controller.getEmailFromSub(mockRequest, userSub);
+
+        assertThat(methodResponse.getBody()).isEqualTo(userEmail);
+        verify(oneLoginUserService, times(1)).getUserBySub(userSub);
+    }
+
+    @Test
+    void testGetEmailFromSub_UserNotFound() {
+        String userSub = "2";
+        when(oneLoginUserService.getUserBySub(userSub)).thenThrow(UserNotFoundException.class);
+        HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+
+        assertThrows(UserNotFoundException.class, () -> {
+            controller.getEmailFromSub(mockRequest, userSub);
+        });
+        verify(oneLoginUserService, times(1)).getUserBySub(userSub);
+    }
 }
