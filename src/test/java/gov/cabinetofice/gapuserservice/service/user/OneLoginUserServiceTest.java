@@ -76,6 +76,8 @@ class OneLoginUserServiceTest {
         User user = spy(User.builder().gapUserId(1).sub("sub").roles(currentUserRoles).build());
         Role role1 = Role.builder().id(1).name(RoleEnum.FIND).description("a desc").build();
         Role role2 = Role.builder().id(2).name(RoleEnum.APPLICANT).description("a desc 2").build();
+        UpdateUserRolesRequestDto updateUserRolesRequestDto = UpdateUserRolesRequestDto.builder()
+                .newUserRoles(Arrays.asList(1, 2, 3, 4, 5)).build();
 
         doNothing().when(user).removeAllRoles();
         doNothing().when(user).addRole(role2);
@@ -86,7 +88,7 @@ class OneLoginUserServiceTest {
         when(roleRepository.findById(2)).thenReturn(Optional.of(role2));
         when(roleRepository.findByName(RoleEnum.APPLICANT)).thenReturn(Optional.of(role2));
 
-        User updatedUser = oneLoginUserService.updateRoles(1, newRoles);
+        User updatedUser = oneLoginUserService.updateRoles(1, updateUserRolesRequestDto, "jwt");
 
         Mockito.verify(roleRepository, times(2)).findById(anyInt());
         Mockito.verify(roleRepository, times(1)).findByName(any(RoleEnum.class));
@@ -447,12 +449,15 @@ class OneLoginUserServiceTest {
         Integer userId = 1;
         User user = User.builder().gapUserId(userId).build();
         List<Integer> newRoles = List.of(3, 4);
+        UpdateUserRolesRequestDto updateUserRolesRequestDto = UpdateUserRolesRequestDto.builder()
+                .newUserRoles(Arrays.asList(1, 2, 3, 4, 5)).build();
+
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(roleRepository.findById(3)).thenReturn(Optional.of(Role.builder().name(RoleEnum.ADMIN).build()));
         when(roleRepository.findById(4)).thenReturn(Optional.of(Role.builder().name(RoleEnum.SUPER_ADMIN).build()));
         when(roleRepository.findByName(RoleEnum.APPLICANT)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
         when(roleRepository.findByName(RoleEnum.FIND)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).build()));
-        User updatedUser = oneLoginUserService.updateRoles(userId, newRoles);
+        User updatedUser = oneLoginUserService.updateRoles(userId, updateUserRolesRequestDto, "jwt");
 
         assertThat(updatedUser.getRoles()).hasSize(4);
         assertThat(updatedUser.getRoles().stream().anyMatch(role -> role.getName().equals(RoleEnum.APPLICANT))).isTrue();
@@ -514,12 +519,14 @@ class OneLoginUserServiceTest {
     @Test
     void updateRolesShouldSetDepartmentToNullIfNotSuperAdminOrAdmin() {
         Integer userId = 1;
-        List<Integer> newRoles = List.of(1, 2);
         User user = User.builder().gapUserId(userId).department(Department.builder().name("test").build()).build();
+        UpdateUserRolesRequestDto updateUserRolesRequestDto = UpdateUserRolesRequestDto.builder()
+                .newUserRoles(Arrays.asList(1, 2, 3, 4, 5)).build();
+
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(roleRepository.findById(1)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
         when(roleRepository.findById(2)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).build()));
-        User updatedUser = oneLoginUserService.updateRoles(1, newRoles);
+        User updatedUser = oneLoginUserService.updateRoles(1, updateUserRolesRequestDto, "jwt");
 
         assertThat(updatedUser.getDepartment()).isNull();
     }
@@ -529,11 +536,14 @@ class OneLoginUserServiceTest {
         Integer userId = 1;
         List<Integer> newRoles = List.of(1, 2, 3);
         User user = User.builder().gapUserId(userId).department(Department.builder().name("test").build()).build();
+        UpdateUserRolesRequestDto updateUserRolesRequestDto = UpdateUserRolesRequestDto.builder()
+                .newUserRoles(Arrays.asList(1, 2, 3, 4, 5)).build();
+
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(roleRepository.findById(1)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
         when(roleRepository.findById(2)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).build()));
         when(roleRepository.findById(3)).thenReturn(Optional.of(Role.builder().name(RoleEnum.ADMIN).build()));
-        User updatedUser = oneLoginUserService.updateRoles(1, newRoles);
+        User updatedUser = oneLoginUserService.updateRoles(1, updateUserRolesRequestDto, "jwt");
 
         assertThat(updatedUser.getDepartment()).isNotNull();
     }
@@ -543,12 +553,15 @@ class OneLoginUserServiceTest {
         Integer userId = 1;
         List<Integer> newRoles = List.of(3, 4);
         User user = User.builder().gapUserId(userId).department(Department.builder().name("test").build()).build();
+        UpdateUserRolesRequestDto updateUserRolesRequestDto = UpdateUserRolesRequestDto.builder()
+                .newUserRoles(Arrays.asList(1, 2, 3, 4, 5)).build();
+
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(roleRepository.findById(3)).thenReturn(Optional.of(Role.builder().name(RoleEnum.ADMIN).build()));
         when(roleRepository.findById(4)).thenReturn(Optional.of(Role.builder().name(RoleEnum.SUPER_ADMIN).build()));
         when(roleRepository.findByName(RoleEnum.FIND)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).id(1).build()));
         when(roleRepository.findByName(RoleEnum.APPLICANT)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).id(2).build()));
-        User updatedUser = oneLoginUserService.updateRoles(1, newRoles);
+        User updatedUser = oneLoginUserService.updateRoles(1, updateUserRolesRequestDto, "jwt");
 
         assertThat(updatedUser.getDepartment()).isNotNull();
     }
