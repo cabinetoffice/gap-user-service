@@ -71,13 +71,12 @@ class OneLoginUserServiceTest {
     @Test
     void shouldReturnUpdatedUserWhenValidIdAndRolesAreGiven() {
         Integer userId = 1;
-        List<Integer> newRoles = List.of(1, 2);
         List<Role> currentUserRoles = List.of(Role.builder().name(RoleEnum.FIND).id(1).build());
         User user = spy(User.builder().gapUserId(1).sub("sub").roles(currentUserRoles).build());
         Role role1 = Role.builder().id(1).name(RoleEnum.FIND).description("a desc").build();
         Role role2 = Role.builder().id(2).name(RoleEnum.APPLICANT).description("a desc 2").build();
         UpdateUserRolesRequestDto updateUserRolesRequestDto = UpdateUserRolesRequestDto.builder()
-                .newUserRoles(Arrays.asList(1, 2, 3, 4, 5)).build();
+                .newUserRoles(Arrays.asList(1, 2)).build();
 
         doNothing().when(user).removeAllRoles();
         doNothing().when(user).addRole(role2);
@@ -448,9 +447,8 @@ class OneLoginUserServiceTest {
     void updateRolesShouldAddApplicantAndFindRolesWhenNoRolesPresent() {
         Integer userId = 1;
         User user = User.builder().gapUserId(userId).build();
-        List<Integer> newRoles = List.of(3, 4);
         UpdateUserRolesRequestDto updateUserRolesRequestDto = UpdateUserRolesRequestDto.builder()
-                .newUserRoles(Arrays.asList(1, 2, 3, 4, 5)).build();
+                .newUserRoles(Arrays.asList(3, 4)).build();
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(roleRepository.findById(3)).thenReturn(Optional.of(Role.builder().name(RoleEnum.ADMIN).build()));
@@ -521,7 +519,7 @@ class OneLoginUserServiceTest {
         Integer userId = 1;
         User user = User.builder().gapUserId(userId).department(Department.builder().name("test").build()).build();
         UpdateUserRolesRequestDto updateUserRolesRequestDto = UpdateUserRolesRequestDto.builder()
-                .newUserRoles(Arrays.asList(1, 2, 3, 4, 5)).build();
+                .newUserRoles(Arrays.asList(1, 2)).build();
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(roleRepository.findById(1)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
@@ -534,10 +532,9 @@ class OneLoginUserServiceTest {
     @Test
     void updateRolesShouldNotSetDepartmentToNullIfUserHasMoreThanTwoRoles() {
         Integer userId = 1;
-        List<Integer> newRoles = List.of(1, 2, 3);
         User user = User.builder().gapUserId(userId).department(Department.builder().name("test").build()).build();
         UpdateUserRolesRequestDto updateUserRolesRequestDto = UpdateUserRolesRequestDto.builder()
-                .newUserRoles(Arrays.asList(1, 2, 3, 4, 5)).build();
+                .newUserRoles(Arrays.asList(1, 2, 3)).build();
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(roleRepository.findById(1)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
@@ -551,16 +548,30 @@ class OneLoginUserServiceTest {
     @Test
     void updateRolesShouldNotSetDepartmentToNullIfUserIsAdminOrSuperAdmin() {
         Integer userId = 1;
-        List<Integer> newRoles = List.of(3, 4);
         User user = User.builder().gapUserId(userId).department(Department.builder().name("test").build()).build();
         UpdateUserRolesRequestDto updateUserRolesRequestDto = UpdateUserRolesRequestDto.builder()
                 .newUserRoles(Arrays.asList(1, 2, 3, 4, 5)).build();
 
+        final WebClient webClient = mock(WebClient.class);
+        final WebClient.RequestHeadersSpec requestHeadersSpec = mock(WebClient.RequestHeadersSpec.class);
+        final WebClient.RequestBodyUriSpec requestBodyUriSpec = mock(WebClient.RequestBodyUriSpec.class);
+        final WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
+
+        when(webClientBuilder.build()).thenReturn(webClient);
+        when(webClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodyUriSpec);
+        when(requestHeadersSpec.header(anyString(), anyString())).thenReturn(requestHeadersSpec);
+        when(requestBodyUriSpec.contentType(any())).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.body(any())).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(Void.class)).thenReturn(Mono.empty());
+
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(roleRepository.findById(1)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).build()));
+        when(roleRepository.findById(2)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
         when(roleRepository.findById(3)).thenReturn(Optional.of(Role.builder().name(RoleEnum.ADMIN).build()));
         when(roleRepository.findById(4)).thenReturn(Optional.of(Role.builder().name(RoleEnum.SUPER_ADMIN).build()));
-        when(roleRepository.findByName(RoleEnum.FIND)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).id(1).build()));
-        when(roleRepository.findByName(RoleEnum.APPLICANT)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).id(2).build()));
+        when(roleRepository.findById(5)).thenReturn(Optional.of(Role.builder().name(RoleEnum.TECHNICAL_SUPPORT).build()));
         User updatedUser = oneLoginUserService.updateRoles(1, updateUserRolesRequestDto, "jwt");
 
         assertThat(updatedUser.getDepartment()).isNotNull();
