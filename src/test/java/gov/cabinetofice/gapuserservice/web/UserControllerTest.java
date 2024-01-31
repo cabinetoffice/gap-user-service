@@ -150,7 +150,10 @@ class UserControllerTest {
     @Test
     void shouldDeleteUserWhenValidIdIsGiven() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        when(httpRequest.getCookies()).thenReturn(new Cookie[]{new Cookie("userServiceCookieName", "1")});
+
+        mockedWebUtils.when(() -> WebUtils.getCookie(httpRequest, "userServiceCookieName"))
+                .thenReturn(new Cookie("userServiceCookieName", "jwt"));
+
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(2).build()));
         final ResponseEntity<String> methodResponse = controller.deleteUser(httpRequest, 1);
@@ -161,7 +164,10 @@ class UserControllerTest {
     @Test
     void shouldThrowErrorWhenAdminTriesToDeleteThemselves() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        when(httpRequest.getCookies()).thenReturn(new Cookie[]{new Cookie("userServiceCookieName", "1")});
+
+        mockedWebUtils.when(() -> WebUtils.getCookie(httpRequest, "userServiceCookieName"))
+                .thenReturn(new Cookie("userServiceCookieName", "jwt"));
+
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(1).build()));
 
@@ -171,7 +177,10 @@ class UserControllerTest {
     @Test
     void shouldThrowErrorWhenUserIsEmpty() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        when(httpRequest.getCookies()).thenReturn(new Cookie[]{new Cookie("userServiceCookieName", "1")});
+
+        mockedWebUtils.when(() -> WebUtils.getCookie(httpRequest, "userServiceCookieName"))
+                .thenReturn(new Cookie("userServiceCookieName", "jwt"));
+
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.empty());
 
