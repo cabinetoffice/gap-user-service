@@ -9,9 +9,6 @@ on:
     paths-ignore:
       - "*.md"
 
-env:
-  AWS_REGION: eu-west-2
-
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -80,7 +77,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: github-gap-automated-tests
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: eu-west-2
 
       - name: Login to AWS ECR
         id: login-ecr
@@ -137,7 +134,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           role-session-name: github-gap-automated-tests
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: eu-west-2
 
       - name: Login to AWS ECR
         id: login-ecr
