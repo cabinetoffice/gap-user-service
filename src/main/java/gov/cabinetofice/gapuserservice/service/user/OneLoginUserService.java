@@ -268,7 +268,7 @@ public class OneLoginUserService {
         webClientBuilder.build()
                 .post()
                 .uri(adminBackend.concat("/users/tech-support-user"))
-                .contentType(MediaType.APPLICATION_JSON)  // Set Content-Type header to application/json
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(CreateTechSupportUserDto.builder()
                         .userSub(user.getSub()).departmentId(departmentId).build()))
                 .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
