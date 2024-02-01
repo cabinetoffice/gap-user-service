@@ -221,10 +221,12 @@ public class OneLoginUserService {
     }
 
     private void handleTechSupportRoleChange(User user, UpdateUserRolesRequestDto updateUserRolesRequestDto, String jwt) {
-        if (updateUserRolesRequestDto.newUserRoles().contains(5) && !user.isTechnicalSupport()) {
+        if (updateUserRolesRequestDto.newUserRoles().contains(RoleEnum.TECHNICAL_SUPPORT.getRoleId())
+                && !user.isTechnicalSupport()) {
             addTechSupportUserToApply(user, updateUserRolesRequestDto.departmentId(), jwt);
         } else {
-            if (user.isTechnicalSupport() && !updateUserRolesRequestDto.newUserRoles().contains(5)) {
+            if (user.isTechnicalSupport() && !updateUserRolesRequestDto.newUserRoles()
+                    .contains(RoleEnum.TECHNICAL_SUPPORT.getRoleId())) {
                 deleteTechSupportUserFromApply(user.getSub(), jwt);
             }
         }

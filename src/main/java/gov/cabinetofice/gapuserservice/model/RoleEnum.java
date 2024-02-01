@@ -1,9 +1,17 @@
 package gov.cabinetofice.gapuserservice.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@Getter
+@AllArgsConstructor
 public enum RoleEnum {
-    SUPER_ADMIN,
-    ADMIN,
-    APPLICANT,
-    FIND,
-    TECHNICAL_SUPPORT,
+    SUPER_ADMIN(4),
+    ADMIN(3),
+    APPLICANT(2),
+    FIND(1),
+    TECHNICAL_SUPPORT(5),
+    ;
+
+    final int roleId;
 }
