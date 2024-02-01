@@ -118,13 +118,16 @@ public class UserController {
     }
 
     @PatchMapping("/user/{id}/role")
-    public ResponseEntity<String> updateRoles(HttpServletRequest httpRequest, @RequestBody() List<Integer> roleIds,
+    public ResponseEntity<String> updateRoles(HttpServletRequest httpRequest,
+                                              @RequestBody() UpdateUserRolesRequestDto updateUserRolesRequestDto,
                                               @PathVariable("id") Integer id) {
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
 
-        boolean isARequestToBlockUser = roleIds.isEmpty();
+        final Cookie customJWTCookie = getCustomJwtCookieFromRequest(httpRequest, userServiceCookieName);
+
+        boolean isARequestToBlockUser = updateUserRolesRequestDto.newUserRoles().isEmpty();
         Optional<User> user = jwtService.getUserFromJwt(httpRequest);
 
         if (user.isEmpty()) {
@@ -134,7 +137,7 @@ public class UserController {
             throw new UnsupportedOperationException("You can't block yourself");
         }
 
-        oneLoginUserService.updateRoles(id, roleIds);
+        oneLoginUserService.updateRoles(id, updateUserRolesRequestDto, customJWTCookie.getValue());
         return ResponseEntity.ok("success");
     }
 
