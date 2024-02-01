@@ -283,6 +283,10 @@ public class OneLoginUserService {
                 .uri(adminBackend.concat("/users/tech-support-user/".concat(sub)))
                 .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
                 .retrieve()
+                .onStatus(httpStatus -> !httpStatus.equals(HttpStatus.OK), clientResponse -> {
+                    log.error("Unable to delete tech support user with sub {}, HTTP status code {}", sub, clientResponse.statusCode());
+                    return Mono.empty();
+                })
                 .bodyToMono(Void.class)
                 .block();
     }
@@ -445,7 +449,8 @@ public class OneLoginUserService {
         return users.stream().map(user -> UserEmailDto.builder()
                 .emailAddress(awsEncryptionService.encryptField(user.getEmailAddress()))
                 .sub(user.getSub())
-                .build()).collect(Collectors.toList());
+                .build())
+                .toList();
     }
 
     @PreAuthorize("hasRole('SUPER_ADMIN')")
