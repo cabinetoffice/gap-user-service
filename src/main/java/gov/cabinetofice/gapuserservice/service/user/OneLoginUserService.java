@@ -223,7 +223,10 @@ public class OneLoginUserService {
     private void handleTechSupportRoleChange(User user, UpdateUserRolesRequestDto updateUserRolesRequestDto, String jwt) {
         if (updateUserRolesRequestDto.newUserRoles().contains(RoleEnum.TECHNICAL_SUPPORT.getRoleId())
                 && !user.isTechnicalSupport()) {
-            addTechSupportUserToApply(user, updateUserRolesRequestDto.departmentId(), jwt);
+            Department department = departmentRepository.findById(updateUserRolesRequestDto.departmentId())
+                    .orElseThrow(() -> new DepartmentNotFoundException
+                            ("Department not found with id: " + updateUserRolesRequestDto.departmentId()));
+            addTechSupportUserToApply(user, department.getName(), jwt);
         } else {
             if (user.isTechnicalSupport() && !updateUserRolesRequestDto.newUserRoles()
                     .contains(RoleEnum.TECHNICAL_SUPPORT.getRoleId())) {
@@ -266,13 +269,13 @@ public class OneLoginUserService {
         userRepository.deleteById(id);
     }
 
-    public void addTechSupportUserToApply(User user, Integer departmentId, String jwt) {
+    public void addTechSupportUserToApply(User user, String departmentName, String jwt) {
         webClientBuilder.build()
                 .post()
                 .uri(adminBackend.concat("/users/tech-support-user"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(CreateTechSupportUserDto.builder()
-                        .userSub(user.getSub()).departmentId(departmentId).build()))
+                        .userSub(user.getSub()).departmentName(departmentName).build()))
                 .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
                 .retrieve()
                 .bodyToMono(Void.class)
