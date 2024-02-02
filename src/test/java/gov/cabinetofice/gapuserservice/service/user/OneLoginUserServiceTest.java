@@ -548,7 +548,8 @@ class OneLoginUserServiceTest {
     @Test
     void updateRolesShouldNotSetDepartmentToNullIfUserIsAdminOrSuperAdmin() {
         Integer userId = 1;
-        User user = User.builder().gapUserId(userId).department(Department.builder().name("test").build()).build();
+        Department department = Department.builder().id(1).name("test").build();
+        User user = User.builder().gapUserId(userId).department(department).build();
         UpdateUserRolesRequestDto updateUserRolesRequestDto = UpdateUserRolesRequestDto.builder()
                 .newUserRoles(Arrays.asList(1, 2, 3, 4, 5)).build();
 
@@ -568,6 +569,7 @@ class OneLoginUserServiceTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(roleRepository.findById(1)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).build()));
+        when(departmentRepository.findById(updateUserRolesRequestDto.departmentId())).thenReturn(Optional.of(department));
         when(roleRepository.findById(2)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
         when(roleRepository.findById(3)).thenReturn(Optional.of(Role.builder().name(RoleEnum.ADMIN).build()));
         when(roleRepository.findById(4)).thenReturn(Optional.of(Role.builder().name(RoleEnum.SUPER_ADMIN).build()));
