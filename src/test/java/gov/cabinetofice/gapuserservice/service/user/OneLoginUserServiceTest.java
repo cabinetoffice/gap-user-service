@@ -569,7 +569,7 @@ class OneLoginUserServiceTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(roleRepository.findById(1)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).build()));
-        when(departmentRepository.findById(updateUserRolesRequestDto.departmentId())).thenReturn(Optional.of(department));
+        when(departmentRepository.findById(1)).thenReturn(Optional.of(department));
         when(roleRepository.findById(2)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
         when(roleRepository.findById(3)).thenReturn(Optional.of(Role.builder().name(RoleEnum.ADMIN).build()));
         when(roleRepository.findById(4)).thenReturn(Optional.of(Role.builder().name(RoleEnum.SUPER_ADMIN).build()));

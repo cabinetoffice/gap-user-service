@@ -223,7 +223,11 @@ public class OneLoginUserService {
     private void handleTechSupportRoleChange(User user, UpdateUserRolesRequestDto updateUserRolesRequestDto, String jwt) {
         if (updateUserRolesRequestDto.newUserRoles().contains(RoleEnum.TECHNICAL_SUPPORT.getRoleId())
                 && !user.isTechnicalSupport()) {
-            Department department = departmentRepository.findById(updateUserRolesRequestDto.departmentId())
+
+            Integer departmentId = updateUserRolesRequestDto.departmentId() == null
+                    ? user.getDepartment().getId() : updateUserRolesRequestDto.departmentId();
+
+            Department department = departmentRepository.findById(departmentId)
                     .orElseThrow(() -> new DepartmentNotFoundException
                             ("Department not found with id: " + updateUserRolesRequestDto.departmentId()));
             addTechSupportUserToApply(user, department.getName(), jwt);
