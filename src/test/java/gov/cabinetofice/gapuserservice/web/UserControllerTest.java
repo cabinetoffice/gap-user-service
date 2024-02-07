@@ -3,6 +3,7 @@ package gov.cabinetofice.gapuserservice.web;
 import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
+import gov.cabinetofice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -13,20 +14,20 @@ import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.util.WebUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -51,17 +52,30 @@ class UserControllerTest {
     @Mock
     private SecretAuthService secretAuthService;
 
+    private static MockedStatic<WebUtils> mockedWebUtils;
+
     @BeforeEach
     void setUp() {
+        mockedWebUtils = mockStatic(WebUtils.class);
         ReflectionTestUtils.setField(controller, "userServiceCookieName", "userServiceCookieName");
+    }
+
+    @AfterEach
+    public void close() {
+        mockedWebUtils.close();
     }
 
     @Test
     void updateRolesForUserId() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
+        UpdateUserRolesRequestDto updateUserRolesRequestDto = UpdateUserRolesRequestDto.builder()
+                .newUserRoles(Arrays.asList(1, 2, 3, 4, 5)).build();
+
+        mockedWebUtils.when(() -> WebUtils.getCookie(httpRequest, "userServiceCookieName"))
+                .thenReturn(new Cookie("userServiceCookieName", "jwt"));
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(2).build()));
-        final ResponseEntity<String> methodResponse = controller.updateRoles(httpRequest, List.of(1, 2), 1);
+        final ResponseEntity<String> methodResponse = controller.updateRoles(httpRequest,updateUserRolesRequestDto, 1);
 
         assertThat(methodResponse).isEqualTo(ResponseEntity.ok("success"));
     }
@@ -70,20 +84,32 @@ class UserControllerTest {
     void testSuperAdminCannotBlockThemselves() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
-        final ArrayList<Integer> noRoles = new ArrayList<>();
+        mockedWebUtils.when(() -> WebUtils.getCookie(httpRequest, "userServiceCookieName"))
+                .thenReturn(new Cookie("userServiceCookieName", "jwt"));
+
+        UpdateUserRolesRequestDto updateUserRolesRequestDto = UpdateUserRolesRequestDto.builder()
+                .newUserRoles(new ArrayList<>()).build();
+
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(1).build()));
 
-        assertThrows(UnsupportedOperationException.class, () -> controller.updateRoles(httpRequest, noRoles, 1));
+        assertThrows(UnsupportedOperationException.class, () -> controller.updateRoles(httpRequest,
+                updateUserRolesRequestDto, 1));
     }
 
     @Test
     void testSuperAdminThrowsInvalidRequestWithNoUser() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        final ArrayList<Integer> noRoles = new ArrayList<>();
+        UpdateUserRolesRequestDto updateUserRolesRequestDto = UpdateUserRolesRequestDto.builder()
+                .newUserRoles(new ArrayList<>()).departmentId(1).build();
+
+        mockedWebUtils.when(() -> WebUtils.getCookie(httpRequest, "userServiceCookieName"))
+                .thenReturn(new Cookie("userServiceCookieName", "jwt"));
+
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.empty());
 
-        assertThrows(InvalidRequestException.class, () -> controller.updateRoles(httpRequest, noRoles, 1));
+        assertThrows(InvalidRequestException.class, () -> controller.updateRoles(httpRequest,
+                updateUserRolesRequestDto, 1));
     }
 
     @Test
@@ -124,7 +150,10 @@ class UserControllerTest {
     @Test
     void shouldDeleteUserWhenValidIdIsGiven() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        when(httpRequest.getCookies()).thenReturn(new Cookie[]{new Cookie("userServiceCookieName", "1")});
+
+        mockedWebUtils.when(() -> WebUtils.getCookie(httpRequest, "userServiceCookieName"))
+                .thenReturn(new Cookie("userServiceCookieName", "jwt"));
+
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(2).build()));
         final ResponseEntity<String> methodResponse = controller.deleteUser(httpRequest, 1);
@@ -135,7 +164,10 @@ class UserControllerTest {
     @Test
     void shouldThrowErrorWhenAdminTriesToDeleteThemselves() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        when(httpRequest.getCookies()).thenReturn(new Cookie[]{new Cookie("userServiceCookieName", "1")});
+
+        mockedWebUtils.when(() -> WebUtils.getCookie(httpRequest, "userServiceCookieName"))
+                .thenReturn(new Cookie("userServiceCookieName", "jwt"));
+
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.of(User.builder().gapUserId(1).build()));
 
@@ -145,7 +177,10 @@ class UserControllerTest {
     @Test
     void shouldThrowErrorWhenUserIsEmpty() {
         final HttpServletRequest httpRequest = mock(HttpServletRequest.class);
-        when(httpRequest.getCookies()).thenReturn(new Cookie[]{new Cookie("userServiceCookieName", "1")});
+
+        mockedWebUtils.when(() -> WebUtils.getCookie(httpRequest, "userServiceCookieName"))
+                .thenReturn(new Cookie("userServiceCookieName", "jwt"));
+
         when(roleService.isSuperAdmin(httpRequest)).thenReturn(true);
         when(customJwtService.getUserFromJwt(httpRequest)).thenReturn(Optional.empty());
 
@@ -252,4 +287,29 @@ class UserControllerTest {
         assertThat(methodResponse.getBody()).isEqualTo(mockUserDto);
     }
 
+    @Test
+    void testGetEmailFromSub() {
+        String userSub = "1";
+        String userEmail = "test@test.com";
+        User mockUser = User.builder().sub(userSub).gapUserId(1)
+                .emailAddress(userEmail).build();
+        when(oneLoginUserService.getUserBySub(userSub)).thenReturn(mockUser);
+        HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+        final ResponseEntity<String> methodResponse = controller.getEmailFromSub(mockRequest, userSub);
+
+        assertThat(methodResponse.getBody()).isEqualTo(userEmail);
+        verify(oneLoginUserService, times(1)).getUserBySub(userSub);
+    }
+
+    @Test
+    void testGetEmailFromSub_UserNotFound() {
+        String userSub = "2";
+        when(oneLoginUserService.getUserBySub(userSub)).thenThrow(UserNotFoundException.class);
+        HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+
+        assertThrows(UserNotFoundException.class, () -> {
+            controller.getEmailFromSub(mockRequest, userSub);
+        });
+        verify(oneLoginUserService, times(1)).getUserBySub(userSub);
+    }
 }

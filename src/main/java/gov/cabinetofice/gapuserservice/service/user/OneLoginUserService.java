@@ -31,6 +31,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -194,16 +195,19 @@ public class OneLoginUserService {
         return userRepository.save(user);
     }
 
-    public User updateRoles(Integer id, List<Integer> newRoles) {
+    public User updateRoles(Integer id, UpdateUserRolesRequestDto updateUserRolesRequestDto, String jwt) {
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+
+        handleTechSupportRoleChange(user, updateUserRolesRequestDto, jwt);
+
         user.removeAllRoles();
 
-        if (newRoles == null || newRoles.isEmpty()) {
+        if (updateUserRolesRequestDto.newUserRoles().isEmpty()) {
             userRepository.save(user);
             return user;
         }
 
-        for (Integer roleId : newRoles) {
+        for (Integer roleId : updateUserRolesRequestDto.newUserRoles()) {
             Role role = roleRepository.findById(roleId).orElseThrow();
             user.addRole(role);
         }
@@ -214,6 +218,25 @@ public class OneLoginUserService {
         userRepository.save(user);
 
         return user;
+    }
+
+    private void handleTechSupportRoleChange(User user, UpdateUserRolesRequestDto updateUserRolesRequestDto, String jwt) {
+        if (updateUserRolesRequestDto.newUserRoles().contains(RoleEnum.TECHNICAL_SUPPORT.getRoleId())
+                && !user.isTechnicalSupport()) {
+
+            Integer departmentId = updateUserRolesRequestDto.departmentId() == null
+                    ? user.getDepartment().getId() : updateUserRolesRequestDto.departmentId();
+
+            Department department = departmentRepository.findById(departmentId)
+                    .orElseThrow(() -> new DepartmentNotFoundException
+                            ("Department not found with id: " + updateUserRolesRequestDto.departmentId()));
+            addTechSupportUserToApply(user, department.getName(), jwt);
+        } else {
+            if (user.isTechnicalSupport() && !updateUserRolesRequestDto.newUserRoles()
+                    .contains(RoleEnum.TECHNICAL_SUPPORT.getRoleId())) {
+                deleteTechSupportUserFromApply(user.getSub(), jwt);
+            }
+        }
     }
 
     private void addRoleIfNotPresent(User user, RoleEnum roleName) {
@@ -248,6 +271,33 @@ public class OneLoginUserService {
         deleteUserFromFind(jwt, user);
         deleteUserFromApply(jwt, user);
         userRepository.deleteById(id);
+    }
+
+    public void addTechSupportUserToApply(User user, String departmentName, String jwt) {
+        webClientBuilder.build()
+                .post()
+                .uri(adminBackend.concat("/users/tech-support-user"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromValue(CreateTechSupportUserDto.builder()
+                        .userSub(user.getSub()).departmentName(departmentName).build()))
+                .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
+                .retrieve()
+                .bodyToMono(Void.class)
+                .block();
+    }
+
+    public void deleteTechSupportUserFromApply(String sub, String jwt) {
+        webClientBuilder.build()
+                .delete()
+                .uri(adminBackend.concat("/users/tech-support-user/".concat(sub)))
+                .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
+                .retrieve()
+                .onStatus(httpStatus -> !httpStatus.equals(HttpStatus.OK), clientResponse -> {
+                    log.error("Unable to delete tech support user with sub {}, HTTP status code {}", sub, clientResponse.statusCode());
+                    return Mono.empty();
+                })
+                .bodyToMono(Void.class)
+                .block();
     }
 
     private void deleteUserFromApply(String jwt, User user) {
@@ -408,7 +458,8 @@ public class OneLoginUserService {
         return users.stream().map(user -> UserEmailDto.builder()
                 .emailAddress(awsEncryptionService.encryptField(user.getEmailAddress()))
                 .sub(user.getSub())
-                .build()).collect(Collectors.toList());
+                .build())
+                .toList();
     }
 
     @PreAuthorize("hasRole('SUPER_ADMIN')")
