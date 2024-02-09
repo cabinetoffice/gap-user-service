@@ -18,7 +18,7 @@
 	<properties>
 		<java.version>17</java.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<govuk-frontend-version>4.5.0</govuk-frontend-version>
+		<govuk-frontend-version>4.8.0</govuk-frontend-version>
 		<upstream.url>https://github.com/alphagov/govuk-frontend/releases/download/v${govuk-frontend-version}/release-v${govuk-frontend-version}.zip</upstream.url>
 		<destDir>${project.build.outputDirectory}/META-INF/resources/webjars/govuk-frontend/${govuk-frontend-version}</destDir>
 	</properties>
