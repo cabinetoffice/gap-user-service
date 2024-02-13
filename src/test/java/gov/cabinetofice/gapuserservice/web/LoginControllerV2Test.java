@@ -197,10 +197,13 @@ class LoginControllerV2Test {
                 .state(state)
                 .redirectUrl(redirectUrlCookie)
                 .saltId(saltId);
+        final MockHttpServletRequest request = new MockHttpServletRequest();
 
         @Test
         void shouldFetchOneLoginUserInfo() throws JSONException {
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+
             final JSONObject tokenResponse = new JSONObject();
             tokenResponse.put("id_token", idToken).put("access_token", accessToken);
 
@@ -215,13 +218,14 @@ class LoginControllerV2Test {
             when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
 
-            loginController.redirectAfterLogin(stateCookie, response, code, state);
+            loginController.redirectAfterLogin(stateCookie, request, response, code, state);
 
             verify(oneLoginService).getOneLoginUserInfoDto(accessToken);
         }
 
         @Test
         void shouldCreateOrGetUserFromOneLoginInfo() throws JSONException {
+            final String customToken = "a-custom-valid-token";
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final JSONObject tokenResponse = new JSONObject();
             tokenResponse.put("id_token", idToken).put("access_token", accessToken);
@@ -231,19 +235,27 @@ class LoginControllerV2Test {
                     .sub("sub")
                     .build();
 
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                    .thenReturn(new Cookie(LoginController.REDIRECT_URL_COOKIE, customToken));
+            when(customJwtService.isTokenValid(customToken))
+                    .thenReturn(false);
+
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
             when(oneLoginUserService.createOrGetUserFromInfo(oneLoginUserInfoDto)).thenReturn(userBuilder.build());
             when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
 
-            loginController.redirectAfterLogin(stateCookie, response, code, state);
+            loginController.redirectAfterLogin(stateCookie, request, response, code, state);
 
             verify(oneLoginUserService).createOrGetUserFromInfo(oneLoginUserInfoDto);
         }
 
         @Test
         void shouldCreateJwtCookie() throws JSONException {
+            final String customToken = "a-custom-valid-token";
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final Map<String, String> claims = Map.of("claim1", "value1", "claim2", "value2");
             final Cookie cookie = WebUtil.buildSecureCookie("userServiceCookieName", "jwtToken");
@@ -255,6 +267,13 @@ class LoginControllerV2Test {
                     .sub("sub")
                     .build();
 
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                    .thenReturn(new Cookie(LoginController.REDIRECT_URL_COOKIE, customToken));
+            when(customJwtService.isTokenValid(customToken))
+                    .thenReturn(false);
+
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
             when(oneLoginUserService.createOrGetUserFromInfo(any())).thenReturn(userBuilder.build());
@@ -263,16 +282,24 @@ class LoginControllerV2Test {
             when(oneLoginService.generateCustomJwtClaims(any(), any())).thenReturn(claims);
             when(customJwtService.generateToken(claims)).thenReturn("jwtToken");
 
-            loginController.redirectAfterLogin(stateCookie, response, code, state);
+            loginController.redirectAfterLogin(stateCookie, request, response, code, state);
 
             verify(response).addCookie(cookie);
         }
 
         @Test
         void shouldRequireReauthentication_ifNonceIsExpired() throws JSONException {
+            final String customToken = "a-custom-valid-token";
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final JSONObject tokenResponse = new JSONObject();
             tokenResponse.put("id_token", idToken).put("access_token", accessToken);
+
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                    .thenReturn(new Cookie(LoginController.REDIRECT_URL_COOKIE, customToken));
+            when(customJwtService.isTokenValid(customToken))
+                    .thenReturn(false);
 
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
@@ -280,15 +307,22 @@ class LoginControllerV2Test {
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             doThrow(new NonceExpiredException("User authorization failed, please try again")).when(oneLoginService).verifyStateAndNonce(any(), any(), any());
 
-            Exception exception = assertThrows(NonceExpiredException.class, () -> loginController.redirectAfterLogin(stateCookie, response, code, state));
+            Exception exception = assertThrows(NonceExpiredException.class, () -> loginController.redirectAfterLogin(stateCookie, request, response, code, state));
             assertThat(exception.getMessage()).isEqualTo("User authorization failed, please try again");
         }
 
         @Test
         void shouldRequireReauthentication_ifStateOrNonceInvalid() throws JSONException {
+            final String customToken = "a-custom-valid-token";
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final JSONObject tokenResponse = new JSONObject();
             tokenResponse.put("id_token", idToken).put("access_token", accessToken);
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                    .thenReturn(new Cookie(LoginController.REDIRECT_URL_COOKIE, customToken));
+            when(customJwtService.isTokenValid(customToken))
+                    .thenReturn(false);
 
             when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
             when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
@@ -297,7 +331,7 @@ class LoginControllerV2Test {
 
             Exception exception = assertThrows(
                     UnauthorizedClientException.class,
-                    () -> loginController.redirectAfterLogin(stateCookie, response, code, state)
+                    () -> loginController.redirectAfterLogin(stateCookie, request, response, code, state)
             );
             assertThat(exception.getMessage()).isEqualTo("User authorization failed");
         }
@@ -307,6 +341,7 @@ class LoginControllerV2Test {
             @ParameterizedTest
             @CsvSource({"USER_READY,true", "USER_READY,false", "USER_MIGRATED_AND_READY,true", "USER_MIGRATED_AND_READY,false"})
             void shouldRedirectToSADashboard_whenUserIsSA(final LoginJourneyState initialState, final String migrateFindEnabled) {
+                final String customToken = "a-custom-valid-token";
                 final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
                 final User user = userBuilder
                         .roles(List.of(Role.builder().name(RoleEnum.SUPER_ADMIN).build()))
@@ -320,6 +355,13 @@ class LoginControllerV2Test {
                         .sub("sub")
                         .build();
 
+                final MockHttpServletRequest request = new MockHttpServletRequest();
+
+                mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                        .thenReturn(new Cookie(LoginController.REDIRECT_URL_COOKIE, customToken));
+                when(customJwtService.isTokenValid(customToken))
+                        .thenReturn(false);
+
                 ReflectionTestUtils.setField(loginController, "findAccountsMigrationEnabled", migrateFindEnabled);
                 when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
                 when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
@@ -327,7 +369,7 @@ class LoginControllerV2Test {
                 when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
                 when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
 
-                final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, response, code, state);
+                final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, request, response, code, state);
 
                 assertThat(methodResponse.getUrl()).isEqualTo("http:localhost:3000/adminBaseUrl?redirectUrl=/super-admin-dashboard");
             }
@@ -335,6 +377,7 @@ class LoginControllerV2Test {
             @ParameterizedTest
             @CsvSource({"USER_READY,true", "USER_READY,false", "USER_MIGRATED_AND_READY,true", "USER_MIGRATED_AND_READY,false"})
             void shouldRedirectToAdminDashboard_whenUserIsAdmin(final LoginJourneyState initialState, final String migrateFindEnabled) {
+                final String customToken = "a-custom-valid-token";
                 final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
                 final User user = userBuilder
                         .roles(List.of(Role.builder().name(RoleEnum.ADMIN).build()))
@@ -350,6 +393,13 @@ class LoginControllerV2Test {
                         .sub("sub")
                         .build();
 
+                final MockHttpServletRequest request = new MockHttpServletRequest();
+
+                mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                        .thenReturn(new Cookie(LoginController.REDIRECT_URL_COOKIE, customToken));
+                when(customJwtService.isTokenValid(customToken))
+                        .thenReturn(false);
+
                 ReflectionTestUtils.setField(loginController, "findAccountsMigrationEnabled", migrateFindEnabled);
                 when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
                 when(oneLoginService.getOneLoginUserInfoDto(accessToken)).thenReturn(oneLoginUserInfoDto);
@@ -357,7 +407,7 @@ class LoginControllerV2Test {
                 when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
                 when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
 
-                final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, response, code, state);
+                final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, request, response, code, state);
 
                 if (migrateFindEnabled.equals("true") && initialState.equals(LoginJourneyState.USER_READY)) {
                     assertThat(methodResponse.getUrl()).isEqualTo("http:localhost:3000/adminBaseUrl?redirectUrl=%2Fdashboard%3FapplyMigrationStatus%3DALREADY_MIGRATED%26findMigrationStatus%3DNOT_STARTED");
@@ -369,6 +419,7 @@ class LoginControllerV2Test {
             @ParameterizedTest
             @CsvSource({"USER_READY,true", "USER_READY,false", "USER_MIGRATED_AND_READY,true", "USER_MIGRATED_AND_READY,false"})
             void shouldRedirectToRedirectUrlCookie_whenUserIsApplicant(final LoginJourneyState initialState, final String migrateFindEnabled) {
+                final String customToken = "a-custom-valid-token";
                 final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
                 final User user = userBuilder
                         .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
@@ -382,6 +433,12 @@ class LoginControllerV2Test {
                         .emailAddress("email")
                         .sub("sub")
                         .build();
+                final MockHttpServletRequest request = new MockHttpServletRequest();
+
+                mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                        .thenReturn(new Cookie(LoginController.REDIRECT_URL_COOKIE, customToken));
+                when(customJwtService.isTokenValid(customToken))
+                        .thenReturn(false);
 
                 ReflectionTestUtils.setField(loginController, "findAccountsMigrationEnabled", migrateFindEnabled);
                 when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
@@ -390,7 +447,7 @@ class LoginControllerV2Test {
                 when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
                 when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
 
-                final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, response, code, state);
+                final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, request, response, code, state);
 
                 if (migrateFindEnabled.equals("true") && initialState.equals(LoginJourneyState.USER_READY)) {
                     assertThat(methodResponse.getUrl()).isEqualTo(redirectUrlCookie + "?applyMigrationStatus=ALREADY_MIGRATED&findMigrationStatus=NOT_STARTED");
@@ -402,6 +459,7 @@ class LoginControllerV2Test {
             @ParameterizedTest
             @CsvSource({"USER_READY,true", "USER_READY,false", "USER_MIGRATED_AND_READY,true", "USER_MIGRATED_AND_READY,false"})
             void shouldRedirectToTechSupportDashboard_whenUserIsTechSupport(final LoginJourneyState initialState, final String migrateFindEnabled) {
+                final String customToken = "a-custom-valid-token";
                 final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
                 final User user = userBuilder
                         .roles(List.of(Role.builder().name(RoleEnum.TECHNICAL_SUPPORT).build()))
@@ -414,6 +472,12 @@ class LoginControllerV2Test {
                         .emailAddress("email")
                         .sub("sub")
                         .build();
+                final MockHttpServletRequest request = new MockHttpServletRequest();
+
+                mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                        .thenReturn(new Cookie(LoginController.REDIRECT_URL_COOKIE, customToken));
+                when(customJwtService.isTokenValid(customToken))
+                        .thenReturn(false);
 
                 ReflectionTestUtils.setField(loginController, "findAccountsMigrationEnabled", migrateFindEnabled);
                 when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
@@ -422,7 +486,7 @@ class LoginControllerV2Test {
                 when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
                 when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
 
-                final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, response, code, state);
+                final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, request, response, code, state);
 
                 assertThat(methodResponse.getUrl()).isEqualTo("http:localhost:3000/techSupportAppBaseUrl");
             }
@@ -433,6 +497,7 @@ class LoginControllerV2Test {
             @ParameterizedTest
             @ValueSource(strings = {"true", "false"})
             void shouldRedirectToPrivacyPolicyPage_whenItHasNotBeenAccepted(final String migrateFindEnabled) throws JSONException {
+                final String customToken = "a-custom-valid-token";
                 final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
                 final JSONObject tokenResponse = new JSONObject();
                 tokenResponse.put("id_token", idToken).put("access_token", accessToken);
@@ -440,6 +505,12 @@ class LoginControllerV2Test {
                         .emailAddress("email")
                         .sub("sub")
                         .build();
+                final MockHttpServletRequest request = new MockHttpServletRequest();
+
+                mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                        .thenReturn(new Cookie(LoginController.REDIRECT_URL_COOKIE, customToken));
+                when(customJwtService.isTokenValid(customToken))
+                        .thenReturn(false);
 
                 ReflectionTestUtils.setField(loginController, "findAccountsMigrationEnabled", migrateFindEnabled);
                 when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
@@ -448,7 +519,7 @@ class LoginControllerV2Test {
                 when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
                 when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
 
-                final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, response, code, state);
+                final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, request, response, code, state);
 
                 assertThat(methodResponse.getUrl()).isEqualTo("privacy-policy");
             }
@@ -607,6 +678,7 @@ class LoginControllerV2Test {
                     "USER_READY,true,false", "USER_READY,false,false", "USER_MIGRATED_AND_READY,true,false", "USER_MIGRATED_AND_READY,false,false"
             })
             void loginAndEmailChanged(final LoginJourneyState initialState, final String migrateFindEnabled, final boolean hasEmailChanged) {
+                final String customToken = "a-custom-valid-token";
                 final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
                 final User user = userBuilder
                         .roles(List.of(Role.builder().name(RoleEnum.APPLICANT).build()))
@@ -633,7 +705,7 @@ class LoginControllerV2Test {
                     when(oneLoginUserService.hasEmailChanged(any(), any())).thenReturn(true);
                 }
 
-                final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, response, code, state);
+                final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, request, response, code, state);
 
                 if (migratingUsersFindAccount) {
                     assertThat(methodResponse.getUrl()).isEqualTo("http://redirectUrl.com?applyMigrationStatus=SUCCEEDED&findMigrationStatus=SUCCEEDED");
