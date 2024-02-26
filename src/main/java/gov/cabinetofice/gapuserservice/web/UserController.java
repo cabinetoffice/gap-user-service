@@ -170,7 +170,7 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
         public ResponseEntity<List<UserEmailDto>> getUserEmailsFromSubs(
                 @RequestBody() UserSubsRequestDto req){
-        return ResponseEntity.ok(oneLoginUserService.getUserEmailsBySubs(req.getUserSubs()));
+        return ResponseEntity.ok(oneLoginUserService.getUserEmailsBySubs(req.userSubs()));
     };
 
 

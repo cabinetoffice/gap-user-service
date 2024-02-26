@@ -1,16 +1,10 @@
 package gov.cabinetofice.gapuserservice.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.util.List;
 
-@Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class UserSubsRequestDto {
-    private List<String> userSubs;
+public record UserSubsRequestDto (List<String> userSubs) {
+
 }
