@@ -166,6 +166,14 @@ public class UserController {
         return ResponseEntity.ok(oneLoginUserService.getUserEmailsBySubs(subs));
     }
 
+    @PostMapping("/user-emails-from-subs")
+    @PreAuthorize("hasRole('ADMIN')")
+        public ResponseEntity<List<UserEmailDto>> getUserEmailsFromSubs(
+                @RequestBody UserSubsRequestDto req){
+        return ResponseEntity.ok(oneLoginUserService.getUserEmailsBySubs(req.userSubs()));
+    };
+
+
     @GetMapping("/user/email/{email}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<UserDto> getUserByEmail(@PathVariable("email") String email, @RequestParam Optional<String> role) {

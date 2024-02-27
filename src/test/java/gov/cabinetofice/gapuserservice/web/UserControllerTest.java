@@ -260,6 +260,30 @@ class UserControllerTest {
     }
 
     @Test
+    void testUserEmailsFromSubs() {
+        User mockUser = User.builder().sub("1").gapUserId(1)
+                .emailAddress("test1@test.com").build();
+        User mockUser2 = User.builder().sub("2").gapUserId(2)
+                .emailAddress("test2@test.com").build();
+
+        List<String> userEmails = List.of(mockUser.getEmailAddress(), mockUser2.getEmailAddress());
+        UserSubsRequestDto userSubsRequestDto = new UserSubsRequestDto(userEmails);
+
+        List<UserEmailDto> userEmailDtos = List.of(
+                new UserEmailDto(mockUser.getEmailAddress().getBytes(), mockUser.getSub()),
+                new UserEmailDto(mockUser2.getEmailAddress().getBytes(), mockUser2.getSub())
+        );
+
+        when(oneLoginUserService.getUserEmailsBySubs(userEmails)).thenReturn(userEmailDtos);
+        final ResponseEntity<List<UserEmailDto>> methodResponse = controller.getUserEmailsFromSubs(userSubsRequestDto);
+
+        assertThat(methodResponse.getBody()).isEqualTo(
+                List.of(new UserEmailDto(mockUser.getEmailAddress().getBytes(), mockUser.getSub()),
+                        new UserEmailDto(mockUser2.getEmailAddress().getBytes(), mockUser2.getSub()))
+        );
+    }
+
+    @Test
     void testGetUserByEmailWhenARoleIsSpecified() {
         String testEmail = "test@test.com";
         Role roles = Role.builder().id(1).name(RoleEnum.ADMIN).build();
