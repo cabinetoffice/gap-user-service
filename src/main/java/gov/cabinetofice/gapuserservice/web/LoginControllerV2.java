@@ -84,7 +84,8 @@ public class LoginControllerV2 {
     private String postLogoutRedirectUri;
 
     @PostMapping("/validateSessionsRoles")
-    public ResponseEntity<Boolean> validateSessionsRoles(@RequestBody final ValidateSessionsRolesRequestBodyDto requestBody) {
+    public ResponseEntity<Boolean> validateSessionsRoles(
+            @RequestBody final ValidateSessionsRolesRequestBodyDto requestBody) {
         oneLoginUserService.validateSessionsRoles(requestBody.emailAddress(), requestBody.roles());
         return ResponseEntity.ok(Boolean.TRUE);
     }
@@ -117,9 +118,23 @@ public class LoginControllerV2 {
     @GetMapping("/redirect-after-login")
     public RedirectView redirectAfterLogin(
             final @CookieValue(name = STATE_COOKIE) String stateCookie,
+            final HttpServletRequest request,
             final HttpServletResponse response,
             final @RequestParam String code,
             final @RequestParam String state) {
+
+        // Redirect user if they are already logged in
+        final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
+        final boolean isTokenValid = customJWTCookie != null
+                && customJWTCookie.getValue() != null
+                && customJwtService.isTokenValid(customJWTCookie.getValue());
+
+        if (isTokenValid) {
+            final StateCookieDto stateCookieDto = oneLoginService.decodeStateCookie(stateCookie);
+            final String redirectUrl = stateCookieDto.getRedirectUrl();
+            return new RedirectView(redirectUrl);
+        }
+
         final JSONObject tokenResponse = oneLoginService.getOneLoginUserTokenResponse(code);
         log.info(
                 loggingUtils.getLogMessage("one login token response: ", 1),
@@ -136,7 +151,6 @@ public class LoginControllerV2 {
 
         final StateCookieDto stateCookieDto = oneLoginService.decodeStateCookie(stateCookie);
         final String redirectUrl = stateCookieDto.getRedirectUrl();
-
         oneLoginService.verifyStateAndNonce(decodedIdToken.getNonce(), stateCookieDto, state);
 
         final OneLoginUserInfoDto userInfo = oneLoginService.getOneLoginUserInfoDto(authToken);
@@ -207,7 +221,7 @@ public class LoginControllerV2 {
     }
 
     private Cookie addCustomJwtCookie(final HttpServletResponse response, final OneLoginUserInfoDto userInfo,
-                                      final String idToken) {
+            final String idToken) {
         final Map<String, String> customJwtClaims = oneLoginService.generateCustomJwtClaims(userInfo, idToken);
         final String customServiceJwt = customJwtService.generateToken(customJwtClaims);
         final Cookie customJwt = WebUtil.buildSecureCookie(userServiceCookieName, customServiceJwt);
@@ -216,9 +230,8 @@ public class LoginControllerV2 {
     }
 
     private String getRedirectUrlFromStateCookie(Optional<String> stateCookie) {
-        return stateCookie.isPresent() ?
-                oneLoginService.decodeStateCookie(stateCookie.get()).getRedirectUrl() :
-                configProperties.getDefaultRedirectUrl();
+        return stateCookie.isPresent() ? oneLoginService.decodeStateCookie(stateCookie.get()).getRedirectUrl()
+                : configProperties.getDefaultRedirectUrl();
     }
 
     private Optional<User> getUserFromCookie(final Cookie customJWTCookie) {
@@ -227,14 +240,16 @@ public class LoginControllerV2 {
     }
 
     private String runStateMachine(final String redirectUrlCookie, final User user, final String jwt,
-                                   final boolean hasAcceptedPrivacyPolicy, final OneLoginUserInfoDto userInfo) {
+            final boolean hasAcceptedPrivacyPolicy, final OneLoginUserInfoDto userInfo) {
         log.info(loggingUtils.getLogMessage("Running state machine", 5), redirectUrlCookie, user, jwt,
                 hasAcceptedPrivacyPolicy, userInfo);
 
         String redirectUrl = user.getLoginJourneyState()
-                .nextState(new NextStateArgs(oneLoginUserService, user, jwt, log, hasAcceptedPrivacyPolicy, userInfo, findAccountsMigrationEnabled))
+                .nextState(new NextStateArgs(oneLoginUserService, user, jwt, log, hasAcceptedPrivacyPolicy, userInfo,
+                        findAccountsMigrationEnabled))
                 .getLoginJourneyRedirect(user.getHighestRole().getName())
-                .getRedirectUrl(new GetRedirectUrlArgs(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl, redirectUrlCookie, user));
+                .getRedirectUrl(new GetRedirectUrlArgs(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl,
+                        redirectUrlCookie, user));
         log.info(loggingUtils.getLogMessage("Redirecting to: ", 1), redirectUrl);
         return redirectUrl;
     }
