@@ -22,7 +22,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     @EntityGraph(attributePaths = {"department", "roles"})
     Optional<User> findByEmailAddress(String email);
 
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Query("SELECT u from User u inner join u.roles roles WHERE roles.id = :roleId and u.emailAddress = :emailAddress")
     Optional<User> findByEmailAddressAndRole(String emailAddress, Integer roleId);
 
