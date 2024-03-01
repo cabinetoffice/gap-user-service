@@ -462,12 +462,10 @@ public class OneLoginUserService {
                 .toList();
     }
 
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public User getUserByEmail(String email) {
         return userRepository.findByEmailAddress(email).orElseThrow(() -> new UserNotFoundException("user with email: " + email + NOT_FOUND));
     }
 
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public User getUserByEmailAndRole(String email, String roleName) {
         final RoleEnum roleEnum = RoleEnum.valueOf(roleName);
         final Role role = roleRepository.findByName(roleEnum).orElseThrow(() -> new RoleNotFoundException("Could not find user: '" + roleEnum + "' role not found"));
