@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 @AllArgsConstructor
 @NoArgsConstructor
 @Configuration("serviceToServiceConfigurationProperties")
-@ConfigurationProperties(prefix = "serviceToService")
+@ConfigurationProperties(prefix = "service-to-service")
 
 public class ServiceToServiceConfigProperties {
     private String secret;
