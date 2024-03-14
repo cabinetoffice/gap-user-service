@@ -1,12 +1,12 @@
 package gov.cabinetofice.gapuserservice.web;
 
+import gov.cabinetofice.gapuserservice.annotations.ServiceToServiceHeaderValidation;
 import gov.cabinetofice.gapuserservice.dto.*;
 import gov.cabinetofice.gapuserservice.exceptions.ForbiddenException;
 import gov.cabinetofice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
-import gov.cabinetofice.gapuserservice.service.SecretAuthService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import jakarta.servlet.http.Cookie;
@@ -14,7 +14,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
@@ -32,13 +31,11 @@ import static gov.cabinetofice.gapuserservice.util.HelperUtils.getCustomJwtCooki
 @ConditionalOnProperty(value = "feature.onelogin.enabled", havingValue = "true")
 public class UserController {
 
+    private static final String NO_USER = "Could not get user from jwt";
     private final OneLoginUserService oneLoginUserService;
     private final DepartmentService departmentService;
     private final RoleService roleService;
     private final CustomJwtServiceImpl jwtService;
-    private final SecretAuthService secretAuthService;
-    private static final String NO_USER = "Could not get user from jwt";
-
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
 
@@ -73,10 +70,8 @@ public class UserController {
     }
 
     @GetMapping("/user")
-    public ResponseEntity<UserAndRelationsDto> getUserByUserSub(@RequestParam("userSub") String userSub,
-                                                                @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader) {
-        // authenticate request from lambda function
-        secretAuthService.authenticateSecret(authHeader);
+    @ServiceToServiceHeaderValidation        // authenticate request from other services
+    public ResponseEntity<UserAndRelationsDto> getUserByUserSub(@RequestParam("userSub") String userSub) {
         return ResponseEntity.ok(new UserAndRelationsDto(oneLoginUserService.getUserByUserSub(userSub)));
     }
 
@@ -161,17 +156,17 @@ public class UserController {
     }
 
     @PostMapping("/users/emails")
-    public ResponseEntity<List<UserEmailDto>> getUserEmailsBySubs(@RequestBody() List<String> subs, @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader) {
-        secretAuthService.authenticateSecret(authHeader);
+    @ServiceToServiceHeaderValidation        // authenticate request from other services
+    public ResponseEntity<List<UserEmailDto>> getUserEmailsBySubs(@RequestBody() List<String> subs) {
         return ResponseEntity.ok(oneLoginUserService.getUserEmailsBySubs(subs));
     }
 
     @PostMapping("/user-emails-from-subs")
     @PreAuthorize("hasRole('ADMIN')")
-        public ResponseEntity<List<UserEmailDto>> getUserEmailsFromSubs(
+    public ResponseEntity<List<UserEmailDto>> getUserEmailsFromSubs(
                 @RequestBody UserSubsRequestDto req){
         return ResponseEntity.ok(oneLoginUserService.getUserEmailsBySubs(req.userSubs()));
-    };
+    }
 
 
     @GetMapping("/user/email/{email}")
