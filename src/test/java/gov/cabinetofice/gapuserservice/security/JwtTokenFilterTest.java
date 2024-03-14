@@ -24,7 +24,9 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -52,7 +54,7 @@ class JwtTokenFilterTest {
         final UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                 "Placeholder",
                 null,
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN")));
 
         when(jwtProperties.getCookieName()).thenReturn("customJwt");
         when(request.getCookies()).thenReturn(new Cookie[]{new Cookie("customJwt", "value")});
@@ -61,7 +63,7 @@ class JwtTokenFilterTest {
         final JwtPayload payload = mock(JwtPayload.class);
         when(customJwtServiceImpl.decodedJwt("value")).thenReturn(decodedJwt);
         when(customJwtServiceImpl.decodeTheTokenPayloadInAReadableFormat(decodedJwt)).thenReturn(payload);
-        when(payload.getRoles()).thenReturn("[USER]");
+        when(payload.getRoles()).thenReturn("[ADMIN]");
 
         try (MockedStatic<SecurityContextHolder> staticSecurityContextHolder = Mockito.mockStatic(SecurityContextHolder.class)) {
             staticSecurityContextHolder.when(SecurityContextHolder::getContext).thenReturn(securityContext);
@@ -76,10 +78,7 @@ class JwtTokenFilterTest {
     @Test
     void Authenticates_when_ProfileIsLocal_and_DebugPropertiesIgnoresJwt() throws ServletException, IOException {
         final SecurityContext securityContext = mock(SecurityContext.class);
-        final UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                "Placeholder",
-                null,
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+        final UsernamePasswordAuthenticationToken authentication = getUsernamePasswordAuthenticationToken();
         jwtTokenFilter = new JwtTokenFilter(debugProperties, jwtProperties, customJwtServiceImpl, "LOCAL");
 
         when(debugProperties.isIgnoreJwt()).thenReturn(true);
@@ -92,6 +91,21 @@ class JwtTokenFilterTest {
             verify(chain, times(1)).doFilter(request, response);
             verify(securityContext, times(1)).setAuthentication(authentication);
         }
+    }
+
+    private static UsernamePasswordAuthenticationToken getUsernamePasswordAuthenticationToken() {
+        List<SimpleGrantedAuthority> roles = Arrays.asList(
+                new SimpleGrantedAuthority("ROLE_FIND"),
+                new SimpleGrantedAuthority("ROLE_APPLICANT"),
+                new SimpleGrantedAuthority("ROLE_TECH_SUPPORT_USER"),
+                new SimpleGrantedAuthority("ROLE_ADMIN"),
+                new SimpleGrantedAuthority("ROLE_SUPER_ADMIN")
+        );
+
+        return new UsernamePasswordAuthenticationToken(
+                "Placeholder",
+                null,
+                roles);
     }
 
     @Test

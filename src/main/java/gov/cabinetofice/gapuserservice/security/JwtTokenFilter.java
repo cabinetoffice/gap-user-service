@@ -40,10 +40,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                                     final @NonNull FilterChain chain)
             throws ServletException, IOException {
         if (Objects.equals(profile, "LOCAL") && debugProperties.isIgnoreJwt()) {
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                    "Placeholder",
-                    null,
-                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
+            UsernamePasswordAuthenticationToken authentication = getUsernamePasswordAuthenticationToken();
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
             chain.doFilter(request, response);
@@ -82,6 +79,20 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 
         SecurityContextHolder.getContext().setAuthentication(userAuthentication);
         chain.doFilter(request, response);
+    }
+
+    private static UsernamePasswordAuthenticationToken getUsernamePasswordAuthenticationToken() {
+        List<SimpleGrantedAuthority> roles = Arrays.asList(
+                new SimpleGrantedAuthority("ROLE_FIND"),
+                new SimpleGrantedAuthority("ROLE_APPLICANT"),
+                new SimpleGrantedAuthority("ROLE_TECH_SUPPORT_USER"),
+                new SimpleGrantedAuthority("ROLE_ADMIN"),
+                new SimpleGrantedAuthority("ROLE_SUPER_ADMIN")
+                );
+        return new UsernamePasswordAuthenticationToken(
+                "Placeholder",
+                null,
+                roles);
     }
 
 }
