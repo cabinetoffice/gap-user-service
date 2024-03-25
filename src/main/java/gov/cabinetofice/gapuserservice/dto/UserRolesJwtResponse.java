@@ -21,4 +21,6 @@ public class UserRolesJwtResponse {
     private boolean isAdmin;
     @JsonProperty("isApplicant")
     private boolean isApplicant;
+    @JsonProperty("isTechnicalSupport")
+    private boolean isTechnicalSupport;
 }
