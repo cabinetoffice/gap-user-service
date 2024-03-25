@@ -33,7 +33,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.util.WebUtils;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.services.kms.KmsClient;
+import software.amazon.awssdk.services.kms.model.SignRequest;
+import software.amazon.awssdk.services.kms.model.SignResponse;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -62,6 +67,9 @@ public class CustomJwtServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
+    
+    @Mock
+    private KmsClient kmsClient;
 
     private final String CHRISTMAS_2022_MIDDAY = "2022-12-25T12:00:00.00z";
     private final Clock clock = Clock.fixed(Instant.parse(CHRISTMAS_2022_MIDDAY), ZoneId.of("UTC"));
@@ -77,7 +85,7 @@ public class CustomJwtServiceImplTest {
                 .expiresAfter(60)
                 .build();
         serviceUnderTest = spy(new CustomJwtServiceImpl(
-                oneLoginUserService, jwtProperties, jwtBlacklistRepository, userRepository, clock));
+                oneLoginUserService, jwtProperties, jwtBlacklistRepository, userRepository, clock, kmsClient));
         ReflectionTestUtils.setField(serviceUnderTest, "userServiceCookieName", "userServiceCookieName");
         ReflectionTestUtils.setField(serviceUnderTest, "validateUserRolesInMiddleware", true);
     }
@@ -258,7 +266,8 @@ public class CustomJwtServiceImplTest {
 
             try (MockedStatic<JWT> staticJwt = Mockito.mockStatic(JWT.class)) {
                 staticJwt.when(JWT::create).thenReturn(mockedJwtBuilder);
-
+                when(kmsClient.sign(any(SignRequest.class))).thenReturn(SignResponse.builder()
+                        .signature(SdkBytes.fromString("abc", StandardCharsets.UTF_8)).build());
                 serviceUnderTest.generateToken(claims);
 
                 verify(mockedJwtBuilder, times(1)).withIssuer("test-issuer");
