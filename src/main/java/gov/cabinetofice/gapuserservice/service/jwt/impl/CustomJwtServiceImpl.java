@@ -13,7 +13,6 @@ import gov.cabinetofice.gapuserservice.config.JwtProperties;
 import gov.cabinetofice.gapuserservice.dto.JwtHeader;
 import gov.cabinetofice.gapuserservice.dto.JwtPayload;
 import gov.cabinetofice.gapuserservice.enums.LoginJourneyState;
-import gov.cabinetofice.gapuserservice.exceptions.TokenNotValidException;
 import gov.cabinetofice.gapuserservice.exceptions.UnauthorizedException;
 import gov.cabinetofice.gapuserservice.model.Role;
 import gov.cabinetofice.gapuserservice.model.User;
@@ -42,7 +41,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -92,8 +90,8 @@ public class CustomJwtServiceImpl implements JwtService {
     public boolean handleTokenVerification(String token) {
         try {
             return memoizationCache.get(token, () -> verifyToken(token));
-        } catch (ExecutionException e) {
-            throw new TokenNotValidException("Unable to determine token validity: ".concat(e.getMessage()));
+        } catch (Exception e) {
+            throw new JWTVerificationException("Unable to determine token validity: ".concat(e.getMessage()));
         }
     }
 
@@ -117,7 +115,7 @@ public class CustomJwtServiceImpl implements JwtService {
             boolean verifyResponse = handleTokenVerification(customJwt);
 
             if(Boolean.FALSE.equals(verifyResponse)) {
-                throw new TokenNotValidException("JWT Token is not valid");
+                throw new JWTVerificationException("Token could not be verified by KMS: ".concat(customJwt));
             }
 
             if (oneLoginEnabled) {
