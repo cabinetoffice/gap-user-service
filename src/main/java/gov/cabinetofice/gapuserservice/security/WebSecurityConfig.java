@@ -40,6 +40,8 @@ public class WebSecurityConfig {
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
         // specify any paths you don't want subject to JWT validation/authentication
+        //if you add any path used by other internal services (and we want to check the authorization header secret),
+        // remember to add the path also in src/main/java/gov/cabinetofice/gapuserservice/config/ServiceToServiceInterceptor.java
         return web -> web.ignoring().requestMatchers(
                 "/webjars/**",
                 "/register/**",

@@ -62,6 +62,7 @@ public class RoleController {
                 .isSuperAdmin(user.isSuperAdmin())
                 .isAdmin(user.isAdmin())
                 .isApplicant(user.isApplicant())
+                .isTechnicalSupport(user.isTechnicalSupport())
                 .build();
 
         return ResponseEntity.ok(response);

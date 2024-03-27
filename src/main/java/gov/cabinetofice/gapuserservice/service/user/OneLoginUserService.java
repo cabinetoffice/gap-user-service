@@ -29,7 +29,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -198,6 +197,7 @@ public class OneLoginUserService {
     public User updateRoles(Integer id, UpdateUserRolesRequestDto updateUserRolesRequestDto, String jwt) {
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
 
+        handleAdminRoleChange(user, updateUserRolesRequestDto, jwt);
         handleTechSupportRoleChange(user, updateUserRolesRequestDto, jwt);
 
         user.removeAllRoles();
@@ -219,6 +219,12 @@ public class OneLoginUserService {
 
         return user;
     }
+
+    private void handleAdminRoleChange(User user, UpdateUserRolesRequestDto updateUserRolesRequestDto, String jwt) {
+        if (!updateUserRolesRequestDto.newUserRoles().contains(RoleEnum.ADMIN.getRoleId()) && user.isAdmin()) {
+                removeAdminReferenceApply(user.getSub(), jwt);
+            }
+        }
 
     private void handleTechSupportRoleChange(User user, UpdateUserRolesRequestDto updateUserRolesRequestDto, String jwt) {
         if (updateUserRolesRequestDto.newUserRoles().contains(RoleEnum.TECHNICAL_SUPPORT.getRoleId())
@@ -282,6 +288,20 @@ public class OneLoginUserService {
                         .userSub(user.getSub()).departmentName(departmentName).build()))
                 .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
                 .retrieve()
+                .bodyToMono(Void.class)
+                .block();
+    }
+
+    public void removeAdminReferenceApply(String sub, String jwt) {
+        webClientBuilder.build()
+                .delete()
+                .uri(adminBackend.concat("/users/admin-user/".concat(sub)))
+                .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
+                .retrieve()
+                .onStatus(httpStatus -> !httpStatus.equals(HttpStatus.OK), clientResponse -> {
+                    log.error("Unable to delete admin user with sub {}, HTTP status code {}", sub, clientResponse.statusCode());
+                    return Mono.empty();
+                })
                 .bodyToMono(Void.class)
                 .block();
     }
@@ -462,12 +482,10 @@ public class OneLoginUserService {
                 .toList();
     }
 
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public User getUserByEmail(String email) {
         return userRepository.findByEmailAddress(email).orElseThrow(() -> new UserNotFoundException("user with email: " + email + NOT_FOUND));
     }
 
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public User getUserByEmailAndRole(String email, String roleName) {
         final RoleEnum roleEnum = RoleEnum.valueOf(roleName);
         final Role role = roleRepository.findByName(roleEnum).orElseThrow(() -> new RoleNotFoundException("Could not find user: '" + roleEnum + "' role not found"));
