@@ -9,7 +9,6 @@ import gov.cabinetofice.gapuserservice.model.RoleEnum;
 import gov.cabinetofice.gapuserservice.model.User;
 import gov.cabinetofice.gapuserservice.service.DepartmentService;
 import gov.cabinetofice.gapuserservice.service.RoleService;
-import gov.cabinetofice.gapuserservice.service.SecretAuthService;
 import gov.cabinetofice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetofice.gapuserservice.service.user.OneLoginUserService;
 import jakarta.servlet.http.Cookie;
@@ -48,9 +47,6 @@ class UserControllerTest {
 
     @Mock
     private RoleService roleService;
-
-    @Mock
-    private SecretAuthService secretAuthService;
 
     private static MockedStatic<WebUtils> mockedWebUtils;
 
@@ -250,8 +246,31 @@ class UserControllerTest {
         );
 
         when(oneLoginUserService.getUserEmailsBySubs(userEmails)).thenReturn(userEmailDtos);
-        doNothing().when(secretAuthService).authenticateSecret(anyString());
-        final ResponseEntity<List<UserEmailDto>> methodResponse = controller.getUserEmailsBySubs(userEmails, "anauthheader");
+        final ResponseEntity<List<UserEmailDto>> methodResponse = controller.getUserEmailsBySubs(userEmails);
+
+        assertThat(methodResponse.getBody()).isEqualTo(
+                List.of(new UserEmailDto(mockUser.getEmailAddress().getBytes(), mockUser.getSub()),
+                        new UserEmailDto(mockUser2.getEmailAddress().getBytes(), mockUser2.getSub()))
+        );
+    }
+
+    @Test
+    void testUserEmailsFromSubs() {
+        User mockUser = User.builder().sub("1").gapUserId(1)
+                .emailAddress("test1@test.com").build();
+        User mockUser2 = User.builder().sub("2").gapUserId(2)
+                .emailAddress("test2@test.com").build();
+
+        List<String> userEmails = List.of(mockUser.getEmailAddress(), mockUser2.getEmailAddress());
+        UserSubsRequestDto userSubsRequestDto = new UserSubsRequestDto(userEmails);
+
+        List<UserEmailDto> userEmailDtos = List.of(
+                new UserEmailDto(mockUser.getEmailAddress().getBytes(), mockUser.getSub()),
+                new UserEmailDto(mockUser2.getEmailAddress().getBytes(), mockUser2.getSub())
+        );
+
+        when(oneLoginUserService.getUserEmailsBySubs(userEmails)).thenReturn(userEmailDtos);
+        final ResponseEntity<List<UserEmailDto>> methodResponse = controller.getUserEmailsFromSubs(userSubsRequestDto);
 
         assertThat(methodResponse.getBody()).isEqualTo(
                 List.of(new UserEmailDto(mockUser.getEmailAddress().getBytes(), mockUser.getSub()),

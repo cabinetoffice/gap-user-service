@@ -580,6 +580,47 @@ class OneLoginUserServiceTest {
     }
 
     @Test
+    void shouldDeleteAdminReferenceWhenAdminRoleIsRemoved() {
+        Integer userId = 1;
+        Department department = Department.builder().id(1).name("test").build();
+
+        Role find = Role.builder().name(RoleEnum.FIND).id(1).build();
+        Role applicant = Role.builder().name(RoleEnum.APPLICANT).id(2).build();
+        Role admin = Role.builder().name(RoleEnum.ADMIN).id(3).build();
+
+        List<Role> roles = new ArrayList<>();
+        roles.add(find);
+        roles.add(applicant);
+        roles.add(admin);
+
+        User user = User.builder().gapUserId(userId).sub("123").roles(roles).department(department).build();
+        UpdateUserRolesRequestDto updateUserRolesRequestDto = UpdateUserRolesRequestDto.builder()
+                .newUserRoles(Arrays.asList(1, 2)).build();
+
+
+        final WebClient webClient = mock(WebClient.class);
+        when(webClientBuilder.build()).thenReturn(webClient);
+        final WebClient.RequestHeadersUriSpec requestHeadersUriSpec = mock(WebClient.RequestHeadersUriSpec.class);
+        when(webClient.delete()).thenReturn(requestHeadersUriSpec);
+        final WebClient.RequestHeadersSpec requestHeadersSpec = mock(WebClient.RequestHeadersSpec.class);
+        when(requestHeadersUriSpec.uri(anyString())).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.header(anyString(), anyString())).thenReturn(requestHeadersSpec);
+        final WebClient.ResponseSpec responseSpec = mock(WebClient.ResponseSpec.class);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.onStatus(any(), any())).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(Void.class)).thenReturn(Mono.when());
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(roleRepository.findById(1)).thenReturn(Optional.of(Role.builder().name(RoleEnum.FIND).build()));
+        when(roleRepository.findById(2)).thenReturn(Optional.of(Role.builder().name(RoleEnum.APPLICANT).build()));
+        User updatedUser = oneLoginUserService.updateRoles(1, updateUserRolesRequestDto, "jwt");
+
+        assertThat(updatedUser.getDepartment()).isNull();
+        verify(webClientBuilder).build();
+        verify(requestHeadersUriSpec).uri("adminBackend/users/admin-user/123");
+    }
+
+    @Test
     void shouldReturnNewUserRoles() {
         final List<RoleEnum> result = oneLoginUserService.getNewUserRoles();
 
