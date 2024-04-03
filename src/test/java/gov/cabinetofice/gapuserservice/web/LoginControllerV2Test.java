@@ -381,7 +381,7 @@ class LoginControllerV2Test {
 
                 final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, request, response, code, state);
 
-                if (hasRedirectionCookie) {
+                if (hasRedirectionCookie&& !initialState.equals(LoginJourneyState.USER_READY)) {
                     assertThat(methodResponse.getUrl()).isEqualTo("http:localhost:3000/adminBaseUrl?redirectUrl=/scheme/2/1231231311");
                 } else {
                     assertThat(methodResponse.getUrl()).isEqualTo("http:localhost:3000/adminBaseUrl?redirectUrl=/super-admin-dashboard");
@@ -435,7 +435,7 @@ class LoginControllerV2Test {
 
                 if (migrateFindEnabled.equals("true") && initialState.equals(LoginJourneyState.USER_READY)) {
                     assertThat(methodResponse.getUrl()).isEqualTo("http:localhost:3000/adminBaseUrl?redirectUrl=%2Fdashboard%3FapplyMigrationStatus%3DALREADY_MIGRATED%26findMigrationStatus%3DNOT_STARTED");
-                }else if  (hasRedirectionCookie) {
+                }else if  (hasRedirectionCookie && !initialState.equals(LoginJourneyState.USER_READY)) {
                     assertThat(methodResponse.getUrl()).isEqualTo("http:localhost:3000/adminBaseUrl?redirectUrl=/scheme/2/1231231311");
                 } else {
                     assertThat(methodResponse.getUrl()).isEqualTo("http:localhost:3000/adminBaseUrl?redirectUrl=/dashboard");

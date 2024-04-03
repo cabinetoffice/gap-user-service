@@ -100,8 +100,10 @@ public class LoginControllerV2 {
         final boolean isTokenValid = customJWTCookie != null
                 && customJWTCookie.getValue() != null
                 && customJwtService.isTokenValid(customJWTCookie.getValue());
-        final String redirectUrl = redirectUrlParam.orElse(null);
-        WebUtil.validateRedirectUrl(redirectUrl, findAGrantBaseUrl);
+        String redirectUrl = redirectUrlParam.orElse(null);
+        if (redirectUrl != null) {
+            WebUtil.validateRedirectUrl(redirectUrl, findAGrantBaseUrl);
+        }
 
         if (!isTokenValid) {
             final String nonce = oneLoginService.generateAndStoreNonce();
@@ -112,6 +114,9 @@ public class LoginControllerV2 {
             return new RedirectView(oneLoginService.getOneLoginAuthorizeUrl(state, nonce));
         }
 
+        if (redirectUrl == null) {
+            redirectUrl = configProperties.getDefaultRedirectUrl();
+        }
         return new RedirectView(redirectUrl);
     }
 

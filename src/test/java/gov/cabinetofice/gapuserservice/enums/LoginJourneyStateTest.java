@@ -86,7 +86,7 @@ class LoginJourneyStateTest {
 
         @Test
         void redirect() {
-            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(null);
+            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(null,null);
             assertEquals(LoginJourneyRedirect.PRIVACY_POLICY_PAGE, redirect);
         }
     }
@@ -297,31 +297,31 @@ class LoginJourneyStateTest {
 
         @Test
         void redirect_super_admin() {
-            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.SUPER_ADMIN);
+            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.SUPER_ADMIN,null);
             assertEquals(LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD, redirect);
         }
 
         @Test
         void redirect_admin() {
-            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.ADMIN);
+            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.ADMIN,null);
             assertEquals(LoginJourneyRedirect.ADMIN_MIGRATED, redirect);
         }
 
         @Test
         void redirect_technical_support() {
-            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.TECHNICAL_SUPPORT);
+            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.TECHNICAL_SUPPORT,null);
             assertEquals(LoginJourneyRedirect.TECHNICAL_SUPPORT_DASHBOARD, redirect);
         }
 
         @Test
         void redirect_applicant() {
-            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.APPLICANT);
+            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.APPLICANT,null);
             assertEquals(LoginJourneyRedirect.APPLICANT_MIGRATED, redirect);
         }
 
         @Test
         void redirect_find() {
-            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.FIND);
+            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.FIND,null);
             assertEquals(LoginJourneyRedirect.APPLICANT_MIGRATED, redirect);
         }
     }
@@ -390,31 +390,47 @@ class LoginJourneyStateTest {
 
         @Test
         void redirect_super_admin() {
-            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.SUPER_ADMIN);
+            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.SUPER_ADMIN,null);
             assertEquals(LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD, redirect);
         }
 
         @Test
+        void redirect_super_admin_hasRedirectUrl() {
+            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.SUPER_ADMIN,"http://localhost:3000/apply/admin/scheme/2/123456789");
+            assertEquals(LoginJourneyRedirect.REDIRECT_URL_COOKIE, redirect);
+        }
+
+        @Test
         void redirect_admin() {
-            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.ADMIN);
+            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.ADMIN,null);
             assertEquals(LoginJourneyRedirect.ADMIN_DASHBOARD, redirect);
         }
 
         @Test
-        void redirect_technical_support() {
-            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.TECHNICAL_SUPPORT);
-            assertEquals(LoginJourneyRedirect.TECHNICAL_SUPPORT_DASHBOARD, redirect);
+        void redirect_admin_hasRedirectUrl() {
+            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.ADMIN,"http://localhost:3000/apply/admin/scheme/2/123456789");
+            assertEquals(LoginJourneyRedirect.REDIRECT_URL_COOKIE, redirect);
         }
 
         @Test
+        void redirect_technical_support() {
+            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.TECHNICAL_SUPPORT,null);
+            assertEquals(LoginJourneyRedirect.TECHNICAL_SUPPORT_DASHBOARD, redirect);
+        }
+        @Test
+        void redirect_technical_support_hasRedirectUrl() {
+            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.TECHNICAL_SUPPORT,"http://localhost:3000/apply/admin/scheme/2/123456789");
+            assertEquals(LoginJourneyRedirect.TECHNICAL_SUPPORT_DASHBOARD, redirect);
+        }
+        @Test
         void redirect_applicant() {
-            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.APPLICANT);
+            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.APPLICANT,null);
             assertEquals(LoginJourneyRedirect.REDIRECT_URL_COOKIE, redirect);
         }
 
         @Test
         void redirect_find() {
-            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.FIND);
+            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.FIND,null);
             assertEquals(LoginJourneyRedirect.REDIRECT_URL_COOKIE, redirect);
         }
     }
@@ -462,7 +478,7 @@ class LoginJourneyStateTest {
         void emailRedirectPage() {
 
             when(user.getLoginJourneyState()).thenReturn(LoginJourneyState.MIGRATING_FIND_EMAILS);
-            LoginJourneyRedirect result = state.getLoginJourneyRedirect(null);
+            LoginJourneyRedirect result = state.getLoginJourneyRedirect(null,null);
 
             assertEquals(LoginJourneyRedirect.EMAIL_UPDATED_PAGE, result);
         }
@@ -579,31 +595,31 @@ class LoginJourneyStateTest {
 
         @Test
         void redirect_super_admin() {
-            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.SUPER_ADMIN);
+            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.SUPER_ADMIN,null);
             assertEquals(LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD, redirect);
         }
 
         @Test
         void redirect_admin() {
-            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.ADMIN);
+            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.ADMIN,null);
             assertEquals(LoginJourneyRedirect.ADMIN_DASHBOARD, redirect);
         }
 
         @Test
         void redirect_technical_support() {
-            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.TECHNICAL_SUPPORT);
+            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.TECHNICAL_SUPPORT,null);
             assertEquals(LoginJourneyRedirect.TECHNICAL_SUPPORT_DASHBOARD, redirect);
         }
 
         @Test
         void redirect_applicant() {
-            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.APPLICANT);
+            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.APPLICANT,null);
             assertEquals(LoginJourneyRedirect.REDIRECT_URL_COOKIE, redirect);
         }
 
         @Test
         void redirect_find() {
-            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.FIND);
+            final LoginJourneyRedirect redirect = state.getLoginJourneyRedirect(RoleEnum.FIND,null);
             assertEquals(LoginJourneyRedirect.REDIRECT_URL_COOKIE, redirect);
         }
     }
