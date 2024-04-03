@@ -27,20 +27,24 @@ public enum LoginJourneyRedirect {
     SUPER_ADMIN_DASHBOARD {
         @Override
         public String getRedirectUrl(GetRedirectUrlArgs getRedirectUrlArgs) {
-            return buildAdminRedirectionUrl(getRedirectUrlArgs, true);
+            return getRedirectUrlArgs.adminBaseUrl() + "?redirectUrl=/super-admin-dashboard";
         }
     },
 
     ADMIN_DASHBOARD {
         @Override
         public String getRedirectUrl(GetRedirectUrlArgs getRedirectUrlArgs) {
-            return buildAdminRedirectionUrl(getRedirectUrlArgs, false);
+            return getRedirectUrlArgs.adminBaseUrl() + "?redirectUrl=/dashboard";
         }
     },
 
     REDIRECT_URL_COOKIE {
         @Override
         public String getRedirectUrl(GetRedirectUrlArgs getRedirectUrlArgs) {
+            if (getRedirectUrlArgs.user().isAdmin()) {
+                final String redirectUrl = getRedirectUrlArgs.redirectUrlCookie().replace(getRedirectUrlArgs.adminBaseUrl(), "");
+                return getRedirectUrlArgs.adminBaseUrl() + "?redirectUrl=" + redirectUrl;
+            }
             return getRedirectUrlArgs.redirectUrlCookie();
         }
     },
@@ -78,17 +82,6 @@ public enum LoginJourneyRedirect {
             return getRedirectUrlArgs.techSupportBaseUrl();
         }
     };
-
-    private static String buildAdminRedirectionUrl(GetRedirectUrlArgs getRedirectUrlArgs, boolean isSuperAdmin) {
-        final String adminRedirectionBasePath = getRedirectUrlArgs.adminBaseUrl() + "?redirectUrl=";
-        String redirectUrl = isSuperAdmin ? "/super-admin-dashboard" : "/dashboard";
-
-        if(getRedirectUrlArgs.redirectUrlCookie()!= null){
-            redirectUrl=  getRedirectUrlArgs.redirectUrlCookie().replace(getRedirectUrlArgs.adminBaseUrl(),"");
-        }
-
-        return adminRedirectionBasePath + redirectUrl;
-    }
 
     public abstract String getRedirectUrl(GetRedirectUrlArgs getRedirectUrlArgs);
 }

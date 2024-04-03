@@ -16,7 +16,7 @@ public enum LoginJourneyState {
         }
 
         @Override
-        public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
+        public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role, final String redirectUrl) {
             return LoginJourneyRedirect.PRIVACY_POLICY_PAGE;
         }
     },
@@ -41,7 +41,7 @@ public enum LoginJourneyState {
         }
 
         @Override
-        public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
+        public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role, final String redirectUrl) {
             return switch (role) {
                 case SUPER_ADMIN -> LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD;
                 case TECHNICAL_SUPPORT -> LoginJourneyRedirect.TECHNICAL_SUPPORT_DASHBOARD;
@@ -61,11 +61,17 @@ public enum LoginJourneyState {
         }
 
         @Override
-        public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
+        public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role, final String redirectUrl) {
             return switch (role) {
-                case SUPER_ADMIN -> LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD;
+                case SUPER_ADMIN -> {
+                    if (redirectUrl != null) yield LoginJourneyRedirect.REDIRECT_URL_COOKIE;
+                    yield LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD;
+                }
                 case TECHNICAL_SUPPORT -> LoginJourneyRedirect.TECHNICAL_SUPPORT_DASHBOARD;
-                case ADMIN -> LoginJourneyRedirect.ADMIN_DASHBOARD;
+                case ADMIN -> {
+                    if (redirectUrl != null) yield LoginJourneyRedirect.REDIRECT_URL_COOKIE;
+                    yield LoginJourneyRedirect.ADMIN_DASHBOARD;
+                }
                 case APPLICANT, FIND -> LoginJourneyRedirect.REDIRECT_URL_COOKIE;
             };
         }
@@ -79,7 +85,7 @@ public enum LoginJourneyState {
         }
 
         @Override
-        public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
+        public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role, final String redirectUrl) {
             return LoginJourneyRedirect.EMAIL_UPDATED_PAGE;
         }
     },
@@ -101,7 +107,7 @@ public enum LoginJourneyState {
         }
 
         @Override
-        public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
+        public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role, final String redirectUrl) {
             return switch (role) {
                 case SUPER_ADMIN -> LoginJourneyRedirect.SUPER_ADMIN_DASHBOARD;
                 case TECHNICAL_SUPPORT -> LoginJourneyRedirect.TECHNICAL_SUPPORT_DASHBOARD;
@@ -113,7 +119,7 @@ public enum LoginJourneyState {
 
     public abstract LoginJourneyState nextState(final NextStateArgs nextStateArgs);
 
-    public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role) {
+    public LoginJourneyRedirect getLoginJourneyRedirect(final RoleEnum role, final String redirectUrl) {
         throw new UnsupportedOperationException("Error, make sure the enums next state function eventually ends up on a state that has a redirect URL");
     }
 }

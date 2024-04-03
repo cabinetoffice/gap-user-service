@@ -100,7 +100,7 @@ public class LoginControllerV2 {
         final boolean isTokenValid = customJWTCookie != null
                 && customJWTCookie.getValue() != null
                 && customJwtService.isTokenValid(customJWTCookie.getValue());
-        final String redirectUrl = redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl());
+        final String redirectUrl = redirectUrlParam.orElse(null);
         WebUtil.validateRedirectUrl(redirectUrl, findAGrantBaseUrl);
 
         if (!isTokenValid) {
@@ -259,7 +259,7 @@ public class LoginControllerV2 {
         String redirectUrl = user.getLoginJourneyState()
                 .nextState(new NextStateArgs(oneLoginUserService, user, jwt, log, hasAcceptedPrivacyPolicy, userInfo,
                         findAccountsMigrationEnabled))
-                .getLoginJourneyRedirect(user.getHighestRole().getName())
+                .getLoginJourneyRedirect(user.getHighestRole().getName() ,redirectUrlCookie)
                 .getRedirectUrl(new GetRedirectUrlArgs(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl,
                         redirectUrlCookie, user));
         log.info(loggingUtils.getLogMessage("Redirecting to: ", 1), redirectUrl);
