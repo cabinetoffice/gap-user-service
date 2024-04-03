@@ -166,14 +166,7 @@ public class LoginControllerV2 {
                 user.hasAcceptedPrivacyPolicy(), userInfo));
 
         //recreate state cookie and set age to 0 to delete it. Avoids possible unwanted redirection if state cookie persist
-        final Cookie stateCookieReplacement = WebUtil.buildCookie(
-                new Cookie(STATE_COOKIE, null),
-                Boolean.TRUE,
-                Boolean.TRUE,
-                null
-        );
-        stateCookieReplacement.setMaxAge(0);
-        response.addCookie(stateCookieReplacement);
+        deleteStateCookie(response);
 
         return  redirect;
     }
@@ -264,5 +257,16 @@ public class LoginControllerV2 {
                         redirectUrlCookie, user));
         log.info(loggingUtils.getLogMessage("Redirecting to: ", 1), redirectUrl);
         return redirectUrl;
+    }
+
+    private void deleteStateCookie(HttpServletResponse response) {
+        final Cookie stateCookieReplacement = WebUtil.buildCookie(
+                new Cookie(STATE_COOKIE, null),
+                Boolean.TRUE,
+                Boolean.TRUE,
+                null
+        );
+        stateCookieReplacement.setMaxAge(0);
+        response.addCookie(stateCookieReplacement);
     }
 }
