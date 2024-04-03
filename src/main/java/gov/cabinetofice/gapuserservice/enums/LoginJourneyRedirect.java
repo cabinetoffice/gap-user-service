@@ -27,14 +27,14 @@ public enum LoginJourneyRedirect {
     SUPER_ADMIN_DASHBOARD {
         @Override
         public String getRedirectUrl(GetRedirectUrlArgs getRedirectUrlArgs) {
-            return getRedirectUrlArgs.adminBaseUrl() + "?redirectUrl=/super-admin-dashboard";
+            return buildAdminRedirectionUrl(getRedirectUrlArgs, true);
         }
     },
 
     ADMIN_DASHBOARD {
         @Override
         public String getRedirectUrl(GetRedirectUrlArgs getRedirectUrlArgs) {
-            return getRedirectUrlArgs.adminBaseUrl() + "?redirectUrl=/dashboard";
+            return buildAdminRedirectionUrl(getRedirectUrlArgs, false);
         }
     },
 
@@ -78,6 +78,17 @@ public enum LoginJourneyRedirect {
             return getRedirectUrlArgs.techSupportBaseUrl();
         }
     };
+
+    private static String buildAdminRedirectionUrl(GetRedirectUrlArgs getRedirectUrlArgs, boolean isSuperAdmin) {
+        final String adminRedirectionBasePath = getRedirectUrlArgs.adminBaseUrl() + "?redirectUrl=";
+        String redirectUrl = isSuperAdmin ? "/super-admin-dashboard" : "/dashboard";
+
+        if(getRedirectUrlArgs.redirectUrlCookie()!= null){
+            redirectUrl=  getRedirectUrlArgs.redirectUrlCookie().replace(getRedirectUrlArgs.adminBaseUrl(),"");
+        }
+
+        return adminRedirectionBasePath + redirectUrl;
+    }
 
     public abstract String getRedirectUrl(GetRedirectUrlArgs getRedirectUrlArgs);
 }

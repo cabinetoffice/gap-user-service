@@ -339,8 +339,11 @@ class LoginControllerV2Test {
         @Nested
         class UserReady_AndUserMigratedAndReady {
             @ParameterizedTest
-            @CsvSource({"USER_READY,true", "USER_READY,false", "USER_MIGRATED_AND_READY,true", "USER_MIGRATED_AND_READY,false"})
-            void shouldRedirectToSADashboard_whenUserIsSA(final LoginJourneyState initialState, final String migrateFindEnabled) {
+            @CsvSource({"USER_READY,true,false", "USER_READY,true,true",
+                    "USER_READY,false,false", "USER_READY,false,true",
+                    "USER_MIGRATED_AND_READY,true,false", "USER_MIGRATED_AND_READY,true,true",
+                    "USER_MIGRATED_AND_READY,false,false", "USER_MIGRATED_AND_READY,false,true"})
+            void shouldRedirectToSADashboard_whenUserIsSA(final LoginJourneyState initialState, final String migrateFindEnabled, final boolean hasRedirectionCookie) {
                 final String customToken = "a-custom-valid-token";
                 final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
                 final User user = userBuilder
@@ -357,10 +360,17 @@ class LoginControllerV2Test {
 
                 final MockHttpServletRequest request = new MockHttpServletRequest();
 
+                final StateCookieDto.StateCookieDtoBuilder stateCookieDtoBuilder = StateCookieDto.builder()
+                        .state(state)
+                        .redirectUrl(hasRedirectionCookie ? "http:localhost:3000/adminBaseUrl/scheme/2/1231231311" : null)
+                        .saltId(saltId);
+                final Cookie redirectCookie = hasRedirectionCookie ? new Cookie(LoginController.REDIRECT_URL_COOKIE, customToken) : null;
                 mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
-                        .thenReturn(new Cookie(LoginController.REDIRECT_URL_COOKIE, customToken));
-                when(customJwtService.isTokenValid(customToken))
-                        .thenReturn(false);
+                        .thenReturn(redirectCookie);
+                if(hasRedirectionCookie) {
+                    when(customJwtService.isTokenValid(customToken))
+                            .thenReturn(false);
+                }
 
                 ReflectionTestUtils.setField(loginController, "findAccountsMigrationEnabled", migrateFindEnabled);
                 when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
@@ -371,12 +381,19 @@ class LoginControllerV2Test {
 
                 final RedirectView methodResponse = loginController.redirectAfterLogin(stateCookie, request, response, code, state);
 
-                assertThat(methodResponse.getUrl()).isEqualTo("http:localhost:3000/adminBaseUrl?redirectUrl=/super-admin-dashboard");
+                if (hasRedirectionCookie) {
+                    assertThat(methodResponse.getUrl()).isEqualTo("http:localhost:3000/adminBaseUrl?redirectUrl=/scheme/2/1231231311");
+                } else {
+                    assertThat(methodResponse.getUrl()).isEqualTo("http:localhost:3000/adminBaseUrl?redirectUrl=/super-admin-dashboard");
+                }
             }
 
             @ParameterizedTest
-            @CsvSource({"USER_READY,true", "USER_READY,false", "USER_MIGRATED_AND_READY,true", "USER_MIGRATED_AND_READY,false"})
-            void shouldRedirectToAdminDashboard_whenUserIsAdmin(final LoginJourneyState initialState, final String migrateFindEnabled) {
+            @CsvSource({"USER_READY,true,false", "USER_READY,true,true",
+                    "USER_READY,false,false", "USER_READY,false,true",
+                    "USER_MIGRATED_AND_READY,true,false", "USER_MIGRATED_AND_READY,true,true",
+                    "USER_MIGRATED_AND_READY,false,false", "USER_MIGRATED_AND_READY,false,true"})
+            void shouldRedirectToAdminDashboard_whenUserIsAdmin(final LoginJourneyState initialState, final String migrateFindEnabled, final boolean hasRedirectionCookie) {
                 final String customToken = "a-custom-valid-token";
                 final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
                 final User user = userBuilder
@@ -395,10 +412,17 @@ class LoginControllerV2Test {
 
                 final MockHttpServletRequest request = new MockHttpServletRequest();
 
+                final StateCookieDto.StateCookieDtoBuilder stateCookieDtoBuilder = StateCookieDto.builder()
+                        .state(state)
+                        .redirectUrl(hasRedirectionCookie ? "http:localhost:3000/adminBaseUrl/scheme/2/1231231311" : null)
+                        .saltId(saltId);
+                final Cookie redirectCookie = hasRedirectionCookie ? new Cookie(LoginController.REDIRECT_URL_COOKIE, customToken) : null;
                 mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
-                        .thenReturn(new Cookie(LoginController.REDIRECT_URL_COOKIE, customToken));
-                when(customJwtService.isTokenValid(customToken))
-                        .thenReturn(false);
+                        .thenReturn(redirectCookie);
+                if(hasRedirectionCookie) {
+                    when(customJwtService.isTokenValid(customToken))
+                            .thenReturn(false);
+                }
 
                 ReflectionTestUtils.setField(loginController, "findAccountsMigrationEnabled", migrateFindEnabled);
                 when(oneLoginService.getOneLoginUserTokenResponse(code)).thenReturn(tokenResponse);
@@ -411,6 +435,8 @@ class LoginControllerV2Test {
 
                 if (migrateFindEnabled.equals("true") && initialState.equals(LoginJourneyState.USER_READY)) {
                     assertThat(methodResponse.getUrl()).isEqualTo("http:localhost:3000/adminBaseUrl?redirectUrl=%2Fdashboard%3FapplyMigrationStatus%3DALREADY_MIGRATED%26findMigrationStatus%3DNOT_STARTED");
+                }else if  (hasRedirectionCookie) {
+                    assertThat(methodResponse.getUrl()).isEqualTo("http:localhost:3000/adminBaseUrl?redirectUrl=/scheme/2/1231231311");
                 } else {
                     assertThat(methodResponse.getUrl()).isEqualTo("http:localhost:3000/adminBaseUrl?redirectUrl=/dashboard");
                 }

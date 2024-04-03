@@ -162,8 +162,20 @@ public class LoginControllerV2 {
         final User user = oneLoginUserService.createOrGetUserFromInfo(userInfo);
 
         final Cookie customJwtCookie = addCustomJwtCookie(response, userInfo, idToken);
-        return new RedirectView(runStateMachine(redirectUrl, user, customJwtCookie.getValue(),
+        final RedirectView redirect =  new RedirectView(runStateMachine(redirectUrl, user, customJwtCookie.getValue(),
                 user.hasAcceptedPrivacyPolicy(), userInfo));
+
+        //recreate state cookie and set age to 0 to delete it. Avoids possible unwanted redirection if state cookie persist
+        final Cookie stateCookieReplacement = WebUtil.buildCookie(
+                new Cookie(STATE_COOKIE, null),
+                Boolean.TRUE,
+                Boolean.TRUE,
+                null
+        );
+        stateCookieReplacement.setMaxAge(0);
+        response.addCookie(stateCookieReplacement);
+
+        return  redirect;
     }
 
     @GetMapping("/updated-email")
