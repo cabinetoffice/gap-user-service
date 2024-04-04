@@ -100,8 +100,10 @@ public class LoginControllerV2 {
         final boolean isTokenValid = customJWTCookie != null
                 && customJWTCookie.getValue() != null
                 && customJwtService.isTokenValid(customJWTCookie.getValue());
-        final String redirectUrl = redirectUrlParam.orElse(configProperties.getDefaultRedirectUrl());
-        WebUtil.validateRedirectUrl(redirectUrl, findAGrantBaseUrl);
+        String redirectUrl = redirectUrlParam.orElse(null);
+        if (redirectUrl != null) {
+            WebUtil.validateRedirectUrl(redirectUrl, findAGrantBaseUrl);
+        }
 
         if (!isTokenValid) {
             final String nonce = oneLoginService.generateAndStoreNonce();
@@ -112,6 +114,9 @@ public class LoginControllerV2 {
             return new RedirectView(oneLoginService.getOneLoginAuthorizeUrl(state, nonce));
         }
 
+        if (redirectUrl == null) {
+            redirectUrl = configProperties.getDefaultRedirectUrl();
+        }
         return new RedirectView(redirectUrl);
     }
 
@@ -162,6 +167,10 @@ public class LoginControllerV2 {
         final User user = oneLoginUserService.createOrGetUserFromInfo(userInfo);
 
         final Cookie customJwtCookie = addCustomJwtCookie(response, userInfo, idToken);
+
+        //recreate state cookie and set age to 0 to delete it. Avoids possible unwanted redirection if state cookie persist
+        deleteStateCookie(response);
+
         return new RedirectView(runStateMachine(redirectUrl, user, customJwtCookie.getValue(),
                 user.hasAcceptedPrivacyPolicy(), userInfo));
     }
@@ -247,10 +256,21 @@ public class LoginControllerV2 {
         String redirectUrl = user.getLoginJourneyState()
                 .nextState(new NextStateArgs(oneLoginUserService, user, jwt, log, hasAcceptedPrivacyPolicy, userInfo,
                         findAccountsMigrationEnabled))
-                .getLoginJourneyRedirect(user.getHighestRole().getName())
+                .getLoginJourneyRedirect(user.getHighestRole().getName() ,redirectUrlCookie)
                 .getRedirectUrl(new GetRedirectUrlArgs(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl,
                         redirectUrlCookie, user));
         log.info(loggingUtils.getLogMessage("Redirecting to: ", 1), redirectUrl);
         return redirectUrl;
+    }
+
+    private void deleteStateCookie(HttpServletResponse response) {
+        final Cookie stateCookieReplacement = WebUtil.buildCookie(
+                new Cookie(STATE_COOKIE, null),
+                Boolean.TRUE,
+                Boolean.TRUE,
+                null
+        );
+        stateCookieReplacement.setMaxAge(0);
+        response.addCookie(stateCookieReplacement);
     }
 }

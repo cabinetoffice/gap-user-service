@@ -41,6 +41,10 @@ public enum LoginJourneyRedirect {
     REDIRECT_URL_COOKIE {
         @Override
         public String getRedirectUrl(GetRedirectUrlArgs getRedirectUrlArgs) {
+            if (getRedirectUrlArgs.user().isAdmin()) {
+                final String redirectUrl = getRedirectUrlArgs.redirectUrlCookie().replace(getRedirectUrlArgs.adminBaseUrl(), "");
+                return getRedirectUrlArgs.adminBaseUrl() + "?redirectUrl=" + redirectUrl;
+            }
             return getRedirectUrlArgs.redirectUrlCookie();
         }
     },

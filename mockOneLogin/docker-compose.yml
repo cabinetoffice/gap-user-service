@@ -7,4 +7,4 @@ services:
     volumes:
       - ./wiremock:/home/wiremock
     command:
-      - "--global-response-templating"
+      ["--global-response-templating", "--verbose"]
