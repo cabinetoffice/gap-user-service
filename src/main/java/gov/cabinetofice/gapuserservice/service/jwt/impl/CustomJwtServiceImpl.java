@@ -57,9 +57,6 @@ public class CustomJwtServiceImpl implements JwtService {
 
     private final Clock clock;
 
-    //TODO: remove this
-    private RSAKey rsaKey;
-
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
 
@@ -72,6 +69,8 @@ public class CustomJwtServiceImpl implements JwtService {
     @Value("${aws.kms.signing-key.arn}")
     public String signingKeyArn;
 
+    @Value("${jwt.memoization-cache-expiry}")
+    long memoizationCacheExpiry;
     public CustomJwtServiceImpl(OneLoginUserService oneLoginUserService,
                                 JwtProperties jwtProperties, JwtBlacklistRepository jwtBlacklistRepository,
                                 UserRepository userRepository, Clock clock, KmsClient kmsClient) {
@@ -84,7 +83,7 @@ public class CustomJwtServiceImpl implements JwtService {
     }
 
     private final Cache<String, Boolean> memoizationCache = CacheBuilder.newBuilder()
-            .expireAfterWrite(20, TimeUnit.SECONDS)
+            .expireAfterWrite(memoizationCacheExpiry, TimeUnit.SECONDS)
             .build();
 
     public boolean handleTokenVerification(String token) {
@@ -172,10 +171,6 @@ public class CustomJwtServiceImpl implements JwtService {
                 Base64.encodeBase64URLSafeString(header.getBytes(StandardCharsets.UTF_8)),
                 Base64.encodeBase64URLSafeString(payload.getBytes(StandardCharsets.UTF_8)),
                 Base64.encodeBase64URLSafeString(signedResponse.signature().asByteArray()));
-    }
-    public JWKSet getPublicJWKSet() {
-        //TODO: refactor this
-        return new JWKSet(this.rsaKey.toPublicJWK());
     }
 
     private boolean isTokenInBlacklist(final String customJwt) {

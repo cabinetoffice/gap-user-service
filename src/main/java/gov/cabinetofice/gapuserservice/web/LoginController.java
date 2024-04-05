@@ -179,12 +179,4 @@ public class LoginController {
         return ResponseEntity.ok(isJwtValid);
     }
 
-
-    @GetMapping("/.well-known/jwks.json")
-    public ResponseEntity<Map<String, Object>> test() {
-        JWKSet jwkset = this.customJwtService.getPublicJWKSet();
-        return ResponseEntity.ok(jwkset.toJSONObject(true));
-    }
-
-
 }
