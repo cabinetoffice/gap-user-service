@@ -37,10 +37,7 @@ import software.amazon.awssdk.services.kms.model.*;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.ZonedDateTime;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -141,6 +138,7 @@ public class CustomJwtServiceImpl implements JwtService {
 
     public String generateToken(Map<String, String> claims) {
         JWTClaimsSet.Builder jwtClaimsSet = new JWTClaimsSet.Builder();
+        jwtClaimsSet.jwtID(UUID.randomUUID().toString());
         for (Map.Entry<String, String> entry : claims.entrySet()) {
             jwtClaimsSet.claim(entry.getKey(), entry.getValue());
         }
