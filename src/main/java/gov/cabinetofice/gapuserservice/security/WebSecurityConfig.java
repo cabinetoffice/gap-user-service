@@ -56,7 +56,6 @@ public class WebSecurityConfig {
                 "/is-user-logged-in",
                 "/redirect-after-cola-login",
                 "/error/**",
-                "/.well-known/jwks.json",
                 "/v2/validateSessionsRoles",
                 "/user",
                 "/users/emails"
