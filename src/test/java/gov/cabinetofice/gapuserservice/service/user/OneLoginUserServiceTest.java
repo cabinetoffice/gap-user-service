@@ -713,21 +713,23 @@ class OneLoginUserServiceTest {
 
         @Test
         void shouldGetUserEmailsFromSubsAndEncryptThem() {
-            final List<String> subs = List.of("sub1", "sub2");
+            final List<String> subs = List.of("urn:fdc:gov.uk-sub1", "urn:fdc:gov.uk-sub2");
             final List<UserEmailDto> encryptedUserEmailDtos = List.of(
-                    new UserEmailDto("encrypted1".getBytes(), "sub1"),
-                    new UserEmailDto("encrypted2".getBytes(), "sub2")
+                    new UserEmailDto("encrypted1".getBytes(), "urn:fdc:gov.uk-sub1"),
+                    new UserEmailDto("encrypted2".getBytes(), "urn:fdc:gov.uk-sub2")
             );
 
             when(userRepository.findBySubIn(subs)).thenReturn(
                     List.of(
-                            User.builder().sub("sub1").emailAddress("unencrypted1").build(),
-                            User.builder().sub("sub2").emailAddress("unencrypted2").build()
+                            User.builder().sub("urn:fdc:gov.uk-sub1").emailAddress("unencrypted1").build(),
+                            User.builder().sub("urn:fdc:gov.uk-sub2").emailAddress("unencrypted2").build()
                     )
             );
             when(awsEncryptionService.encryptField("unencrypted1")).thenReturn("encrypted1".getBytes());
             when(awsEncryptionService.encryptField("unencrypted2")).thenReturn("encrypted2".getBytes());
+
             List<UserEmailDto> returnedList = oneLoginUserService.getUserEmailsBySubs(subs);
+
             assertThat(returnedList).isEqualTo(encryptedUserEmailDtos);
         }
 

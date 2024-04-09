@@ -54,6 +54,7 @@ public class OneLoginUserService {
     private static final String NOT_FOUND = "not found";
     private static final String AUTHORIZATION_HEADER_NAME = "Authorization";
     private static final String BEARER_HEADER_PREFIX = "Bearer ";
+    private static final String ONE_LOGIN_PREFIX = "urn:fdc:gov.uk";
 
     private final AwsEncryptionServiceImpl awsEncryptionService;
 
@@ -474,11 +475,38 @@ public class OneLoginUserService {
     }
 
     public List<UserEmailDto> getUserEmailsBySubs(List<String> subs) {
-        List<User> users = userRepository.findBySubIn(subs);
-        return users.stream().map(user -> UserEmailDto.builder()
-                .emailAddress(awsEncryptionService.encryptField(user.getEmailAddress()))
-                .sub(user.getSub())
-                .build())
+
+        // Splits the list of subs into two lists. One containing OneLogin subs and the other containing COLA subs.
+        final Map<Boolean, List<String>> partitionedSubs =
+                subs.stream()
+                    .collect(Collectors.partitioningBy(sub -> sub.contains(ONE_LOGIN_PREFIX)));
+
+        final List<User> users = new ArrayList<>();
+
+        if (!partitionedSubs.get(true).isEmpty()) {
+            final List<User> oneLoginUsers = userRepository.findBySubIn(partitionedSubs.get(true));
+            if (!oneLoginUsers.isEmpty()) {
+                users.addAll(oneLoginUsers);
+            }
+        }
+
+        if (!partitionedSubs.get(false).isEmpty()) {
+            final List<UUID> colaSubs = partitionedSubs.get(false).stream()
+                    .map(UUID::fromString)
+                    .toList();
+
+            final List<User> colaUsers = userRepository.findByColaSubIn(colaSubs);
+            if (!colaUsers.isEmpty()) {
+                users.addAll(colaUsers);
+            }
+        }
+
+        return users.stream()
+                .map(user -> UserEmailDto.builder()
+                                .emailAddress(awsEncryptionService.encryptField(user.getEmailAddress()))
+                                .sub(user.getSub())
+                                .build()
+                )
                 .toList();
     }
 
