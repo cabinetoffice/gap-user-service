@@ -733,6 +733,35 @@ class OneLoginUserServiceTest {
             assertThat(returnedList).isEqualTo(encryptedUserEmailDtos);
         }
 
+        @Test
+        void shouldGetUserEmailsFromColaSubsAndEncryptThem() {
+            final String sub1 = "3009e4c2-cc94-4b4d-999f-31e5b394e8ce";
+            final String sub2 = "3009e4c2-cc94-4b4d-999f-31e5b394e8cf";
+
+            final List<String> subs = List.of(sub1, sub2);
+            final List<UUID> subsAsUuids = List.of(
+                    UUID.fromString(sub1),
+                    UUID.fromString(sub2)
+            );
+            final List<UserEmailDto> encryptedUserEmailDtos = List.of(
+                    new UserEmailDto("encrypted1".getBytes(), sub1.toString()),
+                    new UserEmailDto("encrypted2".getBytes(), sub2.toString())
+            );
+
+            when(userRepository.findByColaSubIn(subsAsUuids)).thenReturn(
+                    List.of(
+                            User.builder().sub(sub1).emailAddress("unencrypted1").build(),
+                            User.builder().sub(sub2).emailAddress("unencrypted2").build()
+                    )
+            );
+            when(awsEncryptionService.encryptField("unencrypted1")).thenReturn("encrypted1".getBytes());
+            when(awsEncryptionService.encryptField("unencrypted2")).thenReturn("encrypted2".getBytes());
+
+            List<UserEmailDto> returnedList = oneLoginUserService.getUserEmailsBySubs(subs);
+
+            assertThat(returnedList).isEqualTo(encryptedUserEmailDtos);
+        }
+
     }
 
 
