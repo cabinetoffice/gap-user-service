@@ -4,7 +4,6 @@ import gov.cabinetoffice.gapuserservice.enums.SpotlightOAuthAuditEvent;
 import gov.cabinetoffice.gapuserservice.enums.SpotlightOAuthAuditStatus;
 import gov.cabinetoffice.gapuserservice.model.SpotlightOAuthAudit;
 import gov.cabinetoffice.gapuserservice.service.SpotlightService;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -39,12 +38,12 @@ public class SpotlightOAuthRefreshSchedulerTest {
         assertEquals(2, capturedAudits.size());
 
         SpotlightOAuthAudit requestAudit = capturedAudits.get(0);
-        Assertions.assertEquals(SpotlightOAuthAuditEvent.REFRESH, requestAudit.getEvent());
-        Assertions.assertEquals(SpotlightOAuthAuditStatus.REQUEST, requestAudit.getStatus());
+        assertEquals(SpotlightOAuthAuditEvent.REFRESH, requestAudit.getEvent());
+        assertEquals(SpotlightOAuthAuditStatus.REQUEST, requestAudit.getStatus());
 
         SpotlightOAuthAudit successAudit = capturedAudits.get(1);
-        Assertions.assertEquals(SpotlightOAuthAuditEvent.REFRESH, successAudit.getEvent());
-        Assertions.assertEquals(SpotlightOAuthAuditStatus.SUCCESS, successAudit.getStatus());
+        assertEquals(SpotlightOAuthAuditEvent.REFRESH, successAudit.getEvent());
+        assertEquals(SpotlightOAuthAuditStatus.SUCCESS, successAudit.getStatus());
     }
 
     @Test
@@ -61,11 +60,11 @@ public class SpotlightOAuthRefreshSchedulerTest {
         assertEquals(2, capturedAudits.size());
 
         SpotlightOAuthAudit requestAudit = capturedAudits.get(0);
-        Assertions.assertEquals(SpotlightOAuthAuditEvent.REFRESH, requestAudit.getEvent());
-        Assertions.assertEquals(SpotlightOAuthAuditStatus.REQUEST, requestAudit.getStatus());
+        assertEquals(SpotlightOAuthAuditEvent.REFRESH, requestAudit.getEvent());
+        assertEquals(SpotlightOAuthAuditStatus.REQUEST, requestAudit.getStatus());
 
         SpotlightOAuthAudit successAudit = capturedAudits.get(1);
-        Assertions.assertEquals(SpotlightOAuthAuditEvent.REFRESH, successAudit.getEvent());
-        Assertions.assertEquals(SpotlightOAuthAuditStatus.FAILURE, successAudit.getStatus());
+        assertEquals(SpotlightOAuthAuditEvent.REFRESH, successAudit.getEvent());
+        assertEquals(SpotlightOAuthAuditStatus.FAILURE, successAudit.getStatus());
     }
 }
