@@ -9,7 +9,6 @@ import gov.cabinetoffice.gapuserservice.service.DepartmentService;
 import gov.cabinetoffice.gapuserservice.service.RoleService;
 import gov.cabinetoffice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetoffice.gapuserservice.service.user.OneLoginUserService;
-import gov.cabinetoffice.gapuserservice.util.HelperUtils;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +19,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import static gov.cabinetoffice.gapuserservice.util.HelperUtils.getCustomJwtCookieFromRequest;
 
 import java.util.List;
 import java.util.Optional;
@@ -92,7 +93,7 @@ public class UserController {
         }
 
         if(changeDepartmentDto == null) return ResponseEntity.ok().build();
-        final Cookie customJWTCookie = HelperUtils.getCustomJwtCookieFromRequest(httpRequest, userServiceCookieName);
+        final Cookie customJWTCookie = getCustomJwtCookieFromRequest(httpRequest, userServiceCookieName);
         User user = oneLoginUserService.updateDepartment(userId, changeDepartmentDto.getDepartmentId(), customJWTCookie.getValue());
         return ResponseEntity.ok(user);
     }
@@ -119,7 +120,7 @@ public class UserController {
             throw new ForbiddenException();
         }
 
-        final Cookie customJWTCookie = HelperUtils.getCustomJwtCookieFromRequest(httpRequest, userServiceCookieName);
+        final Cookie customJWTCookie = getCustomJwtCookieFromRequest(httpRequest, userServiceCookieName);
 
         boolean isARequestToBlockUser = updateUserRolesRequestDto.newUserRoles().isEmpty();
         Optional<User> user = jwtService.getUserFromJwt(httpRequest);
@@ -140,7 +141,7 @@ public class UserController {
         if (!roleService.isSuperAdmin(httpRequest)) {
             throw new ForbiddenException();
         }
-        final Cookie customJWTCookie = HelperUtils.getCustomJwtCookieFromRequest(httpRequest, userServiceCookieName);
+        final Cookie customJWTCookie = getCustomJwtCookieFromRequest(httpRequest, userServiceCookieName);
         Optional<User> user = jwtService.getUserFromJwt(httpRequest);
         if (user.isEmpty()) {
             throw new InvalidRequestException(NO_USER);
