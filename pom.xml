@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 
-	<groupId>gov.cabinetofice</groupId>
+	<groupId>gov.cabinetoffice</groupId>
 	<artifactId>gap-user-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>gap-user-service</name>
