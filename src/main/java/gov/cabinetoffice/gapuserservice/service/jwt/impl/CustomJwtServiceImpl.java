@@ -103,17 +103,19 @@ public class CustomJwtServiceImpl implements JwtService {
 
         return verifyResponse.signatureValid();
     }
+
     @Override
     public boolean isTokenValid(final String customJwt) {
         try {
             boolean verifyResponse = handleTokenVerification(customJwt);
 
-            if(Boolean.FALSE.equals(verifyResponse)) {
+            if (Boolean.FALSE.equals(verifyResponse)) {
                 throw new JWTVerificationException("Token could not be verified by KMS: ".concat(customJwt));
             }
 
+            final DecodedJWT decodedToken = decodedJwt(customJwt);
+            if (isJWTExpired(decodedToken)) return false;
             if (oneLoginEnabled) {
-                final DecodedJWT decodedToken = decodedJwt(customJwt);
                 final JwtPayload jwtPayload = decodeTheTokenPayloadInAReadableFormat(decodedToken);
                 Optional<User> user = userRepository.findBySub(jwtPayload.getSub());
                 if (user.isEmpty()) user = userRepository.findByEmailAddress(jwtPayload.getEmail());
@@ -171,6 +173,11 @@ public class CustomJwtServiceImpl implements JwtService {
 
     private boolean isTokenInBlacklist(final String customJwt) {
         return jwtBlacklistRepository.existsByJwtIs(customJwt);
+    }
+
+    private boolean isJWTExpired(DecodedJWT decodedJWT) {
+        Date expiresAt = decodedJWT.getExpiresAt();
+        return expiresAt.before(Date.from(clock.instant()));
     }
 
     public DecodedJWT decodedJwt(String normalisedJWT) {
