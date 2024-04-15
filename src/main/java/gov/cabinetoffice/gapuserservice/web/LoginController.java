@@ -15,11 +15,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
 
@@ -140,7 +139,7 @@ public class LoginController {
         return new RedirectView(authenticationProvider.getLogoutUrl());
     }
 
-    @GetMapping("/refresh-token")
+    @RequestMapping(value = "/refresh-token", method = { RequestMethod.GET, RequestMethod.POST })
     public RedirectView refreshToken(@CookieValue(USER_SERVICE_COOKIE_NAME) final String currentToken,
                                      final HttpServletResponse response,
                                      final @RequestParam String redirectUrl) {
@@ -163,7 +162,9 @@ public class LoginController {
 
         response.addCookie(userTokenCookie);
 
-        return new RedirectView(redirectUrl);
+        final RedirectView redirectView = new RedirectView(redirectUrl);
+        redirectView.setStatusCode(HttpStatusCode.valueOf(307));
+        return redirectView;
     }
 
     @GetMapping("/is-user-logged-in")
