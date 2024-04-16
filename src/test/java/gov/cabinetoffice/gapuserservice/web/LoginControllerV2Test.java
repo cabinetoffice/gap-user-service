@@ -176,12 +176,12 @@ class LoginControllerV2Test {
 
 
         @ParameterizedTest
-        @CsvSource({"ADMIN, http:localhost:3000/adminBaseUrl/404",
-                "APPLICANT, http:localhost:3000/applicantBaseUrl/404",
-                "TECHNICAL_SUPPORT, http:localhost:3000/techSupportAppBaseUrl/404",
-                "SUPER_ADMIN, http:localhost:3000/adminBaseUrl/404",
-                "OTHER, /404"})
-        void shouldReturnToTheCorrectSubdomain404PageWhenUserAsValidTokenButRedirectUrlEndsWith404(String role, String expectedUrl) throws MalformedURLException {
+        @CsvSource({"ADMIN, http:localhost:3000/adminBaseUrl/404,true",
+                "APPLICANT, http:localhost:3000/applicantBaseUrl/404,false",
+                "TECHNICAL_SUPPORT, http:localhost:3000/techSupportAppBaseUrl/404,false",
+                "SUPER_ADMIN, http:localhost:3000/adminBaseUrl/404,true",
+                "OTHER, /404,false"})
+        void shouldReturnToTheCorrectSubdomain404PageWhenUserAsValidTokenButRedirectUrlEndsWith404(String role, String expectedUrl, boolean isAdmin) throws MalformedURLException {
             final String customToken = "a-custom-valid-token";
             final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/404");
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
@@ -201,7 +201,7 @@ class LoginControllerV2Test {
 
             final RedirectView methodResponse = loginController.login(redirectUrl, request, response);
 
-            verify(customJwtService, times(0)).generateToken(any());
+            verify(customJwtService, times(0)).generateToken(any(), eq(isAdmin));
             assertThat(methodResponse.getUrl()).isEqualTo(expectedUrl);
         }
     }
