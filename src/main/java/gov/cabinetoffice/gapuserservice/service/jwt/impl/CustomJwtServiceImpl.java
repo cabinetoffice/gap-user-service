@@ -136,7 +136,7 @@ public class CustomJwtServiceImpl implements JwtService {
         }
     }
 
-    public String generateToken(Map<String, String> claims) {
+    public String generateToken(final Map<String, String> claims, final boolean isAdmin) {
         JWTClaimsSet.Builder jwtClaimsSet = new JWTClaimsSet.Builder();
         jwtClaimsSet.jwtID(UUID.randomUUID().toString());
         for (Map.Entry<String, String> entry : claims.entrySet()) {
@@ -144,8 +144,7 @@ public class CustomJwtServiceImpl implements JwtService {
         }
 
         jwtClaimsSet.issueTime(new Date())
-                .expirationTime(new Date(ZonedDateTime.now(clock).toInstant().toEpochMilli()
-                        + (jwtProperties.getExpiresAfter() * 1000 * 60)))
+                .expirationTime(generateExpiryDate(isAdmin))
                 .issuer(jwtProperties.getIssuer())
                 .audience(jwtProperties.getAudience());
 
@@ -169,6 +168,12 @@ public class CustomJwtServiceImpl implements JwtService {
                 Base64.encodeBase64URLSafeString(header.getBytes(StandardCharsets.UTF_8)),
                 Base64.encodeBase64URLSafeString(payload.getBytes(StandardCharsets.UTF_8)),
                 Base64.encodeBase64URLSafeString(signedResponse.signature().asByteArray()));
+    }
+
+    private Date generateExpiryDate(final boolean isAdmin) {
+        final Integer expiresAfterInMinutes = isAdmin ? jwtProperties.getAdminExpiresAfter() : jwtProperties.getExpiresAfter();
+        final int expiresAfterInMilliseconds = expiresAfterInMinutes * 1000 * 60;
+        return new Date(ZonedDateTime.now(clock).toInstant().toEpochMilli() + expiresAfterInMilliseconds);
     }
 
     private boolean isTokenInBlacklist(final String customJwt) {
