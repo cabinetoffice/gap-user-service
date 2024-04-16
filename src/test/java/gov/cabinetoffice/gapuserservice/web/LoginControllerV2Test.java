@@ -201,7 +201,7 @@ class LoginControllerV2Test {
 
             final RedirectView methodResponse = loginController.login(redirectUrl, request, response);
 
-            verify(customJwtService, times(0)).generateToken(any());
+            verify(customJwtService, times(0)).generateToken(any(), any());
             assertThat(methodResponse.getUrl()).isEqualTo(expectedUrl);
         }
     }
