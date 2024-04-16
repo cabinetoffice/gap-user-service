@@ -152,7 +152,7 @@ class LoginControllerV2Test {
 
             final RedirectView methodResponse = loginController.login(redirectUrl, request, response);
 
-            verify(customJwtService, times(0)).generateToken(any());
+            verify(customJwtService, times(0)).generateToken(any(), eq(false));
             assertThat(methodResponse.getUrl()).isEqualTo(redirectUrl.get());
         }
 
@@ -169,7 +169,7 @@ class LoginControllerV2Test {
                     .thenReturn(true);
             final RedirectView methodResponse = loginController.login(redirectUrl, request, response);
 
-            verify(customJwtService, times(0)).generateToken(any());
+            verify(customJwtService, times(0)).generateToken(any(), eq(false));
             assertThat(methodResponse.getUrl()).isEqualTo(configProperties.getDefaultRedirectUrl());
         }
     }
@@ -280,7 +280,7 @@ class LoginControllerV2Test {
             when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.generateCustomJwtClaims(any(), any())).thenReturn(claims);
-            when(customJwtService.generateToken(claims)).thenReturn("jwtToken");
+            when(customJwtService.generateToken(claims, false)).thenReturn("jwtToken");
 
             loginController.redirectAfterLogin(stateCookie, request, response, code, state);
 

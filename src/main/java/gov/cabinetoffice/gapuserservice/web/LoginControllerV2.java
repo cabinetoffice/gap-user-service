@@ -166,7 +166,7 @@ public class LoginControllerV2 {
 
         final User user = oneLoginUserService.createOrGetUserFromInfo(userInfo);
 
-        final Cookie customJwtCookie = addCustomJwtCookie(response, userInfo, idToken);
+        final Cookie customJwtCookie = addCustomJwtCookie(response, userInfo, idToken, user.isAdmin());
 
         //recreate state cookie and set age to 0 to delete it. Avoids possible unwanted redirection if state cookie persist
         deleteStateCookie(response);
@@ -229,10 +229,12 @@ public class LoginControllerV2 {
         return oneLoginService.logoutUser(customJWTCookie, response);
     }
 
-    private Cookie addCustomJwtCookie(final HttpServletResponse response, final OneLoginUserInfoDto userInfo,
-            final String idToken) {
+    private Cookie addCustomJwtCookie(final HttpServletResponse response,
+                                      final OneLoginUserInfoDto userInfo,
+                                      final String idToken,
+                                      final boolean isAdmin) {
         final Map<String, String> customJwtClaims = oneLoginService.generateCustomJwtClaims(userInfo, idToken);
-        final String customServiceJwt = customJwtService.generateToken(customJwtClaims);
+        final String customServiceJwt = customJwtService.generateToken(customJwtClaims, isAdmin);
         final Cookie customJwt = WebUtil.buildSecureCookie(userServiceCookieName, customServiceJwt);
         response.addCookie(customJwt);
         return customJwt;

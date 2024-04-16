@@ -5,11 +5,15 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetoffice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetoffice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetoffice.gapuserservice.exceptions.TokenNotValidException;
+import gov.cabinetoffice.gapuserservice.model.Role;
+import gov.cabinetoffice.gapuserservice.model.RoleEnum;
+import gov.cabinetoffice.gapuserservice.model.User;
 import gov.cabinetoffice.gapuserservice.service.JwtBlacklistService;
 import gov.cabinetoffice.gapuserservice.service.jwt.impl.ColaJwtServiceImpl;
 import gov.cabinetoffice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetoffice.gapuserservice.util.WebUtil;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +26,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.servlet.view.RedirectView;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -87,7 +92,7 @@ class LoginControllerTest {
 
         final RedirectView methodeResponse = controllerUnderTest.login(customToken, redirectUrl, response);
 
-        verify(customJwtService, times(0)).generateToken(any());
+        verify(customJwtService, times(0)).generateToken(any(), eq(false));
         assertThat(methodeResponse.getUrl()).isEqualTo(redirectUrl.get());
     }
 
@@ -102,7 +107,7 @@ class LoginControllerTest {
 
         final RedirectView methodeResponse = controllerUnderTest.login(customToken, redirectUrl, response);
 
-        verify(customJwtService, times(0)).generateToken(any());
+        verify(customJwtService, times(0)).generateToken(any(), eq(false));
         assertThat(methodeResponse.getUrl()).isEqualTo(configProperties.getDefaultRedirectUrl());
     }
 
@@ -154,7 +159,7 @@ class LoginControllerTest {
         when(thirdPartyJwtService.isTokenValid(any()))
                 .thenReturn(true);
         when(thirdPartyJwtService.decodeJwt(any())).thenReturn(jwt);
-        when(customJwtService.generateToken(any()))
+        when(customJwtService.generateToken(any(), eq(false)))
                 .thenReturn(token);
 
         final RedirectView methodeResponse = controllerUnderTest.redirectAfterColaLogin(redirectUrl, request, response);
@@ -243,10 +248,12 @@ class LoginControllerTest {
         userTokenCookie.setPath("/");
 
         final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+        final HttpServletRequest request = Mockito.spy(new MockHttpServletRequest());
 
-        when(customJwtService.generateToken(any())).thenReturn(refreshedToken);
+        when(customJwtService.generateToken(any(), eq(true))).thenReturn(refreshedToken);
+        when(customJwtService.getUserFromJwt(request)).thenReturn(Optional.of(User.builder().roles(List.of(Role.builder().name(RoleEnum.ADMIN).build())).build()));
 
-        final RedirectView methodResponse = controllerUnderTest.refreshToken(existingToken, response, redirectUrl);
+        final RedirectView methodResponse = controllerUnderTest.refreshToken(existingToken, request, response, redirectUrl);
 
         verify(jwtBlacklistService, atLeastOnce()).addJwtToBlacklist(existingToken);
         verify(response).addCookie(userTokenCookie);

@@ -20,6 +20,8 @@ public class JwtProperties {
      */
     private Integer expiresAfter;
 
+    private Integer adminExpiresAfter;
+
     private String signingKey;
 
     private String issuer;
