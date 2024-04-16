@@ -8,6 +8,7 @@ import gov.cabinetoffice.gapuserservice.dto.*;
 import gov.cabinetoffice.gapuserservice.enums.GetRedirectUrlArgs;
 import gov.cabinetoffice.gapuserservice.enums.NextStateArgs;
 import gov.cabinetoffice.gapuserservice.exceptions.UserNotFoundException;
+import gov.cabinetoffice.gapuserservice.model.RoleEnum;
 import gov.cabinetoffice.gapuserservice.model.User;
 import gov.cabinetoffice.gapuserservice.service.OneLoginService;
 import gov.cabinetoffice.gapuserservice.service.encryption.Sha512Service;
@@ -34,6 +35,7 @@ import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
 
 import java.net.MalformedURLException;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -53,6 +55,7 @@ public class LoginControllerV2 {
     private final OneLoginUserService oneLoginUserService;
     private final FindAGrantConfigProperties findProperties;
     private final LoggingUtils loggingUtils;
+
 
     public static final String PRIVACY_POLICY_PAGE_VIEW = "privacy-policy";
 
@@ -101,6 +104,7 @@ public class LoginControllerV2 {
                 && customJWTCookie.getValue() != null
                 && customJwtService.isTokenValid(customJWTCookie.getValue());
         String redirectUrl = redirectUrlParam.orElse(null);
+
         if (redirectUrl != null) {
             WebUtil.validateRedirectUrl(redirectUrl, findAGrantBaseUrl);
         }
@@ -117,6 +121,15 @@ public class LoginControllerV2 {
         if (redirectUrl == null) {
             redirectUrl = configProperties.getDefaultRedirectUrl();
         }
+
+        if (redirectUrl.endsWith("/404")) {
+            final List<String> roles = getUserRolesFromJwtToken(customJWTCookie);
+
+            redirectUrl = generate404UrlBasedOnHighestRole(roles);
+
+            return new RedirectView(redirectUrl);
+        }
+
         return new RedirectView(redirectUrl);
     }
 
@@ -274,5 +287,26 @@ public class LoginControllerV2 {
         );
         stateCookieReplacement.setMaxAge(0);
         response.addCookie(stateCookieReplacement);
+    }
+
+    private String generate404UrlBasedOnHighestRole(List<String> roles) {
+        final String PAGE_404 = "/404";
+        if (roles.contains(RoleEnum.SUPER_ADMIN.name()) || roles.contains(RoleEnum.ADMIN.name()))
+            return adminBaseUrl + PAGE_404;
+        if (roles.contains(RoleEnum.TECHNICAL_SUPPORT.name()))
+            return techSupportAppBaseUrl + PAGE_404;
+        if (roles.contains(RoleEnum.APPLICANT.name()))
+            return applicantBaseUrl + PAGE_404;
+        return PAGE_404;
+    }
+
+    private List<String> getUserRolesFromJwtToken(Cookie customJWTCookie) {
+        final DecodedJWT decodedJwt = customJwtService.decodedJwt(customJWTCookie.getValue());
+        final JwtPayload payload = customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJwt);
+        return List.of(payload.getRoles()
+                .replace("[", "")
+                .replace("]", "")
+                .replace(" ", "")
+                .split(","));
     }
 }
