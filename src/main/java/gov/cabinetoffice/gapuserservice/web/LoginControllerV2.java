@@ -7,7 +7,6 @@ import gov.cabinetoffice.gapuserservice.config.FindAGrantConfigProperties;
 import gov.cabinetoffice.gapuserservice.dto.*;
 import gov.cabinetoffice.gapuserservice.enums.GetRedirectUrlArgs;
 import gov.cabinetoffice.gapuserservice.enums.NextStateArgs;
-import gov.cabinetoffice.gapuserservice.exceptions.RoleNotFoundException;
 import gov.cabinetoffice.gapuserservice.exceptions.UserNotFoundException;
 import gov.cabinetoffice.gapuserservice.model.RoleEnum;
 import gov.cabinetoffice.gapuserservice.model.User;
@@ -28,7 +27,6 @@ import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -106,7 +104,8 @@ public class LoginControllerV2 {
                 && customJWTCookie.getValue() != null
                 && customJwtService.isTokenValid(customJWTCookie.getValue());
         String redirectUrl = redirectUrlParam.orElse(null);
-        if (redirectUrl != null ) {
+
+        if (redirectUrl != null) {
             WebUtil.validateRedirectUrl(redirectUrl, findAGrantBaseUrl);
         }
 
@@ -122,31 +121,16 @@ public class LoginControllerV2 {
         if (redirectUrl == null) {
             redirectUrl = configProperties.getDefaultRedirectUrl();
         }
-        if(redirectUrl.endsWith("/404")) {
-            final DecodedJWT decodedJwt = customJwtService.decodedJwt(customJWTCookie.getValue());
-            final JwtPayload payload = customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJwt);
-            final List<String> roles = List.of(payload.getRoles()
-                    .replace("[", "")
-                    .replace("]", "")
-                    .replace(" ", "")
-                    .split(","));
+
+        if (redirectUrl.endsWith("/404")) {
+            final List<String> roles = getUserRolesFromJwtToken(customJWTCookie);
 
             redirectUrl = generate404UrlBasedOnHighestRole(roles);
 
             return new RedirectView(redirectUrl);
         }
-        return new RedirectView(redirectUrl);
-    }
 
-    private String generate404UrlBasedOnHighestRole(List<String> roles) {
-        final String PAGE_404 = "/404";
-        if (roles.contains(RoleEnum.SUPER_ADMIN.name()) || roles.contains(RoleEnum.ADMIN.name()))
-            return adminBaseUrl + PAGE_404;
-        if (roles.contains(RoleEnum.TECHNICAL_SUPPORT.name()))
-            return techSupportAppBaseUrl + PAGE_404;
-        if (roles.contains(RoleEnum.APPLICANT.name()))
-            return applicantBaseUrl + PAGE_404;
-        return PAGE_404;
+        return new RedirectView(redirectUrl);
     }
 
     @GetMapping("/redirect-after-login")
@@ -301,5 +285,26 @@ public class LoginControllerV2 {
         );
         stateCookieReplacement.setMaxAge(0);
         response.addCookie(stateCookieReplacement);
+    }
+
+    private String generate404UrlBasedOnHighestRole(List<String> roles) {
+        final String PAGE_404 = "/404";
+        if (roles.contains(RoleEnum.SUPER_ADMIN.name()) || roles.contains(RoleEnum.ADMIN.name()))
+            return adminBaseUrl + PAGE_404;
+        if (roles.contains(RoleEnum.TECHNICAL_SUPPORT.name()))
+            return techSupportAppBaseUrl + PAGE_404;
+        if (roles.contains(RoleEnum.APPLICANT.name()))
+            return applicantBaseUrl + PAGE_404;
+        return PAGE_404;
+    }
+
+    private List<String> getUserRolesFromJwtToken(Cookie customJWTCookie) {
+        final DecodedJWT decodedJwt = customJwtService.decodedJwt(customJWTCookie.getValue());
+        final JwtPayload payload = customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJwt);
+        return List.of(payload.getRoles()
+                .replace("[", "")
+                .replace("]", "")
+                .replace(" ", "")
+                .split(","));
     }
 }

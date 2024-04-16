@@ -66,7 +66,7 @@ public class WebUtil {
     }
 
     public static void validateRedirectUrl(final String inputUrl, final String baseUrl) throws MalformedURLException {
-        if(inputUrl.endsWith("/404")){
+        if (inputUrl.endsWith("/404")) {
             return;
         }
         URL url = new URL(inputUrl);

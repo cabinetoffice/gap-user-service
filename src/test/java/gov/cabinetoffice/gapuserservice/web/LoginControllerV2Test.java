@@ -1,5 +1,6 @@
 package gov.cabinetoffice.gapuserservice.web;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetoffice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetoffice.gapuserservice.config.FindAGrantConfigProperties;
 import gov.cabinetoffice.gapuserservice.dto.*;
@@ -14,6 +15,7 @@ import gov.cabinetoffice.gapuserservice.model.RoleEnum;
 import gov.cabinetoffice.gapuserservice.model.User;
 import gov.cabinetoffice.gapuserservice.service.OneLoginService;
 import gov.cabinetoffice.gapuserservice.service.encryption.Sha512Service;
+import gov.cabinetoffice.gapuserservice.service.jwt.TestDecodedJwt;
 import gov.cabinetoffice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetoffice.gapuserservice.service.user.OneLoginUserService;
 import gov.cabinetoffice.gapuserservice.util.LoggingUtils;
@@ -77,7 +79,6 @@ class LoginControllerV2Test {
 
     @Mock
     private LoggingUtils loggingUtils;
-
     private static MockedStatic<WebUtils> mockedWebUtils;
 
     @BeforeEach
@@ -171,6 +172,37 @@ class LoginControllerV2Test {
 
             verify(customJwtService, times(0)).generateToken(any());
             assertThat(methodResponse.getUrl()).isEqualTo(configProperties.getDefaultRedirectUrl());
+        }
+
+
+        @ParameterizedTest
+        @CsvSource({"ADMIN, http:localhost:3000/adminBaseUrl/404",
+                "APPLICANT, http:localhost:3000/applicantBaseUrl/404",
+                "TECHNICAL_SUPPORT, http:localhost:3000/techSupportAppBaseUrl/404",
+                "SUPER_ADMIN, http:localhost:3000/adminBaseUrl/404",
+                "OTHER, /404"})
+        void shouldReturnToTheCorrectSubdomain404PageWhenUserAsValidTokenButRedirectUrlEndsWith404(String role, String expectedUrl) throws MalformedURLException {
+            final String customToken = "a-custom-valid-token";
+            final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/404");
+            final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+            final Cookie cookie = new Cookie(LoginController.REDIRECT_URL_COOKIE, customToken);
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+            final DecodedJWT decodedJwt = mock(DecodedJWT.class);
+            final JwtPayload payload = mock(JwtPayload.class);
+
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                    .thenReturn(cookie);
+            when(customJwtService.isTokenValid(customToken))
+                    .thenReturn(true);
+
+            when(customJwtService.decodedJwt(any())).thenReturn(decodedJwt);
+            when(customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJwt)).thenReturn(payload);
+            when(payload.getRoles()).thenReturn("[" + role + "]");
+
+            final RedirectView methodResponse = loginController.login(redirectUrl, request, response);
+
+            verify(customJwtService, times(0)).generateToken(any());
+            assertThat(methodResponse.getUrl()).isEqualTo(expectedUrl);
         }
     }
 
