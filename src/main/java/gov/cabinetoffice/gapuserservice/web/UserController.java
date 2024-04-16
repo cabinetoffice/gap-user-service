@@ -170,7 +170,7 @@ public class UserController {
 
 
     @GetMapping("/user/email/{email}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<UserDto> getUserByEmail(@PathVariable("email") String email, @RequestParam Optional<String> role) {
         return ResponseEntity.ok(
                 role.map(s -> new UserDto(oneLoginUserService.getUserByEmailAndRole(email, s)))
