@@ -475,30 +475,25 @@ public class OneLoginUserService {
     }
 
     public List<UserEmailDto> getUserEmailsBySubs(List<String> subs) {
+        final List<String> oneLoginSubs = subs.stream()
+                .filter(sub -> sub.contains(ONE_LOGIN_PREFIX))
+                .toList();
 
-        // Splits the list of subs into two lists. One containing OneLogin subs and the other containing COLA subs.
-        final Map<Boolean, List<String>> partitionedSubs =
-                subs.stream()
-                    .collect(Collectors.partitioningBy(sub -> sub.contains(ONE_LOGIN_PREFIX)));
+        final List<String> colaSubs = subs.stream()
+                .filter(sub -> !sub.contains(ONE_LOGIN_PREFIX))
+                .toList();
 
         final List<User> users = new ArrayList<>();
-
-        if (!partitionedSubs.get(true).isEmpty()) {
-            final List<User> oneLoginUsers = userRepository.findBySubIn(partitionedSubs.get(true));
-            if (!oneLoginUsers.isEmpty()) {
-                users.addAll(oneLoginUsers);
-            }
+        if (!oneLoginSubs.isEmpty()) {
+            users.addAll(userRepository.findBySubIn(oneLoginSubs));
         }
 
-        if (!partitionedSubs.get(false).isEmpty()) {
-            final List<UUID> colaSubs = partitionedSubs.get(false).stream()
+        if (!colaSubs.isEmpty()) {
+            final List<UUID> colaSubUuids = colaSubs.stream()
                     .map(UUID::fromString)
                     .toList();
 
-            final List<User> colaUsers = userRepository.findByColaSubIn(colaSubs);
-            if (!colaUsers.isEmpty()) {
-                users.addAll(colaUsers);
-            }
+            users.addAll(userRepository.findByColaSubIn(colaSubUuids));
         }
 
         return users.stream()
