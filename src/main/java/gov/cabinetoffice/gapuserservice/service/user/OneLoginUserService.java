@@ -54,6 +54,7 @@ public class OneLoginUserService {
     private static final String NOT_FOUND = "not found";
     private static final String AUTHORIZATION_HEADER_NAME = "Authorization";
     private static final String BEARER_HEADER_PREFIX = "Bearer ";
+    private static final String ONE_LOGIN_PREFIX = "urn:fdc:gov.uk";
 
     private final AwsEncryptionServiceImpl awsEncryptionService;
 
@@ -474,11 +475,33 @@ public class OneLoginUserService {
     }
 
     public List<UserEmailDto> getUserEmailsBySubs(List<String> subs) {
-        List<User> users = userRepository.findBySubIn(subs);
-        return users.stream().map(user -> UserEmailDto.builder()
-                .emailAddress(awsEncryptionService.encryptField(user.getEmailAddress()))
-                .sub(user.getSub())
-                .build())
+        final List<String> oneLoginSubs = subs.stream()
+                .filter(sub -> sub.contains(ONE_LOGIN_PREFIX))
+                .toList();
+
+        final List<String> colaSubs = subs.stream()
+                .filter(sub -> !sub.contains(ONE_LOGIN_PREFIX))
+                .toList();
+
+        final List<User> users = new ArrayList<>();
+        if (!oneLoginSubs.isEmpty()) {
+            users.addAll(userRepository.findBySubIn(oneLoginSubs));
+        }
+
+        if (!colaSubs.isEmpty()) {
+            final List<UUID> colaSubUuids = colaSubs.stream()
+                    .map(UUID::fromString)
+                    .toList();
+
+            users.addAll(userRepository.findByColaSubIn(colaSubUuids));
+        }
+
+        return users.stream()
+                .map(user -> UserEmailDto.builder()
+                                .emailAddress(awsEncryptionService.encryptField(user.getEmailAddress()))
+                                .sub(user.getSub())
+                                .build()
+                )
                 .toList();
     }
 

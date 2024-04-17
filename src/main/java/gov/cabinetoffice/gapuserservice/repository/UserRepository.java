@@ -32,6 +32,8 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     @EntityGraph(attributePaths = {"department", "roles"})
     Optional<User> findByColaSub(UUID sub);
 
+    List<User> findByColaSubIn(List<UUID> subs);
+
     @EntityGraph(attributePaths = {"department", "roles"})
     Optional<User> findById(int id);
 
