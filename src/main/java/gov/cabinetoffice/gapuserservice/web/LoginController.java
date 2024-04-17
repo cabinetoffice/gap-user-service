@@ -6,6 +6,8 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetoffice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetoffice.gapuserservice.config.ThirdPartyAuthProviderProperties;
 import gov.cabinetoffice.gapuserservice.exceptions.TokenNotValidException;
+import gov.cabinetoffice.gapuserservice.exceptions.UserNotFoundException;
+import gov.cabinetoffice.gapuserservice.model.User;
 import gov.cabinetoffice.gapuserservice.service.JwtBlacklistService;
 import gov.cabinetoffice.gapuserservice.service.jwt.impl.ColaJwtServiceImpl;
 import gov.cabinetoffice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
@@ -15,11 +17,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
 
@@ -83,7 +84,7 @@ public class LoginController {
             claims.put(entry.getKey(), entry.getValue().asString());
         }
         final Cookie userTokenCookie = WebUtil.buildCookie(
-                new Cookie(USER_SERVICE_COOKIE_NAME, customJwtService.generateToken(claims)),
+                new Cookie(USER_SERVICE_COOKIE_NAME, customJwtService.generateToken(claims, false)),
                 Boolean.TRUE,
                 Boolean.TRUE,
                 null
@@ -140,8 +141,9 @@ public class LoginController {
         return new RedirectView(authenticationProvider.getLogoutUrl());
     }
 
-    @GetMapping("/refresh-token")
+    @RequestMapping(value = "/refresh-token", method = { RequestMethod.GET, RequestMethod.POST })
     public RedirectView refreshToken(@CookieValue(USER_SERVICE_COOKIE_NAME) final String currentToken,
+                                     final HttpServletRequest request,
                                      final HttpServletResponse response,
                                      final @RequestParam String redirectUrl) {
         jwtBlacklistService.addJwtToBlacklist(currentToken);
@@ -152,8 +154,8 @@ public class LoginController {
         for (Map.Entry<String, Claim> entry : decodedJWT.getClaims().entrySet()) {
             claims.put(entry.getKey(), entry.getValue().asString());
         }
-
-        final String newToken = customJwtService.generateToken(claims);
+        final User user = customJwtService.getUserFromJwt(request).orElseThrow(() -> new UserNotFoundException("Refresh-token: User not found " + currentToken));
+        final String newToken = customJwtService.generateToken(claims, user.isAdmin());
         final Cookie userTokenCookie = WebUtil.buildCookie(
                 new Cookie(USER_SERVICE_COOKIE_NAME, newToken),
                 Boolean.TRUE,
@@ -163,7 +165,9 @@ public class LoginController {
 
         response.addCookie(userTokenCookie);
 
-        return new RedirectView(redirectUrl);
+        final RedirectView redirectView = new RedirectView(redirectUrl);
+        redirectView.setStatusCode(HttpStatusCode.valueOf(307));
+        return redirectView;
     }
 
     @GetMapping("/is-user-logged-in")

@@ -1,5 +1,6 @@
 package gov.cabinetoffice.gapuserservice.web;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetoffice.gapuserservice.config.ApplicationConfigProperties;
 import gov.cabinetoffice.gapuserservice.config.FindAGrantConfigProperties;
 import gov.cabinetoffice.gapuserservice.dto.*;
@@ -14,6 +15,7 @@ import gov.cabinetoffice.gapuserservice.model.RoleEnum;
 import gov.cabinetoffice.gapuserservice.model.User;
 import gov.cabinetoffice.gapuserservice.service.OneLoginService;
 import gov.cabinetoffice.gapuserservice.service.encryption.Sha512Service;
+import gov.cabinetoffice.gapuserservice.service.jwt.TestDecodedJwt;
 import gov.cabinetoffice.gapuserservice.service.jwt.impl.CustomJwtServiceImpl;
 import gov.cabinetoffice.gapuserservice.service.user.OneLoginUserService;
 import gov.cabinetoffice.gapuserservice.util.LoggingUtils;
@@ -77,7 +79,6 @@ class LoginControllerV2Test {
 
     @Mock
     private LoggingUtils loggingUtils;
-
     private static MockedStatic<WebUtils> mockedWebUtils;
 
     @BeforeEach
@@ -152,7 +153,7 @@ class LoginControllerV2Test {
 
             final RedirectView methodResponse = loginController.login(redirectUrl, request, response);
 
-            verify(customJwtService, times(0)).generateToken(any());
+            verify(customJwtService, times(0)).generateToken(any(), eq(false));
             assertThat(methodResponse.getUrl()).isEqualTo(redirectUrl.get());
         }
 
@@ -169,8 +170,39 @@ class LoginControllerV2Test {
                     .thenReturn(true);
             final RedirectView methodResponse = loginController.login(redirectUrl, request, response);
 
-            verify(customJwtService, times(0)).generateToken(any());
+            verify(customJwtService, times(0)).generateToken(any(), eq(false));
             assertThat(methodResponse.getUrl()).isEqualTo(configProperties.getDefaultRedirectUrl());
+        }
+
+
+        @ParameterizedTest
+        @CsvSource({"ADMIN, http:localhost:3000/adminBaseUrl/404,true",
+                "APPLICANT, http:localhost:3000/applicantBaseUrl/404,false",
+                "TECHNICAL_SUPPORT, http:localhost:3000/techSupportAppBaseUrl/404,false",
+                "SUPER_ADMIN, http:localhost:3000/adminBaseUrl/404,true",
+                "OTHER, /404,false"})
+        void shouldReturnToTheCorrectSubdomain404PageWhenUserAsValidTokenButRedirectUrlEndsWith404(String role, String expectedUrl, boolean isAdmin) throws MalformedURLException {
+            final String customToken = "a-custom-valid-token";
+            final Optional<String> redirectUrl = Optional.of("https://www.find-government-grants.service.gov.uk/404");
+            final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
+            final Cookie cookie = new Cookie(LoginController.REDIRECT_URL_COOKIE, customToken);
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+            final DecodedJWT decodedJwt = mock(DecodedJWT.class);
+            final JwtPayload payload = mock(JwtPayload.class);
+
+            mockedWebUtils.when(() -> WebUtils.getCookie(request, "userServiceCookieName"))
+                    .thenReturn(cookie);
+            when(customJwtService.isTokenValid(customToken))
+                    .thenReturn(true);
+
+            when(customJwtService.decodedJwt(any())).thenReturn(decodedJwt);
+            when(customJwtService.decodeTheTokenPayloadInAReadableFormat(decodedJwt)).thenReturn(payload);
+            when(payload.getRoles()).thenReturn("[" + role + "]");
+
+            final RedirectView methodResponse = loginController.login(redirectUrl, request, response);
+
+            verify(customJwtService, times(0)).generateToken(any(), eq(isAdmin));
+            assertThat(methodResponse.getUrl()).isEqualTo(expectedUrl);
         }
     }
 
@@ -280,7 +312,7 @@ class LoginControllerV2Test {
             when(oneLoginService.decodeTokenId(any())).thenReturn(idTokenDtoBuilder.build());
             when(oneLoginService.decodeStateCookie(any())).thenReturn(stateCookieDtoBuilder.build());
             when(oneLoginService.generateCustomJwtClaims(any(), any())).thenReturn(claims);
-            when(customJwtService.generateToken(claims)).thenReturn("jwtToken");
+            when(customJwtService.generateToken(claims, false)).thenReturn("jwtToken");
 
             loginController.redirectAfterLogin(stateCookie, request, response, code, state);
 

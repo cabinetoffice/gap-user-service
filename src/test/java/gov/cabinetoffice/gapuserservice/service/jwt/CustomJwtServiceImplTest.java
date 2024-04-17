@@ -82,6 +82,7 @@ public class CustomJwtServiceImplTest {
                 .issuer("test-issuer")
                 .audience("test-audience")
                 .expiresAfter(60)
+                .adminExpiresAfter(360)
                 .build();
         serviceUnderTest = spy(new CustomJwtServiceImpl(
                 oneLoginUserService, jwtProperties, jwtBlacklistRepository, userRepository, clock, kmsClient));
@@ -195,7 +196,7 @@ public class CustomJwtServiceImplTest {
             when(kmsClient.sign(any(SignRequest.class))).thenReturn(SignResponse.builder()
                     .signature(SdkBytes.fromString("abc", StandardCharsets.UTF_8)).build());
 
-            String response = serviceUnderTest.generateToken(claims);
+            String response = serviceUnderTest.generateToken(claims, false);
 
             verify(kmsClient).sign(signRequestCaptor.capture());
             SignRequest capturedSignRequest = signRequestCaptor.getValue();
@@ -211,6 +212,34 @@ public class CustomJwtServiceImplTest {
             assertEquals("test-audience", jsonObject.get("aud").asText());
             assertEquals("test-issuer", jsonObject.get("iss").asText());
             assertEquals("1671973200", jsonObject.get("exp").asText());
+            assertEquals("test-claim-value", jsonObject.get("test-claim-key").asText());
+            assertNotNull(jsonObject.get("iat").asText());
+        }
+
+        @Test
+        void shouldReturnValidAdminToken() throws JsonProcessingException {
+            final Map<String, String> claims = new HashMap<>();
+            claims.put("test-claim-key", "test-claim-value");
+
+            when(kmsClient.sign(any(SignRequest.class))).thenReturn(SignResponse.builder()
+                    .signature(SdkBytes.fromString("abc", StandardCharsets.UTF_8)).build());
+
+            String response = serviceUnderTest.generateToken(claims, true);
+
+            verify(kmsClient).sign(signRequestCaptor.capture());
+            SignRequest capturedSignRequest = signRequestCaptor.getValue();
+            String message = SdkBytes.fromByteArray(capturedSignRequest.message().asByteArray()).asString(StandardCharsets.UTF_8);
+
+            assertEquals("RSASSA_PSS_SHA_256", capturedSignRequest.signingAlgorithm().name());
+            assertEquals("RAW", capturedSignRequest.messageType().name());
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            ObjectNode jsonObject = objectMapper.readValue(message, ObjectNode.class);
+
+            assertNotNull(response);
+            assertEquals("test-audience", jsonObject.get("aud").asText());
+            assertEquals("test-issuer", jsonObject.get("iss").asText());
+            assertEquals("1671991200", jsonObject.get("exp").asText());
             assertEquals("test-claim-value", jsonObject.get("test-claim-key").asText());
             assertNotNull(jsonObject.get("iat").asText());
         }
