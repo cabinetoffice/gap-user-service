@@ -220,16 +220,13 @@ public class OneLoginUserService {
         return user;
     }
 
-    private String getSub(User user) {
-        return Optional.ofNullable(user.getSub())
-                .map(Object::toString)
-                .or(() -> Optional.ofNullable(user.getColaSub()).map(UUID::toString))
-                .orElseThrow(() -> new UserNotFoundException("Both the user's sub and colaSub are null"));
+    private String getSubOrColaSub(User user) {
+        return user.getSub() != null ? user.getSub(): String.valueOf(user.getColaSub());
     }
 
     private void handleAdminRoleChange(User user, UpdateUserRolesRequestDto updateUserRolesRequestDto, String jwt) {
         if (!updateUserRolesRequestDto.newUserRoles().contains(RoleEnum.ADMIN.getRoleId()) && user.isAdmin()) {
-            removeAdminReferenceApply(getSub(user), jwt);
+            removeAdminReferenceApply(getSubOrColaSub(user), jwt);
         }
     }
 
@@ -247,7 +244,7 @@ public class OneLoginUserService {
         } else {
             if (user.isTechnicalSupport() && !updateUserRolesRequestDto.newUserRoles()
                     .contains(RoleEnum.TECHNICAL_SUPPORT.getRoleId())) {
-                deleteTechSupportUserFromApply(getSub(user), jwt);
+                deleteTechSupportUserFromApply(getSubOrColaSub(user), jwt);
             }
         }
     }
@@ -292,7 +289,7 @@ public class OneLoginUserService {
                 .uri(adminBackend.concat("/users/tech-support-user"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(CreateTechSupportUserDto.builder()
-                        .userSub(getSub(user)).departmentName(departmentName).build()))
+                        .userSub(getSubOrColaSub(user)).departmentName(departmentName).build()))
                 .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
                 .retrieve()
                 .bodyToMono(Void.class)
@@ -328,7 +325,7 @@ public class OneLoginUserService {
     }
 
     private void deleteUserFromApply(String jwt, User user) {
-        String sub = getSub(user);
+        String sub = getSubOrColaSub(user);
         String query = (user.hasSub() ? "?oneLoginSub=" : "?colaSub=") + sub;
         String uri = adminBackend + "/users/delete" + query;
 
