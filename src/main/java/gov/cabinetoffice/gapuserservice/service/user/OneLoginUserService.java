@@ -220,13 +220,16 @@ public class OneLoginUserService {
         return user;
     }
 
+    private String getSub(User user) {
+        return Optional.ofNullable(user.getSub())
+                .map(Object::toString)
+                .or(() -> Optional.ofNullable(user.getColaSub()).map(UUID::toString))
+                .orElseThrow(() -> new UserNotFoundException("Both the user's sub and colaSub are null"));
+    }
+
     private void handleAdminRoleChange(User user, UpdateUserRolesRequestDto updateUserRolesRequestDto, String jwt) {
         if (!updateUserRolesRequestDto.newUserRoles().contains(RoleEnum.ADMIN.getRoleId()) && user.isAdmin()) {
-            String sub = Optional.ofNullable(user.getSub())
-                    .map(Object::toString)
-                    .or(() -> Optional.ofNullable(user.getColaSub()).map(UUID::toString))
-                    .orElseThrow(() -> new UserNotFoundException("Both the user's sub and colaSub are null"));
-            removeAdminReferenceApply(sub, jwt);
+            removeAdminReferenceApply(getSub(user), jwt);
         }
     }
 
@@ -244,7 +247,7 @@ public class OneLoginUserService {
         } else {
             if (user.isTechnicalSupport() && !updateUserRolesRequestDto.newUserRoles()
                     .contains(RoleEnum.TECHNICAL_SUPPORT.getRoleId())) {
-                deleteTechSupportUserFromApply(user.getSub(), jwt);
+                deleteTechSupportUserFromApply(getSub(user), jwt);
             }
         }
     }
@@ -289,7 +292,7 @@ public class OneLoginUserService {
                 .uri(adminBackend.concat("/users/tech-support-user"))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(CreateTechSupportUserDto.builder()
-                        .userSub(user.getSub()).departmentName(departmentName).build()))
+                        .userSub(getSub(user)).departmentName(departmentName).build()))
                 .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
                 .retrieve()
                 .bodyToMono(Void.class)
@@ -325,8 +328,8 @@ public class OneLoginUserService {
     }
 
     private void deleteUserFromApply(String jwt, User user) {
-
-        String query = user.hasSub() ? "?oneLoginSub=" + user.getSub() : "?colaSub=" + user.getColaSub();
+        String sub = getSub(user);
+        String query = (user.hasSub() ? "?oneLoginSub=" : "?colaSub=") + sub;
         String uri = adminBackend + "/users/delete" + query;
 
         webClientBuilder.build()
@@ -335,7 +338,7 @@ public class OneLoginUserService {
                 .header(AUTHORIZATION_HEADER_NAME, BEARER_HEADER_PREFIX + jwt)
                 .retrieve()
                 .onStatus(httpStatus -> httpStatus.equals(HttpStatus.NOT_FOUND), clientResponse -> {
-                    log.error("User with sub {} does not exist the Apply database", user.getSub());
+                    log.error("User with sub {} does not exist the Apply database", sub);
                     return Mono.empty();
                 })
                 .bodyToMono(Void.class)

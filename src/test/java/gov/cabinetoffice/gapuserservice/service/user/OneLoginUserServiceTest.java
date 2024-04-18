@@ -549,7 +549,7 @@ class OneLoginUserServiceTest {
     void updateRolesShouldNotSetDepartmentToNullIfUserIsAdminOrSuperAdmin() {
         Integer userId = 1;
         Department department = Department.builder().id(1).name("test").build();
-        User user = User.builder().gapUserId(userId).department(department).build();
+        User user = User.builder().gapUserId(userId).department(department).sub("test_sub").build();
         UpdateUserRolesRequestDto updateUserRolesRequestDto = UpdateUserRolesRequestDto.builder()
                 .newUserRoles(Arrays.asList(1, 2, 3, 4, 5)).build();
 
@@ -577,6 +577,31 @@ class OneLoginUserServiceTest {
         User updatedUser = oneLoginUserService.updateRoles(1, updateUserRolesRequestDto, "jwt");
 
         assertThat(updatedUser.getDepartment()).isNotNull();
+    }
+
+    @Test
+    void updateRolesShouldFailIfUserHasNoSub() {
+        Integer userId = 1;
+        Department department = Department.builder().id(1).name("test").build();
+        User user = User.builder().gapUserId(userId).department(department).build();
+        UpdateUserRolesRequestDto updateUserRolesRequestDto = UpdateUserRolesRequestDto.builder()
+                .newUserRoles(Arrays.asList(1, 2, 3, 4, 5)).build();
+
+        final WebClient webClient = mock(WebClient.class);
+        final WebClient.RequestBodyUriSpec requestBodyUriSpec = mock(WebClient.RequestBodyUriSpec.class);
+
+        when(webClientBuilder.build()).thenReturn(webClient);
+        when(webClient.post()).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodyUriSpec);
+        when(requestBodyUriSpec.contentType(any())).thenReturn(requestBodyUriSpec);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(departmentRepository.findById(1)).thenReturn(Optional.of(department));
+        Exception exception = assertThrows(
+                UserNotFoundException.class,
+                () -> oneLoginUserService.updateRoles(1, updateUserRolesRequestDto, "jwt")
+        );
+        assertEquals("Both the user's sub and colaSub are null", exception.getMessage());
     }
 
     @Test
