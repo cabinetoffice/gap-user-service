@@ -549,7 +549,7 @@ class OneLoginUserServiceTest {
     void updateRolesShouldNotSetDepartmentToNullIfUserIsAdminOrSuperAdmin() {
         Integer userId = 1;
         Department department = Department.builder().id(1).name("test").build();
-        User user = User.builder().gapUserId(userId).department(department).build();
+        User user = User.builder().gapUserId(userId).department(department).sub("test_sub").build();
         UpdateUserRolesRequestDto updateUserRolesRequestDto = UpdateUserRolesRequestDto.builder()
                 .newUserRoles(Arrays.asList(1, 2, 3, 4, 5)).build();
 
