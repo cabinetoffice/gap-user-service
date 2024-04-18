@@ -222,9 +222,13 @@ public class OneLoginUserService {
 
     private void handleAdminRoleChange(User user, UpdateUserRolesRequestDto updateUserRolesRequestDto, String jwt) {
         if (!updateUserRolesRequestDto.newUserRoles().contains(RoleEnum.ADMIN.getRoleId()) && user.isAdmin()) {
-                removeAdminReferenceApply(user.getSub(), jwt);
-            }
+            String sub = Optional.ofNullable(user.getSub())
+                    .map(Object::toString)
+                    .or(() -> Optional.ofNullable(user.getColaSub()).map(UUID::toString))
+                    .orElseThrow(() -> new UserNotFoundException("Both the user's sub and colaSub are null"));
+            removeAdminReferenceApply(sub, jwt);
         }
+    }
 
     private void handleTechSupportRoleChange(User user, UpdateUserRolesRequestDto updateUserRolesRequestDto, String jwt) {
         if (updateUserRolesRequestDto.newUserRoles().contains(RoleEnum.TECHNICAL_SUPPORT.getRoleId())
