@@ -91,6 +91,7 @@ class LoginControllerV2Test {
 
         loginController = new LoginControllerV2(oneLoginService, customJwtService, configProperties, encryptionService, oneLoginUserService, findProperties, loggingUtils);
         ReflectionTestUtils.setField(loginController, "userServiceCookieName", "userServiceCookieName");
+        ReflectionTestUtils.setField(loginController, "userServiceCookieDomain", "userServiceCookieDomain");
         ReflectionTestUtils.setField(loginController, "adminBaseUrl", "http:localhost:3000/adminBaseUrl");
         ReflectionTestUtils.setField(loginController, "applicantBaseUrl", "http:localhost:3000/applicantBaseUrl");
         ReflectionTestUtils.setField(loginController, "techSupportAppBaseUrl", "http:localhost:3000/techSupportAppBaseUrl");
@@ -290,7 +291,7 @@ class LoginControllerV2Test {
             final String customToken = "a-custom-valid-token";
             final HttpServletResponse response = Mockito.spy(new MockHttpServletResponse());
             final Map<String, String> claims = Map.of("claim1", "value1", "claim2", "value2");
-            final Cookie cookie = WebUtil.buildSecureCookie("userServiceCookieName", "jwtToken");
+            final Cookie cookie = WebUtil.buildSecureCookie("userServiceCookieName", "userServiceCookieDomain", "jwtToken");
             final JSONObject tokenResponse = new JSONObject();
             tokenResponse.put("id_token", idToken).put("access_token", accessToken);
 
