@@ -71,7 +71,7 @@ public class LoginControllerV2 {
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
 
-    @Value("${jwt.cookie-domain")
+    @Value("${jwt.cookie-domain}")
     public String userServiceCookieDomain;
 
     @Value("${admin-base-url}")
