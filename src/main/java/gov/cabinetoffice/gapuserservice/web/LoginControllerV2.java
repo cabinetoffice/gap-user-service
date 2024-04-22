@@ -251,7 +251,7 @@ public class LoginControllerV2 {
                                       final boolean isAdmin) {
         final Map<String, String> customJwtClaims = oneLoginService.generateCustomJwtClaims(userInfo, idToken);
         final String customServiceJwt = customJwtService.generateToken(customJwtClaims, isAdmin);
-        final Cookie customJwt = WebUtil.buildSecureCookie(userServiceCookieName, userServiceCookieDomain, customServiceJwt);
+        final Cookie customJwt = WebUtil.buildSecureCookie(userServiceCookieName, customServiceJwt, userServiceCookieDomain);
         response.addCookie(customJwt);
         return customJwt;
     }

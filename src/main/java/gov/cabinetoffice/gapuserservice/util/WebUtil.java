@@ -36,7 +36,7 @@ public class WebUtil {
         return cookie;
     }
 
-    public static Cookie buildSecureCookie(final String name, final String domain, final String value) {
+    public static Cookie buildSecureCookie(final String name, final String value, final String domain) {
         final Cookie cookie = new Cookie(name, value);
         cookie.setSecure(true);
         cookie.setHttpOnly(true);
