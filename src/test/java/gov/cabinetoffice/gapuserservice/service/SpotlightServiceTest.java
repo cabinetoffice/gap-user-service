@@ -3,7 +3,9 @@ package gov.cabinetoffice.gapuserservice.service;
 import gov.cabinetoffice.gapuserservice.config.SpotlightConfig;
 import gov.cabinetoffice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetoffice.gapuserservice.exceptions.SpotlightInvalidStateException;
+import gov.cabinetoffice.gapuserservice.model.SpotlightOAuthState;
 import gov.cabinetoffice.gapuserservice.repository.SpotlightOAuthAuditRepository;
+import gov.cabinetoffice.gapuserservice.repository.SpotlightOAuthStateRepository;
 import gov.cabinetoffice.gapuserservice.util.RestUtils;
 import org.apache.http.impl.client.HttpClients;
 import org.json.JSONObject;
@@ -36,6 +38,9 @@ class SpotlightServiceTest {
     private SpotlightOAuthAuditRepository spotlightOAuthAuditRepository;
 
     @Mock
+    private SpotlightOAuthStateRepository spotlightOAuthStateRepository;
+
+    @Mock
     private SecretsManagerClient secretsManagerClient;
 
     @Mock
@@ -54,6 +59,13 @@ class SpotlightServiceTest {
     public void before() {
         httpClientsMockedStatic = mockStatic(HttpClients.class);
         restUtilsMockedStatic = mockStatic(RestUtils.class);
+        when(spotlightOAuthStateRepository.findFirstBy())
+                .thenReturn(SpotlightOAuthState
+                        .builder()
+                        .state_id(1)
+                        .state("stateValue")
+                        .build()
+                );
 
         MockitoAnnotations.openMocks(this);
         spotlightConfig = SpotlightConfig.builder()
@@ -62,8 +74,13 @@ class SpotlightServiceTest {
                 .clientSecret("clientSecret")
                 .redirectUri("redirectUrl")
                 .build();
-        spotlightService = new SpotlightService(spotlightConfig, spotlightOAuthAuditRepository, secureRandom, secretsManagerClient);
-        spotlightService.setState("stateValue");
+        spotlightService = new SpotlightService(
+                spotlightConfig,
+                spotlightOAuthAuditRepository,
+                spotlightOAuthStateRepository,
+                secureRandom,
+                secretsManagerClient
+        );
     }
 
     @AfterEach
