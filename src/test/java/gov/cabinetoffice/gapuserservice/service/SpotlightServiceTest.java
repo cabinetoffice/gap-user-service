@@ -59,13 +59,6 @@ class SpotlightServiceTest {
     public void before() {
         httpClientsMockedStatic = mockStatic(HttpClients.class);
         restUtilsMockedStatic = mockStatic(RestUtils.class);
-        when(spotlightOAuthStateRepository.findFirstBy())
-                .thenReturn(SpotlightOAuthState
-                        .builder()
-                        .state_id(1)
-                        .state("stateValue")
-                        .build()
-                );
 
         MockitoAnnotations.openMocks(this);
         spotlightConfig = SpotlightConfig.builder()
@@ -137,6 +130,13 @@ class SpotlightServiceTest {
         when(secretsManagerClient.getSecretValue(any(GetSecretValueRequest.class))).thenReturn(getSecretValueResponse);
         when(getSecretValueResponse.secretString()).thenReturn(secretJson);
 
+        when(spotlightOAuthStateRepository.findFirstBy())
+                .thenReturn(SpotlightOAuthState
+                        .builder()
+                        .state_id(1)
+                        .state("stateValue")
+                        .build()
+                );
 
         assertThrows(InvalidRequestException.class,
                 () -> spotlightService.exchangeAuthorizationToken("1234", "stateValue"));
@@ -144,6 +144,13 @@ class SpotlightServiceTest {
 
     @Test
     void shouldThrowExceptionWhenSateValueDoesNotMatchTest() {
+        when(spotlightOAuthStateRepository.findFirstBy())
+                .thenReturn(SpotlightOAuthState
+                        .builder()
+                        .state_id(1)
+                        .state("stateValue")
+                        .build()
+                );
         assertThrows(SpotlightInvalidStateException.class,
                 () -> spotlightService.exchangeAuthorizationToken("1234", "stateValueInvalid"));
 
