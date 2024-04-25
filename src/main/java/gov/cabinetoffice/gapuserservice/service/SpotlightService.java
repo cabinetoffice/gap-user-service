@@ -7,7 +7,9 @@ import gov.cabinetoffice.gapuserservice.enums.SpotlightOAuthAuditStatus;
 import gov.cabinetoffice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetoffice.gapuserservice.exceptions.SpotlightInvalidStateException;
 import gov.cabinetoffice.gapuserservice.model.SpotlightOAuthAudit;
+import gov.cabinetoffice.gapuserservice.model.SpotlightOAuthState;
 import gov.cabinetoffice.gapuserservice.repository.SpotlightOAuthAuditRepository;
+import gov.cabinetoffice.gapuserservice.repository.SpotlightOAuthStateRepository;
 import gov.cabinetoffice.gapuserservice.util.RestUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -37,12 +39,11 @@ public class SpotlightService {
 
     private final SpotlightConfig spotlightConfig;
     private final SpotlightOAuthAuditRepository spotlightOAuthAuditRepository;
+    private final SpotlightOAuthStateRepository spotlightOAuthStateRepository;
     private final SecureRandom secureRandom;
 
     private final SecretsManagerClient secretsManagerClient;
 
-    // TODO: This won't work in a horizontally scaled environment, as the state will be different for each instance
-    private String state;
     private String codeVerifier;
     private String codeChallenge;
 
@@ -71,16 +72,20 @@ public class SpotlightService {
 
         String authorizationEndpoint = uri.toString();
 
-        state = generateRandomString(64);
+        String newState = generateRandomString(64);
         codeVerifier = generateRandomString(128);
         codeChallenge = generateCodeChallenge(codeVerifier);
 
-        log.debug("state: {}", state);
+        log.debug("state: {}", newState);
         log.debug("codeVerifier: {}", codeVerifier);
         log.debug("codeChallenge: {}", codeChallenge);
 
+        SpotlightOAuthState state = spotlightOAuthStateRepository.findFirstBy();
+        state.setState(newState);
+        spotlightOAuthStateRepository.save(state);
+
         String authUrl = String.format("%s?response_type=%s&client_id=%s&redirect_uri=%s&scope=%s&state=%s&code_challenge=%s&code_challenge_method=S256",
-                authorizationEndpoint, responseType, spotlightConfig.getClientId(), spotlightConfig.getRedirectUri(), scope, state, codeChallenge);
+                authorizationEndpoint, responseType, spotlightConfig.getClientId(), spotlightConfig.getRedirectUri(), scope, state.getState(), codeChallenge);
 
         log.debug("Visit the following URL to authorize spotlight: {}", authUrl);
 
@@ -94,7 +99,9 @@ public class SpotlightService {
 
         String grantType = "authorization_code";
 
-        if (!state.equals(this.state)) {
+        SpotlightOAuthState stateFromDb = spotlightOAuthStateRepository.findFirstBy();
+
+        if (!state.equals(stateFromDb.getState())) {
             throw new SpotlightInvalidStateException("State does not match");
         }
 

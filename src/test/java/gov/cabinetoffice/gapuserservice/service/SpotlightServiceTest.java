@@ -3,7 +3,9 @@ package gov.cabinetoffice.gapuserservice.service;
 import gov.cabinetoffice.gapuserservice.config.SpotlightConfig;
 import gov.cabinetoffice.gapuserservice.exceptions.InvalidRequestException;
 import gov.cabinetoffice.gapuserservice.exceptions.SpotlightInvalidStateException;
+import gov.cabinetoffice.gapuserservice.model.SpotlightOAuthState;
 import gov.cabinetoffice.gapuserservice.repository.SpotlightOAuthAuditRepository;
+import gov.cabinetoffice.gapuserservice.repository.SpotlightOAuthStateRepository;
 import gov.cabinetoffice.gapuserservice.util.RestUtils;
 import org.apache.http.impl.client.HttpClients;
 import org.json.JSONObject;
@@ -36,6 +38,9 @@ class SpotlightServiceTest {
     private SpotlightOAuthAuditRepository spotlightOAuthAuditRepository;
 
     @Mock
+    private SpotlightOAuthStateRepository spotlightOAuthStateRepository;
+
+    @Mock
     private SecretsManagerClient secretsManagerClient;
 
     @Mock
@@ -62,8 +67,13 @@ class SpotlightServiceTest {
                 .clientSecret("clientSecret")
                 .redirectUri("redirectUrl")
                 .build();
-        spotlightService = new SpotlightService(spotlightConfig, spotlightOAuthAuditRepository, secureRandom, secretsManagerClient);
-        spotlightService.setState("stateValue");
+        spotlightService = new SpotlightService(
+                spotlightConfig,
+                spotlightOAuthAuditRepository,
+                spotlightOAuthStateRepository,
+                secureRandom,
+                secretsManagerClient
+        );
     }
 
     @AfterEach
@@ -74,6 +84,13 @@ class SpotlightServiceTest {
 
     @Test
     void getAuthorizeUrlTest() throws Exception {
+        when(spotlightOAuthStateRepository.findFirstBy())
+                .thenReturn(SpotlightOAuthState
+                        .builder()
+                        .state_id(1)
+                        .state("stateValue")
+                        .build()
+                );
 
         String result = spotlightService.getAuthorizeUrl();
 
@@ -99,6 +116,13 @@ class SpotlightServiceTest {
         when(secretsManagerClient.getSecretValue(any(GetSecretValueRequest.class))).thenReturn(getSecretValueResponse);
         when(getSecretValueResponse.secretString()).thenReturn(secretJson);
 
+        when(spotlightOAuthStateRepository.findFirstBy())
+                .thenReturn(SpotlightOAuthState
+                        .builder()
+                        .state_id(1)
+                        .state("stateValue")
+                        .build()
+                );
 
         spotlightService.exchangeAuthorizationToken("1234", "stateValue");
 
@@ -120,6 +144,13 @@ class SpotlightServiceTest {
         when(secretsManagerClient.getSecretValue(any(GetSecretValueRequest.class))).thenReturn(getSecretValueResponse);
         when(getSecretValueResponse.secretString()).thenReturn(secretJson);
 
+        when(spotlightOAuthStateRepository.findFirstBy())
+                .thenReturn(SpotlightOAuthState
+                        .builder()
+                        .state_id(1)
+                        .state("stateValue")
+                        .build()
+                );
 
         assertThrows(InvalidRequestException.class,
                 () -> spotlightService.exchangeAuthorizationToken("1234", "stateValue"));
@@ -127,6 +158,13 @@ class SpotlightServiceTest {
 
     @Test
     void shouldThrowExceptionWhenSateValueDoesNotMatchTest() {
+        when(spotlightOAuthStateRepository.findFirstBy())
+                .thenReturn(SpotlightOAuthState
+                        .builder()
+                        .state_id(1)
+                        .state("stateValue")
+                        .build()
+                );
         assertThrows(SpotlightInvalidStateException.class,
                 () -> spotlightService.exchangeAuthorizationToken("1234", "stateValueInvalid"));
 
