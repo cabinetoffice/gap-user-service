@@ -84,6 +84,13 @@ class SpotlightServiceTest {
 
     @Test
     void getAuthorizeUrlTest() throws Exception {
+        when(spotlightOAuthStateRepository.findFirstBy())
+                .thenReturn(SpotlightOAuthState
+                        .builder()
+                        .state_id(1)
+                        .state("stateValue")
+                        .build()
+                );
 
         String result = spotlightService.getAuthorizeUrl();
 
@@ -109,6 +116,13 @@ class SpotlightServiceTest {
         when(secretsManagerClient.getSecretValue(any(GetSecretValueRequest.class))).thenReturn(getSecretValueResponse);
         when(getSecretValueResponse.secretString()).thenReturn(secretJson);
 
+        when(spotlightOAuthStateRepository.findFirstBy())
+                .thenReturn(SpotlightOAuthState
+                        .builder()
+                        .state_id(1)
+                        .state("stateValue")
+                        .build()
+                );
 
         spotlightService.exchangeAuthorizationToken("1234", "stateValue");
 
