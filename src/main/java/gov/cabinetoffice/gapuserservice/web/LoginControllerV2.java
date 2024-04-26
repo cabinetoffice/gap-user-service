@@ -112,7 +112,7 @@ public class LoginControllerV2 {
         }
 
         if (!isTokenValid) {
-            deleteDuplicateJWTCookieIfPresent(request, response);
+            deleteJWTCookieIfPresent(request, response);
 
             final String nonce = oneLoginService.generateAndStoreNonce();
             String saltId = encryptionService.generateAndStoreSalt();
@@ -301,19 +301,11 @@ public class LoginControllerV2 {
     // and sending them both in requests, which can then lead to an infinite redirect loop on login as we continually
     // read the old, expired token and issue a new valid one. This function removes the old cookie (which didn't allow
     // subdomains) if it is present.
-    private void deleteDuplicateJWTCookieIfPresent(final HttpServletRequest request, final HttpServletResponse response) {
-        final Cookie[] cookies = request.getCookies();
-
-        if (cookies == null) return;
-
-        final Cookie[] customJWTCookies = Arrays.stream(cookies).filter(cookie ->
-                cookie.getName().equals(userServiceCookieName)
-        ).toArray(Cookie[]::new);
-
-        if (customJWTCookies.length > 1) {
-            Cookie nullCustomJWTCookie = WebUtil.buildNullCookie(userServiceCookieName);
-            response.addCookie(nullCustomJWTCookie);
-        }
+    private void deleteJWTCookieIfPresent(final HttpServletRequest request, final HttpServletResponse response) {
+        final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
+        if (customJWTCookie == null) return;
+        customJWTCookie.setMaxAge(0);
+        response.addCookie(customJWTCookie);
     }
 
     private String generate404UrlBasedOnHighestRole(List<String> roles) {
