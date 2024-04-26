@@ -35,10 +35,8 @@ import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
 
 import java.net.MalformedURLException;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static net.logstash.logback.argument.StructuredArguments.entries;
 
@@ -103,6 +101,7 @@ public class LoginControllerV2 {
             final HttpServletRequest request,
             final HttpServletResponse response) throws MalformedURLException {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
+
         final boolean isTokenValid = customJWTCookie != null
                 && customJWTCookie.getValue() != null
                 && customJwtService.isTokenValid(customJWTCookie.getValue());
@@ -113,6 +112,8 @@ public class LoginControllerV2 {
         }
 
         if (!isTokenValid) {
+            deleteDuplicateJWTCookieIfPresent(request, response);
+
             final String nonce = oneLoginService.generateAndStoreNonce();
             String saltId = encryptionService.generateAndStoreSalt();
             final String encodedState = oneLoginService.generateAndStoreState(response, redirectUrl, saltId);
@@ -172,6 +173,7 @@ public class LoginControllerV2 {
 
         final StateCookieDto stateCookieDto = oneLoginService.decodeStateCookie(stateCookie);
         final String redirectUrl = stateCookieDto.getRedirectUrl();
+
         oneLoginService.verifyStateAndNonce(decodedIdToken.getNonce(), stateCookieDto, state);
 
         final OneLoginUserInfoDto userInfo = oneLoginService.getOneLoginUserInfoDto(authToken);
@@ -290,6 +292,28 @@ public class LoginControllerV2 {
         );
         stateCookieReplacement.setMaxAge(0);
         response.addCookie(stateCookieReplacement);
+    }
+
+    // This shouldn't be required going forward, and can be removed in the next release.
+    //
+    // This is needed for the Apr 2024 deployment, as we're changing the domain the cookie is issued against to allow
+    // it to persist across both production domains. This can result in clients storing two cookies with the same name
+    // and sending them both in requests, which can then lead to an infinite redirect loop on login as we continually
+    // read the old, expired token and issue a new valid one. This function removes the old cookie (which didn't allow
+    // subdomains) if it is present.
+    private void deleteDuplicateJWTCookieIfPresent(final HttpServletRequest request, final HttpServletResponse response) {
+        final Cookie[] cookies = request.getCookies();
+
+        if (cookies == null) return;
+
+        final Cookie[] customJWTCookies = Arrays.stream(cookies).filter(cookie ->
+                cookie.getName().equals(userServiceCookieName)
+        ).toArray(Cookie[]::new);
+
+        if (customJWTCookies.length > 1) {
+            Cookie nullCustomJWTCookie = WebUtil.buildNullCookie(userServiceCookieName);
+            response.addCookie(nullCustomJWTCookie);
+        }
     }
 
     private String generate404UrlBasedOnHighestRole(List<String> roles) {
