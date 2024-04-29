@@ -294,18 +294,12 @@ public class LoginControllerV2 {
         response.addCookie(stateCookieReplacement);
     }
 
-    // This shouldn't be required going forward, and can be removed in the next release.
-    //
-    // This is needed for the Apr 2024 deployment, as we're changing the domain the cookie is issued against to allow
-    // it to persist across both production domains. This can result in clients storing two cookies with the same name
-    // and sending them both in requests, which can then lead to an infinite redirect loop on login as we continually
-    // read the old, expired token and issue a new valid one. This function removes the old cookie (which didn't allow
-    // subdomains) if it is present.
     private void deleteJWTCookieIfPresent(final HttpServletRequest request, final HttpServletResponse response) {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
         if (customJWTCookie == null) return;
-        customJWTCookie.setMaxAge(0);
-        response.addCookie(customJWTCookie);
+        final Cookie nullCookie = WebUtil.buildSecureCookie(userServiceCookieName, "deleted");
+        nullCookie.setMaxAge(0);
+        response.addCookie(nullCookie);
     }
 
     private String generate404UrlBasedOnHighestRole(List<String> roles) {
