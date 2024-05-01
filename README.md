@@ -16,12 +16,14 @@ This service manages users for The Cabinet Office's Apply for a Grant service
 - run `colima start`
 - run `docker pull postgres`
 - run `docker run -itd -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=mysecretpassword -p 5432:5432 --name postgres-local postgres`
+- connect to the database using pgaAdmin or any other DMS and seed the database with the script you can find in src/main/resources/db/Users-setup-LOCAL.sql
 - NOTE: to start this container AFTER the first time you run this command, just use `docker start postgres-local`
 Install PGAdmin either through docker or directly onto your system then connect to the instance of Postgres you’ve just started:
   - host: `localhost` or `127.0.0.1` (or `host.docker.internal` if you also run PGAdmin with docker)
   - port: `5432`
   - username: `postgres`
   - password: `mysecretpassword`
+
 
 ### Database Setup without Docker
 - Install postgres and pgadmin
@@ -30,6 +32,7 @@ Install PGAdmin either through docker or directly onto your system then connect 
 - update your application.properties database username and password. Default user/pass for the `postgres` user is `postgres`/`postgres`
   - spring.datasource.username
   - spring.datasource.password
+- seed the database with the script you can find in src/main/resources/db/Users-setup-LOCAL.sql
   
 ### Wiremock
 
