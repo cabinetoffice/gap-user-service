@@ -67,6 +67,9 @@ public class OneLoginUserService {
     @Value("${find-a-grant.url}")
     private String findFrontend;
 
+    @Value("${jwt.cookie-domain}")
+    public String userServiceCookieDomain;
+
     public Page<User> getPaginatedUsers(Pageable pageable, UserQueryDto userQueryDto) {
         final Map<UserQueryCondition, BiFunction<UserQueryDto, Pageable, Page<User>>> conditionMap = createUserQueryConditionMap();
         final UserQueryCondition condition = userQueryDto.getCondition();
@@ -369,7 +372,7 @@ public class OneLoginUserService {
                 new Cookie(userServiceCookieName, null),
                 Boolean.TRUE,
                 Boolean.TRUE,
-                null
+                userServiceCookieDomain
         );
         userTokenCookie.setMaxAge(0);
         response.addCookie(userTokenCookie);
