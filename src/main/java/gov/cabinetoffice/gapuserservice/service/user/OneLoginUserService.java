@@ -61,6 +61,9 @@ public class OneLoginUserService {
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
 
+    @Value("${jwt.cookie-domain}")
+    public String userServiceCookieDomain;
+
     @Value("${admin-backend}")
     private String adminBackend;
 
@@ -369,21 +372,10 @@ public class OneLoginUserService {
                 new Cookie(userServiceCookieName, null),
                 Boolean.TRUE,
                 Boolean.TRUE,
-                null
+                userServiceCookieDomain
         );
         userTokenCookie.setMaxAge(0);
         response.addCookie(userTokenCookie);
-
-        final String authenticationCookieDomain = Objects.equals(this.configProperties.getProfile(), "LOCAL") ? "localhost" : "cabinetoffice.gov.uk";
-
-        final Cookie thirdPartyAuthToken = WebUtil.buildCookie(
-                new Cookie(authenticationProvider.getTokenCookie(), null),
-                Boolean.TRUE,
-                Boolean.TRUE,
-                authenticationCookieDomain
-        );
-        thirdPartyAuthToken.setMaxAge(0);
-        response.addCookie(thirdPartyAuthToken);
     }
 
     public void validateRoles(List<Role> userRoles, String payloadRoles) {
