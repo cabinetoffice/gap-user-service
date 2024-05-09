@@ -46,7 +46,7 @@ public class LoginController {
     @Value("${jwt.cookie-name}")
     public String userServiceCookieName;
 
-        @Value("${jwt.cookie-name}")
+        @Value("${jwt.cookie-domain}")
     public String userServiceCookieDomain;
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
