@@ -23,6 +23,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -43,6 +44,9 @@ public class LoginController {
     private final JwtBlacklistService jwtBlacklistService;
     public static final String REDIRECT_URL_COOKIE = "redirectUrl";
     public static final String USER_SERVICE_COOKIE_NAME = "user-service-token";
+
+    @Value("${jwt.cookie-domain}")
+    public String userServiceCookieDomain;
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     @GetMapping("/login")
@@ -160,7 +164,7 @@ public class LoginController {
                 new Cookie(USER_SERVICE_COOKIE_NAME, newToken),
                 Boolean.TRUE,
                 Boolean.TRUE,
-                null
+                userServiceCookieDomain
         );
 
         response.addCookie(userTokenCookie);
