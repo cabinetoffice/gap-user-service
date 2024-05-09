@@ -23,6 +23,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.WebUtils;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -42,16 +43,14 @@ public class LoginController {
     private final CustomJwtServiceImpl customJwtService;
     private final JwtBlacklistService jwtBlacklistService;
     public static final String REDIRECT_URL_COOKIE = "redirectUrl";
+    public static final String USER_SERVICE_COOKIE_NAME = "user-service-token";
 
-    @Value("${jwt.cookie-name}")
-    public String userServiceCookieName;
-
-        @Value("${jwt.cookie-domain}")
+    @Value("${jwt.cookie-domain}")
     public String userServiceCookieDomain;
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     @GetMapping("/login")
-    public RedirectView login(final @CookieValue(name = userServiceCookieName, required = false) String jwt,
+    public RedirectView login(final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false) String jwt,
                               final @RequestParam Optional<String> redirectUrl,
                               final HttpServletResponse response) {
         final boolean isTokenValid = jwt != null && customJwtService.isTokenValid(jwt);
@@ -89,7 +88,7 @@ public class LoginController {
             claims.put(entry.getKey(), entry.getValue().asString());
         }
         final Cookie userTokenCookie = WebUtil.buildCookie(
-                new Cookie(userServiceCookieName, customJwtService.generateToken(claims, false)),
+                new Cookie(USER_SERVICE_COOKIE_NAME, customJwtService.generateToken(claims, false)),
                 Boolean.TRUE,
                 Boolean.TRUE,
                 null
@@ -114,7 +113,7 @@ public class LoginController {
 
     @GetMapping("/logout")
     public RedirectView logout(
-            final @CookieValue(name = userServiceCookieName, required = false) String jwt,
+            final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false) String jwt,
             final HttpServletResponse response) {
 
         if (jwt != null) {
@@ -122,7 +121,7 @@ public class LoginController {
         }
 
         final Cookie userTokenCookie = WebUtil.buildCookie(
-                new Cookie(userServiceCookieName, null),
+                new Cookie(USER_SERVICE_COOKIE_NAME, null),
                 Boolean.TRUE,
                 Boolean.TRUE,
                 null
@@ -147,7 +146,7 @@ public class LoginController {
     }
 
     @RequestMapping(value = "/refresh-token", method = { RequestMethod.GET, RequestMethod.POST })
-    public RedirectView refreshToken(@CookieValue(userServiceCookieName) final String currentToken,
+    public RedirectView refreshToken(@CookieValue(USER_SERVICE_COOKIE_NAME) final String currentToken,
                                      final HttpServletRequest request,
                                      final HttpServletResponse response,
                                      final @RequestParam String redirectUrl) {
@@ -162,7 +161,7 @@ public class LoginController {
         final User user = customJwtService.getUserFromJwt(request).orElseThrow(() -> new UserNotFoundException("Refresh-token: User not found " + currentToken));
         final String newToken = customJwtService.generateToken(claims, user.isAdmin());
         final Cookie userTokenCookie = WebUtil.buildCookie(
-                new Cookie(userServiceCookieName, newToken),
+                new Cookie(USER_SERVICE_COOKIE_NAME, newToken),
                 Boolean.TRUE,
                 Boolean.TRUE,
                 userServiceCookieDomain
@@ -177,7 +176,7 @@ public class LoginController {
 
     @GetMapping("/is-user-logged-in")
     public ResponseEntity<Boolean> validateUser(
-            final @CookieValue(name = userServiceCookieName, required = false) String jwt) {
+            final @CookieValue(name = USER_SERVICE_COOKIE_NAME, required = false) String jwt) {
         log.debug("verifying token: " + jwt);
 
         final boolean isJwtValid = jwt != null && customJwtService.isTokenValid(jwt);
