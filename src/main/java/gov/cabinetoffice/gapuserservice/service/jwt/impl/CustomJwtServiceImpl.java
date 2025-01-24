@@ -66,9 +66,10 @@ public class CustomJwtServiceImpl implements JwtService {
 
     @Value("${jwt.memoization-cache-expiry}")
     long memoizationCacheExpiry;
+
     public CustomJwtServiceImpl(OneLoginUserService oneLoginUserService,
-                                JwtProperties jwtProperties, JwtBlacklistRepository jwtBlacklistRepository,
-                                UserRepository userRepository, Clock clock, KmsClient kmsClient) {
+            JwtProperties jwtProperties, JwtBlacklistRepository jwtBlacklistRepository,
+            UserRepository userRepository, Clock clock, KmsClient kmsClient) {
         this.oneLoginUserService = oneLoginUserService;
         this.jwtProperties = jwtProperties;
         this.jwtBlacklistRepository = jwtBlacklistRepository;
@@ -114,16 +115,28 @@ public class CustomJwtServiceImpl implements JwtService {
             }
 
             final DecodedJWT decodedToken = decodedJwt(customJwt);
-            if (isJWTExpired(decodedToken)) return false;
+            if (isJWTExpired(decodedToken))
+                return false;
             if (oneLoginEnabled) {
+                log.info("one login enabled.....");
                 final JwtPayload jwtPayload = decodeTheTokenPayloadInAReadableFormat(decodedToken);
+                log.info("Got jwtPayload.....");
                 Optional<User> user = userRepository.findBySub(jwtPayload.getSub());
-                if (user.isEmpty()) user = userRepository.findByEmailAddress(jwtPayload.getEmail());
-                if (user.isEmpty()) return false;
+                log.info("Got user email....." + jwtPayload.getEmail());
+                if (user.isEmpty())
+                    user = userRepository.findByEmailAddress(jwtPayload.getEmail());
+                if (user.isEmpty()) {
+                    log.info("User is empty...");
+                    return false;
+                }
                 if (validateUserRolesInMiddleware) {
                     validateRolesInThePayload(jwtPayload);
                 }
-                if (user.get().getLoginJourneyState().equals(LoginJourneyState.PRIVACY_POLICY_PENDING)) return false;
+                if (user.get().getLoginJourneyState().equals(LoginJourneyState.PRIVACY_POLICY_PENDING)) {
+                    log.info("Privacy policy pending. isTokenValidation is false...");
+                    return false;
+                }
+
             }
 
             return !isTokenInBlacklist(customJwt);
@@ -171,7 +184,8 @@ public class CustomJwtServiceImpl implements JwtService {
     }
 
     private Date generateExpiryDate(final boolean isAdmin) {
-        final Integer expiresAfterInMinutes = isAdmin ? jwtProperties.getAdminExpiresAfter() : jwtProperties.getExpiresAfter();
+        final Integer expiresAfterInMinutes = isAdmin ? jwtProperties.getAdminExpiresAfter()
+                : jwtProperties.getExpiresAfter();
         final int expiresAfterInMilliseconds = expiresAfterInMinutes * 1000 * 60;
         return new Date(ZonedDateTime.now(clock).toInstant().toEpochMilli() + expiresAfterInMilliseconds);
     }

@@ -102,8 +102,6 @@ public class LoginControllerV2 {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
 
         log.info("customJWTCookie ::" + customJWTCookie);
-        log.info("customJWTCookie is token valid ::" + customJwtService.isTokenValid(customJWTCookie.getValue()));
-        log.info("customJWTCookie.getValue() ::" + customJWTCookie.getValue());
 
         final boolean isTokenValid = customJWTCookie != null
                 && customJWTCookie.getValue() != null
