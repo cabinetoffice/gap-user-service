@@ -256,7 +256,7 @@ public class OneLoginService {
     public void validateIdToken(IdTokenDto decodedIdToken) {
         long currentEpochSeconds = Instant.now().getEpochSecond();
 
-        log.info("validateIdToken - decodedIdToken :" + decodedIdToken);
+        log.info("validateIdToken");
         if (!decodedIdToken.getIss().equals(oneLoginBaseUrl.concat("/"))) {
             String message = "invalid iss property in One Login ID token";
             log.error(
