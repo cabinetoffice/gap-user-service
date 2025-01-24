@@ -101,9 +101,15 @@ public class LoginControllerV2 {
             final HttpServletResponse response) throws MalformedURLException {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
 
+        log.info("customJWTCookie ::" + customJWTCookie);
+        log.info("customJWTCookie is token valid ::" + customJwtService.isTokenValid(customJWTCookie.getValue()));
+        log.info("customJWTCookie.getValue() ::" + customJWTCookie.getValue());
+
         final boolean isTokenValid = customJWTCookie != null
                 && customJWTCookie.getValue() != null
                 && customJwtService.isTokenValid(customJWTCookie.getValue());
+
+        log.info("isTokenValid ::" + isTokenValid);
         String redirectUrl = redirectUrlParam.orElse(null);
 
         if (redirectUrl != null) {
@@ -111,6 +117,7 @@ public class LoginControllerV2 {
         }
 
         if (!isTokenValid) {
+            log.info("Token not valid ::");
             deleteJWTCookieIfPresent(request, response);
 
             final String nonce = oneLoginService.generateAndStoreNonce();
@@ -125,6 +132,7 @@ public class LoginControllerV2 {
             redirectUrl = configProperties.getDefaultRedirectUrl();
         }
 
+        log.info("redirect URL ::" + redirectUrl);
         if (redirectUrl.endsWith("/404")) {
             final List<String> roles = getUserRolesFromJwtToken(customJWTCookie);
 
@@ -143,6 +151,8 @@ public class LoginControllerV2 {
             final HttpServletResponse response,
             final @RequestParam String code,
             final @RequestParam String state) {
+
+        log.info("In redirectAfterLogin...");
 
         // Redirect user if they are already logged in
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
