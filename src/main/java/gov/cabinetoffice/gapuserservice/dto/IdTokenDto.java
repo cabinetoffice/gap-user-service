@@ -20,4 +20,5 @@ public class IdTokenDto {
     private String vtm;
     private String sid;
     private String nonce;
+    private String auth_time;
 }

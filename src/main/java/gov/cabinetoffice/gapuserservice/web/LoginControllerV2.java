@@ -54,7 +54,6 @@ public class LoginControllerV2 {
     private final FindAGrantConfigProperties findProperties;
     private final LoggingUtils loggingUtils;
 
-
     public static final String PRIVACY_POLICY_PAGE_VIEW = "privacy-policy";
 
     public static final String UPDATED_EMAIL_PAGE_VIEW = "updated-email";
@@ -102,9 +101,12 @@ public class LoginControllerV2 {
             final HttpServletResponse response) throws MalformedURLException {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
 
+        log.info("customJWTCookie ::" + customJWTCookie);
         final boolean isTokenValid = customJWTCookie != null
                 && customJWTCookie.getValue() != null
                 && customJwtService.isTokenValid(customJWTCookie.getValue());
+
+        log.info("isTokenValid ::" + isTokenValid);
         String redirectUrl = redirectUrlParam.orElse(null);
 
         if (redirectUrl != null) {
@@ -112,6 +114,7 @@ public class LoginControllerV2 {
         }
 
         if (!isTokenValid) {
+            log.info("Token not valid ::");
             deleteJWTCookieIfPresent(request, response);
 
             final String nonce = oneLoginService.generateAndStoreNonce();
@@ -126,6 +129,7 @@ public class LoginControllerV2 {
             redirectUrl = configProperties.getDefaultRedirectUrl();
         }
 
+        log.info("redirect URL ::" + redirectUrl);
         if (redirectUrl.endsWith("/404")) {
             final List<String> roles = getUserRolesFromJwtToken(customJWTCookie);
 
@@ -145,6 +149,8 @@ public class LoginControllerV2 {
             final @RequestParam String code,
             final @RequestParam String state) {
 
+        log.info("In redirectAfterLogin...");
+
         // Redirect user if they are already logged in
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
         final boolean isTokenValid = customJWTCookie != null
@@ -152,8 +158,10 @@ public class LoginControllerV2 {
                 && customJwtService.isTokenValid(customJWTCookie.getValue());
 
         if (isTokenValid) {
+
             final StateCookieDto stateCookieDto = oneLoginService.decodeStateCookie(stateCookie);
             final String redirectUrl = stateCookieDto.getRedirectUrl();
+            log.info("Token valid. Redirectig to URL :" + redirectUrl);
             return new RedirectView(redirectUrl);
         }
 
@@ -168,7 +176,9 @@ public class LoginControllerV2 {
 
         if (!Objects.equals(this.configProperties.getProfile(), "LOCAL")) {
             oneLoginService.validateIdToken(decodedIdToken);
+            log.info("decoded token validation success");
             oneLoginService.validateAuthTokenSignatureAndAlgorithm(authToken);
+            log.info("validateAuthTokenSignatureAndAlgorithm success");
         }
 
         final StateCookieDto stateCookieDto = oneLoginService.decodeStateCookie(stateCookie);
@@ -183,10 +193,12 @@ public class LoginControllerV2 {
         }
 
         final User user = oneLoginUserService.createOrGetUserFromInfo(userInfo);
+        log.info("User --" + user.getEmailAddress());
 
         final Cookie customJwtCookie = addCustomJwtCookie(response, userInfo, idToken, user.isAdmin());
 
-        //recreate state cookie and set age to 0 to delete it. Avoids possible unwanted redirection if state cookie persist
+        // recreate state cookie and set age to 0 to delete it. Avoids possible unwanted
+        // redirection if state cookie persist
         deleteStateCookie(response);
 
         return new RedirectView(runStateMachine(redirectUrl, user, customJwtCookie.getValue(),
@@ -248,12 +260,13 @@ public class LoginControllerV2 {
     }
 
     private Cookie addCustomJwtCookie(final HttpServletResponse response,
-                                      final OneLoginUserInfoDto userInfo,
-                                      final String idToken,
-                                      final boolean isAdmin) {
+            final OneLoginUserInfoDto userInfo,
+            final String idToken,
+            final boolean isAdmin) {
         final Map<String, String> customJwtClaims = oneLoginService.generateCustomJwtClaims(userInfo, idToken);
         final String customServiceJwt = customJwtService.generateToken(customJwtClaims, isAdmin);
-        final Cookie customJwt = WebUtil.buildSecureCookie(userServiceCookieName, customServiceJwt, userServiceCookieDomain);
+        final Cookie customJwt = WebUtil.buildSecureCookie(userServiceCookieName, customServiceJwt,
+                userServiceCookieDomain);
         response.addCookie(customJwt);
         return customJwt;
     }
@@ -276,7 +289,7 @@ public class LoginControllerV2 {
         String redirectUrl = user.getLoginJourneyState()
                 .nextState(new NextStateArgs(oneLoginUserService, user, jwt, log, hasAcceptedPrivacyPolicy, userInfo,
                         findAccountsMigrationEnabled))
-                .getLoginJourneyRedirect(user.getHighestRole().getName() ,redirectUrlCookie)
+                .getLoginJourneyRedirect(user.getHighestRole().getName(), redirectUrlCookie)
                 .getRedirectUrl(new GetRedirectUrlArgs(adminBaseUrl, applicantBaseUrl, techSupportAppBaseUrl,
                         redirectUrlCookie, user));
         log.info(loggingUtils.getLogMessage("Redirecting to: ", 1), redirectUrl);
@@ -288,15 +301,15 @@ public class LoginControllerV2 {
                 new Cookie(STATE_COOKIE, null),
                 Boolean.TRUE,
                 Boolean.TRUE,
-                null
-        );
+                null);
         stateCookieReplacement.setMaxAge(0);
         response.addCookie(stateCookieReplacement);
     }
 
     private void deleteJWTCookieIfPresent(final HttpServletRequest request, final HttpServletResponse response) {
         final Cookie customJWTCookie = WebUtils.getCookie(request, userServiceCookieName);
-        if (customJWTCookie == null) return;
+        if (customJWTCookie == null)
+            return;
         final Cookie nullCookie = WebUtil.buildSecureCookie(userServiceCookieName, "deleted");
         nullCookie.setMaxAge(0);
         response.addCookie(nullCookie);

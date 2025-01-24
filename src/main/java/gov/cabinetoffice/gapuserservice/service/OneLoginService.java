@@ -103,7 +103,8 @@ public class OneLoginService {
     }
 
     public String generateNonce() {
-        return Objects.equals(this.configProperties.getProfile(), "LOCAL") ? "aEwkamaos5C" : generateSecureRandomString(64);
+        return Objects.equals(this.configProperties.getProfile(), "LOCAL") ? "aEwkamaos5C"
+                : generateSecureRandomString(64);
     }
 
     public String generateState() {
@@ -132,7 +133,8 @@ public class OneLoginService {
         return stateCookieDto;
     }
 
-    public String generateAndStoreState(final HttpServletResponse response, final String redirectUrl, final String saltId) {
+    public String generateAndStoreState(final HttpServletResponse response, final String redirectUrl,
+            final String saltId) {
         final String state = this.generateState();
         final String encodedStateJsonString = this.buildEncodedStateJson(redirectUrl, state, saltId);
         final Cookie stateCookie = WebUtil.buildSecureCookie(STATE_COOKIE, encodedStateJsonString, 3600);
@@ -182,7 +184,8 @@ public class OneLoginService {
         claims.put("email", userInfo.getEmailAddress());
         claims.put("sub", userInfo.getSub());
         claims.put("roles", user.getRoles().stream().map(Role::getName).toList().toString());
-        if (user.hasDepartment()) claims.put("department", user.getDepartment().getName());
+        if (user.hasDepartment())
+            claims.put("department", user.getDepartment().getName());
         return claims;
     }
 
@@ -217,8 +220,7 @@ public class OneLoginService {
             final JSONObject userInfo = RestUtils.getRequestWithHeaders(oneLoginBaseUrl + "/userinfo", headers);
             log.info(
                     loggingUtils.getLogMessage("one login userInfo response: ", 1),
-                    entries(userInfo.toMap())
-            );
+                    entries(userInfo.toMap()));
             return OneLoginUserInfoDto.builder()
                     .emailAddress(userInfo.getString("email"))
                     .sub(userInfo.getString("sub"))
@@ -251,18 +253,17 @@ public class OneLoginService {
                 "&post_logout_redirect_uri=" + postLogoutRedirectUri);
     }
 
-
     public void validateIdToken(IdTokenDto decodedIdToken) {
         long currentEpochSeconds = Instant.now().getEpochSecond();
 
+        log.info("validateIdToken");
         if (!decodedIdToken.getIss().equals(oneLoginBaseUrl.concat("/"))) {
             String message = "invalid iss property in One Login ID token";
             log.error(
                     loggingUtils.getLogMessage(message + ": ", 3),
                     keyValue("issFromToken", decodedIdToken.getIss()),
                     keyValue("expectedIss", oneLoginBaseUrl.concat("/")),
-                    keyValue(ID_TOKEN, decodedIdToken)
-            );
+                    keyValue(ID_TOKEN, decodedIdToken));
             throw new UnauthorizedClientException(message);
         }
         if (!decodedIdToken.getAud().equals(clientId)) {
@@ -271,8 +272,7 @@ public class OneLoginService {
                     loggingUtils.getLogMessage(message + ": ", 3),
                     keyValue("audFromToken", decodedIdToken.getAud()),
                     keyValue("expectedAud", clientId),
-                    keyValue(ID_TOKEN, decodedIdToken)
-            );
+                    keyValue(ID_TOKEN, decodedIdToken));
             throw new UnauthorizedClientException(message);
         }
         if (currentEpochSeconds > decodedIdToken.getExp()) {
@@ -281,8 +281,7 @@ public class OneLoginService {
                     loggingUtils.getLogMessage(message + ": ", 3),
                     keyValue("currentTime", currentEpochSeconds),
                     keyValue("tokenExpiry", decodedIdToken.getExp()),
-                    keyValue(ID_TOKEN, decodedIdToken)
-            );
+                    keyValue(ID_TOKEN, decodedIdToken));
             throw new UnauthorizedClientException(message);
         }
         if (currentEpochSeconds < decodedIdToken.getIat()) {
@@ -291,8 +290,7 @@ public class OneLoginService {
                     loggingUtils.getLogMessage(message + ": ", 3),
                     keyValue("currentTime", currentEpochSeconds),
                     keyValue("tokenIat", decodedIdToken.getIat()),
-                    keyValue(ID_TOKEN, decodedIdToken)
-            );
+                    keyValue(ID_TOKEN, decodedIdToken));
             throw new UnauthorizedClientException(message);
         }
     }
@@ -303,8 +301,7 @@ public class OneLoginService {
             log.error(
                     loggingUtils.getLogMessage(message + ": ", 3),
                     keyValue("subFromIDToken", idTokenSub),
-                    keyValue("subFromUserInfo", userInfoSub)
-            );
+                    keyValue("subFromUserInfo", userInfoSub));
             throw new UnauthorizedClientException(message);
         }
     }
@@ -317,8 +314,8 @@ public class OneLoginService {
 
             JWKSet jwkSet = JWKSet.load(new URL(oneLoginBaseUrl.concat("/.well-known/jwks.json")));
             Optional<JWK> optionalMatchingJwk = Optional.ofNullable(jwkSet.getKeyByKeyId(keyId));
-            JWK matchingJwk = optionalMatchingJwk.orElseThrow(() -> new UnauthorizedClientException
-                    ("Matching JWK not found for key ID: " + keyId));
+            JWK matchingJwk = optionalMatchingJwk
+                    .orElseThrow(() -> new UnauthorizedClientException("Matching JWK not found for key ID: " + keyId));
 
             ECDSAVerifier verifier = new ECDSAVerifier((ECKey) matchingJwk);
 
@@ -358,10 +355,8 @@ public class OneLoginService {
     private String sanitizeCode(String code) {
         return Jsoup.clean(
                 StringEscapeUtils.escapeHtml4(
-                        StringEscapeUtils.escapeEcmaScript(StringUtils.replace(code, "'", "''"))
-                ),
-                Safelist.basic()
-        );
+                        StringEscapeUtils.escapeEcmaScript(StringUtils.replace(code, "'", "''"))),
+                Safelist.basic());
     }
 
     public void verifyStateAndNonce(final String nonce, final StateCookieDto stateCookieDto, final String state) {
@@ -370,13 +365,14 @@ public class OneLoginService {
         final String encodedStateJson = buildEncodedStateJson(
                 stateCookieDto.getRedirectUrl(),
                 stateCookieDto.getState(),
-                saltId
-        );
+                saltId);
         final String hashedStateCookie = encryptionService.getSHA512SecurePassword(encodedStateJson, saltId);
         final boolean isStateVerified = state.equals(hashedStateCookie);
-        // by only deleting the salt if the state matches we can ensure that an attacker can't arbitrarily delete salts
+        // by only deleting the salt if the state matches we can ensure that an attacker
+        // can't arbitrarily delete salts
         // as we know they haven't changed the saltId
-        if (isStateVerified) encryptionService.deleteSalt(saltId);
+        if (isStateVerified)
+            encryptionService.deleteSalt(saltId);
 
         // Validate that nonce is stored in the DB
         final Nonce storedNonce = readAndDeleteNonce(nonce);
@@ -394,22 +390,20 @@ public class OneLoginService {
                     keyValue("nonceFromDB", storedNonce.getNonceString()),
                     keyValue("stateFromResponse", state),
                     keyValue("hashedStateFromCookie", hashedStateCookie),
-                    keyValue("stateFromCookie", encodedStateJson)
-            );
+                    keyValue("stateFromCookie", encodedStateJson));
             throw new UnauthorizedClientException("User authorization failed");
         } else if (isNonceExpired) {
             log.error(
-                    loggingUtils.getLogMessage("/redirect-after-login encountered unauthorized user - nonce expired", 7),
+                    loggingUtils.getLogMessage("/redirect-after-login encountered unauthorized user - nonce expired",
+                            7),
                     keyValue("nonceFromToken", nonce),
                     keyValue("nonceFromDB", storedNonce.getNonceString()),
                     keyValue("nonceCreatedAt", storedNonce.getCreatedAt()),
                     keyValue("now", new Date()),
                     keyValue("stateFromResponse", state),
                     keyValue("hashedStateFromCookie", hashedStateCookie),
-                    keyValue("stateFromCookie", encodedStateJson)
-            );
+                    keyValue("stateFromCookie", encodedStateJson));
             throw new NonceExpiredException("User authorization failed, please try again");
         }
     }
 }
-
