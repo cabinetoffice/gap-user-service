@@ -256,6 +256,7 @@ public class OneLoginService {
     public void validateIdToken(IdTokenDto decodedIdToken) {
         long currentEpochSeconds = Instant.now().getEpochSecond();
 
+        log.info("validateIdToken - decodedIdToken :" + decodedIdToken);
         if (decodedIdToken == null || decodedIdToken.equals("")) {
             String message = "Decoded token value is null or empty";
             log.error(message);
