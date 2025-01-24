@@ -173,8 +173,6 @@ public class LoginControllerV2 {
         final String authToken = tokenResponse.getString("access_token");
 
         IdTokenDto decodedIdToken = oneLoginService.decodeTokenId(idToken);
-        // This will be removed before releasing to PROD
-        log.info("Decoded token :" + decodedIdToken);
 
         if (!Objects.equals(this.configProperties.getProfile(), "LOCAL")) {
             oneLoginService.validateIdToken(decodedIdToken);
@@ -195,7 +193,7 @@ public class LoginControllerV2 {
         }
 
         final User user = oneLoginUserService.createOrGetUserFromInfo(userInfo);
-        log.info("User :" + user.getEmailAddress());
+        log.info("User --" + user.getEmailAddress());
 
         final Cookie customJwtCookie = addCustomJwtCookie(response, userInfo, idToken, user.isAdmin());
 
